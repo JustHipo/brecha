@@ -10,3 +10,4 @@ apps/consola/.angular/
 apps/consola/public/
 **/.venv/
 services/ia/uv.lock
+**/.import_linter_cache/
