@@ -209,7 +209,7 @@ Cada fase termina con un checkpoint: la revisas, la pruebas y decides si seguimo
 **Problemas encontrados:** el `latest` de Prisma en npm es una versión candidata (8.0.0-rc.35). **Solución aplicada:** fijar 7.10.1 (sección 10).
 
 ### F1: Esqueleto + núcleo hexagonal + consola Angular con Tailwind + MCP
-**Estado**: 🔄 Implementada el 23-nov-2026; falta la PR a `main` con el CI en verde y tu merge · desglose en la sección 15
+**Estado**: ✅ Completada el 23-nov-2026: PR #1 mergeada en `main` con el CI en verde y el MCP conectado a Claude Code · desglose en la sección 15
 
 **Archivos creados o modificados:**
 | Archivo | Cambio |
