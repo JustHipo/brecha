@@ -247,7 +247,7 @@ Cada fase termina con un checkpoint: la revisas, la pruebas y decides si seguimo
 - **Hecho cuando:** usas la consola con tus 46 postulaciones reales, Claude Code puede listar, mover y anotar postulaciones por MCP, el CI está en verde y la PR de F1 está mergeada con tu confirmación.
 
 ### F2: Fuentes y señales + PostgreSQL con pgvector + RAG
-**Estado**: ⬜ Pendiente
+**Estado**: 🔄 Plan detallado en `docs/diseno/f2.md` (sin aprobar)
 - Servicio con IA en FastAPI sobre PostgreSQL con pgvector (D10), con dos entradas: el **vigía** liviano y la **API** completa (3.1). Su esquema `ia` es solo suyo.
 - **Correo primero, con lector propio (D11, ADR 0015):** conexión de solo lectura al correo de la persona (IMAP o Gmail con OAuth local; credenciales en el llavero del sistema operativo). La IA clasifica cada correo relevante en una señal (plataforma, empresa, aviso, estado sugerido, confianza) y la asocia a una postulación; si no sabe a cuál, va a la bandeja.
 - **Get on Board:** su API pública para avisos y cambios.
