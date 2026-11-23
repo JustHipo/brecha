@@ -8,7 +8,7 @@ import {
   viewChild,
   type ElementRef,
 } from '@angular/core';
-import { FormControl, ReactiveFormsModule, Validators } from '@angular/forms';
+import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 import { TranslocoPipe } from '@jsverse/transloco';
 import { HlmButton } from '@brecha/ui/button';
@@ -27,6 +27,7 @@ import { ErrorDeApi } from '../../nucleo/errores/error-de-api';
   host: { class: 'grid min-h-dvh place-items-center bg-superficie p-6' },
   template: `
     <form
+      [formGroup]="form"
       (ngSubmit)="entrar()"
       class="flex w-full max-w-sm flex-col gap-4 rounded-2xl border border-linea bg-fondo p-7 shadow-[0_20px_50px_rgb(38_33_30/0.12)]"
       novalidate
@@ -47,7 +48,7 @@ import { ErrorDeApi } from '../../nucleo/errores/error-de-api';
           id="clave"
           type="password"
           autocomplete="current-password"
-          [formControl]="clave"
+          formControlName="clave"
           [attr.aria-invalid]="mala()"
           aria-describedby="clave-error"
           #campo
@@ -58,7 +59,7 @@ import { ErrorDeApi } from '../../nucleo/errores/error-de-api';
           }}</span>
         }
       </div>
-      <button hlmBtn type="submit" [disabled]="clave.invalid || enviando()">
+      <button hlmBtn type="submit" [disabled]="form.invalid || enviando()">
         {{ 'acceso.entrar' | transloco }}
       </button>
     </form>
@@ -69,9 +70,8 @@ export class Desbloquear {
   private readonly api = inject(Api);
   private readonly sesion = inject(SesionLocal);
   private readonly router = inject(Router);
-  protected readonly clave = new FormControl('', {
-    nonNullable: true,
-    validators: [Validators.required],
+  protected readonly form = new FormGroup({
+    clave: new FormControl('', { nonNullable: true, validators: [Validators.required] }),
   });
   protected readonly mala = signal(false);
   protected readonly enviando = signal(false);
@@ -82,11 +82,11 @@ export class Desbloquear {
   }
 
   protected async entrar(): Promise<void> {
-    if (this.clave.invalid) return;
+    if (this.form.invalid) return;
     this.enviando.set(true);
     this.mala.set(false);
     try {
-      const s = await firstValueFrom(this.api.desbloquear(this.clave.value));
+      const s = await firstValueFrom(this.api.desbloquear(this.form.getRawValue().clave));
       this.sesion.guardar(s.token, s.expiraEn);
       await this.router.navigateByUrl(this.volver() || '/tablero');
     } catch (e) {

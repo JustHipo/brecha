@@ -38,12 +38,13 @@ export class Transiciones {
     return {};
   }
 
-  elegirDestino(p: Sujeto): Promise<EstadoPostulacion | undefined> {
+  elegirDestino(p: Sujeto, tituloClave?: string): Promise<EstadoPostulacion | undefined> {
     return this.dialogos.abrir<EstadoPostulacion, object>(DialogoMover, {
       empresa: p.empresa,
       titulo: p.titulo,
       estado: p.estado,
       destinos: p.transicionesPosibles,
+      ...(tituloClave ? { tituloClave } : {}),
     });
   }
 }

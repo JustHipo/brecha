@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component } from '@angular/core';
-import { FormControl, ReactiveFormsModule, Validators } from '@angular/forms';
+import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { TranslocoPipe } from '@jsverse/transloco';
 import { HlmButton } from '@brecha/ui/button';
 import { HlmTextarea } from '@brecha/ui/textarea';
@@ -12,7 +12,7 @@ import { DialogoBase, ESTILO, type ContextoPostulacion } from './base';
   imports: [ReactiveFormsModule, TranslocoPipe, HlmButton, HlmTextarea, Avatar],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <form (ngSubmit)="confirmar()" novalidate>
+    <form [formGroup]="form" (ngSubmit)="confirmar()" novalidate>
       <div [class]="e.cabecera">
         <b-avatar [empresa]="ctx.empresa" [tamano]="40" />
         <div class="flex-1">
@@ -36,7 +36,7 @@ import { DialogoBase, ESTILO, type ContextoPostulacion } from './base';
             hlmTextarea
             id="cerrar-motivo"
             rows="3"
-            [formControl]="motivo"
+            formControlName="motivo"
             [placeholder]="'dialogos.cerrar.motivoPlaceholder' | transloco"
             required
           ></textarea>
@@ -50,7 +50,7 @@ import { DialogoBase, ESTILO, type ContextoPostulacion } from './base';
         <button hlmBtn variant="outline" type="button" (click)="cerrar()">
           {{ 'dialogos.cancelar' | transloco }}
         </button>
-        <button hlmBtn type="submit" [disabled]="motivo.invalid">
+        <button hlmBtn type="submit" [disabled]="form.invalid">
           {{ 'dialogos.cerrar.confirmar' | transloco }}
         </button>
       </div>
@@ -62,12 +62,14 @@ export class DialogoCerrar extends DialogoBase<
   { motivo: string }
 > {
   protected readonly e = ESTILO;
-  protected readonly motivo = new FormControl('', {
-    nonNullable: true,
-    validators: [Validators.required, Validators.pattern(/\S/)],
+  protected readonly form = new FormGroup({
+    motivo: new FormControl('', {
+      nonNullable: true,
+      validators: [Validators.required, Validators.pattern(/\S/)],
+    }),
   });
 
   protected confirmar(): void {
-    if (this.motivo.valid) this.cerrar({ motivo: this.motivo.value.trim() });
+    if (this.form.valid) this.cerrar({ motivo: this.form.getRawValue().motivo.trim() });
   }
 }

@@ -1,4 +1,866 @@
-import { ChangeDetectionStrategy, Component } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  effect,
+  inject,
+  input,
+  signal,
+} from '@angular/core';
+import { FormControl, FormGroup, ReactiveFormsModule } from '@angular/forms';
+import { RouterLink } from '@angular/router';
+import { map } from 'rxjs';
+import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
+import type {
+  CambioDeEstado,
+  ContactoEntrada,
+  Detalle,
+  Discrepancia,
+  EntrevistaEntrada,
+  EstadoPostulacion,
+  Senal,
+  SenalEntrada,
+} from '@brecha/contratos';
+import { HlmButton } from '@brecha/ui/button';
+import { HlmInput } from '@brecha/ui/input';
+import { HlmTextarea } from '@brecha/ui/textarea';
+import { Api } from '../../nucleo/api/api.service';
+import { Avisos } from '../../nucleo/avisos';
+import { Formato } from '../../nucleo/idioma/idioma';
+import { Avatar, EtiquetaPlataforma, PuntoPrioridad } from '../../compartido/piezas';
+import { DialogoContacto } from './dialogos/contacto';
+import { Dialogos } from './dialogos/dialogos.service';
+import { DialogoEntrevista } from './dialogos/entrevista';
+import { DialogoSenal } from './dialogos/senal';
+import { FichaStore } from './ficha.store';
+import { Transiciones } from './transiciones';
 
-@Component({ selector: 'b-ficha', changeDetection: ChangeDetectionStrategy.OnPush, template: `` })
-export class FichaPagina {}
+const EMBUDO: EstadoPostulacion[] = [
+  'sin_decidir',
+  'por_postular',
+  'postulado',
+  'en_proceso',
+  'entrevista',
+  'oferta',
+  'aceptada',
+];
+const AVANCE: EstadoPostulacion[] = ['postulado', 'en_proceso', 'entrevista', 'oferta', 'aceptada'];
+
+type Elemento =
+  | { tipo: 'cambio'; fecha: string; c: CambioDeEstado }
+  | { tipo: 'senal'; fecha: string; s: Senal }
+  | { tipo: 'nota'; fecha: string; texto: string }
+  | { tipo: 'entrevista'; fecha: string; texto: string };
+
+interface Etapa {
+  estado: EstadoPostulacion;
+  modo: 'hecha' | 'actual' | 'pendiente';
+  fecha: string | null;
+  detalle: string;
+}
+
+/** Ficha de postulación (ui.md §4.4, maqueta «Ficha · Cálida terracota»). */
+@Component({
+  selector: 'b-ficha',
+  imports: [
+    RouterLink,
+    ReactiveFormsModule,
+    TranslocoPipe,
+    HlmButton,
+    HlmInput,
+    HlmTextarea,
+    Avatar,
+    EtiquetaPlataforma,
+    PuntoPrioridad,
+  ],
+  providers: [FichaStore],
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  host: { class: 'flex min-h-full flex-col' },
+  template: `
+    @switch (store.estado()) {
+      @case ('cargando') {
+        <p class="p-8 text-tinta-suave" aria-busy="true">…</p>
+      }
+      @case ('error') {
+        <div
+          role="alert"
+          class="m-6 flex items-center gap-3 rounded-[10px] border border-aviso-borde bg-aviso-fondo px-3.5 py-3 text-aviso-tinta"
+        >
+          <span class="flex-1">{{
+            (store.error()?.codigo === 'NO_ENCONTRADO'
+              ? 'ficha.noEncontrada'
+              : (store.error()?.clave ?? 'errores.RED')
+            ) | transloco
+          }}</span>
+          <a hlmBtn variant="outline" size="sm" routerLink="/tablero">{{
+            'ficha.volver' | transloco
+          }}</a>
+        </div>
+      }
+      @case ('listo') {
+        @if (store.detalle(); as d) {
+          <div
+            class="flex h-12 flex-none items-center gap-2.5 border-b border-linea px-6 text-tinta-suave"
+          >
+            <a routerLink="/tablero" class="text-tinta-suave no-underline hover:text-tinta">{{
+              'ficha.volver' | transloco
+            }}</a>
+            <span aria-hidden="true">/</span>
+            <span>{{ 'estados.' + d.estado | transloco }}</span>
+            <span aria-hidden="true">/</span>
+            <span class="font-semibold text-tinta">{{ d.empresa }}</span>
+          </div>
+
+          <div class="flex min-h-0 flex-1">
+            <main class="flex max-w-[820px] min-w-0 flex-1 flex-col gap-5 px-9 pt-7 pb-10">
+              <div class="flex items-center gap-4">
+                <b-avatar [empresa]="d.empresa" [tamano]="64" />
+                <div class="flex flex-col gap-[3px]">
+                  <h1
+                    class="m-0 font-titulo text-[28px] leading-tight font-extrabold tracking-[-0.02em]"
+                  >
+                    {{ d.titulo }}
+                  </h1>
+                  <span class="flex flex-wrap items-center gap-3 text-tinta-suave">
+                    <span class="font-semibold text-tinta">{{ d.empresa }}</span>
+                    <b-plataforma [plataforma]="d.plataforma" />
+                    <b-prioridad [prioridad]="d.prioridad" />
+                    <span>{{ 'estados.' + d.estado | transloco }}</span>
+                  </span>
+                </div>
+              </div>
+
+              <div class="flex flex-wrap gap-2">
+                @for (a of d.transicionesPosibles; track a; let primero = $first) {
+                  <button
+                    hlmBtn
+                    type="button"
+                    [variant]="primero && esAvance(a) ? 'default' : 'outline'"
+                    [disabled]="store.ocupado()"
+                    (click)="mover(a)"
+                    [attr.data-transicion]="a"
+                  >
+                    {{ 'ficha.pasarA' | transloco: { estado: ('estados.' + a | transloco) } }}
+                  </button>
+                }
+                @if (puedeAgendar()) {
+                  <button hlmBtn variant="outline" type="button" (click)="agendar()">
+                    {{ 'ficha.agendar' | transloco }}
+                  </button>
+                }
+              </div>
+
+              @for (x of store.discrepanciasAbiertas(); track x.id) {
+                <section
+                  [attr.aria-label]="'ficha.discrepanciaTitulo' | transloco"
+                  class="flex flex-wrap items-center gap-3 rounded-[10px] border border-aviso-borde bg-aviso-fondo px-3.5 py-3"
+                  role="alert"
+                >
+                  <span aria-hidden="true" class="text-aviso-tinta">⚠</span>
+                  <span class="min-w-60 flex-1 text-[#5C3E00]"
+                    ><strong>{{ 'ficha.discrepanciaTitulo' | transloco }}</strong>
+                    {{ textoDiscrepancia(x, d) }}</span
+                  >
+                  <button
+                    hlmBtn
+                    variant="outline"
+                    size="sm"
+                    type="button"
+                    (click)="resolver(x, 'confirmar')"
+                  >
+                    {{ 'ficha.mantener' | transloco }}
+                  </button>
+                  <button
+                    hlmBtn
+                    size="sm"
+                    type="button"
+                    class="bg-aviso-tinta hover:bg-aviso-tinta/90"
+                    (click)="resolver(x, 'corregir')"
+                  >
+                    {{ 'ficha.corregir' | transloco }}
+                  </button>
+                </section>
+              }
+
+              <section
+                [attr.aria-label]="'ficha.etapas' | transloco"
+                class="rounded-[14px] border border-[#ECE7DF] bg-superficie p-1.5"
+              >
+                @for (e of etapas(); track e.estado) {
+                  <div
+                    class="flex items-center gap-3 rounded-[10px] border px-3 py-[11px]"
+                    [class.border-transparent]="e.modo !== 'actual'"
+                    [class.border-acento]="e.modo === 'actual'"
+                    [class.bg-fondo]="e.modo === 'actual'"
+                    [class.text-tinta-suave]="e.modo === 'pendiente'"
+                  >
+                    <span
+                      class="grid size-5 flex-none place-items-center rounded-full text-[11px] text-white"
+                      [class.bg-ok]="e.modo === 'hecha'"
+                      [class.bg-acento]="e.modo === 'actual'"
+                      [class.border-dashed]="e.modo === 'pendiente'"
+                      [class.border-[1.5px]]="e.modo === 'pendiente'"
+                      [class.border-[#BDB5AB]]="e.modo === 'pendiente'"
+                      aria-hidden="true"
+                      >{{ e.modo === 'hecha' ? '✓' : '' }}</span
+                    >
+                    <span class="min-w-[120px] font-semibold">{{
+                      'estados.' + e.estado | transloco
+                    }}</span>
+                    <span class="solo-lector">{{
+                      (e.modo === 'hecha'
+                        ? 'ficha.etapaHecha'
+                        : e.modo === 'actual'
+                          ? 'ficha.etapaActual'
+                          : 'ficha.etapaPendiente'
+                      ) | transloco
+                    }}</span>
+                    <span class="flex-1 text-tinta-suave">{{ e.detalle }}</span>
+                    <span class="text-tinta-suave tabular-nums">{{
+                      formato.fechaCorta(e.fecha)
+                    }}</span>
+                  </div>
+                }
+              </section>
+
+              <div class="grid grid-cols-2 gap-4">
+                <section class="flex flex-col gap-2">
+                  <h2 class="m-0 font-sans text-sm font-bold">{{ 'ficha.aviso' | transloco }}</h2>
+                  <a
+                    [href]="d.url"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="flex items-center gap-2.5 rounded-[10px] border border-linea px-3 py-2.5 text-tinta no-underline hover:bg-superficie"
+                  >
+                    <span class="flex-1"
+                      >{{
+                        'ficha.abrirAviso'
+                          | transloco: { plataforma: ('plataformas.' + d.plataforma | transloco) }
+                      }}
+                      ↗</span
+                    >
+                    @if (d.cierre) {
+                      <span class="text-tinta-suave">{{
+                        'ficha.cierra' | transloco: { fecha: formato.fechaCorta(d.cierre) }
+                      }}</span>
+                    }
+                  </a>
+                  <span class="text-[12.5px] text-tinta-suave"
+                    >{{ 'modalidades.' + d.aviso.modalidad | transloco }}
+                    @if (d.aviso.ubicacion) {
+                      · {{ d.aviso.ubicacion }}
+                    }
+                  </span>
+                </section>
+                <section class="flex flex-col gap-2">
+                  <h2 class="m-0 flex items-center font-sans text-sm font-bold">
+                    <span class="flex-1">{{ 'ficha.postulacion' | transloco }}</span>
+                    @if (!editando()) {
+                      <button
+                        hlmBtn
+                        variant="ghost"
+                        size="xs"
+                        type="button"
+                        (click)="empezarEdicion(d)"
+                      >
+                        {{ 'ficha.editar' | transloco }}
+                      </button>
+                    }
+                  </h2>
+                  @if (editando()) {
+                    <form
+                      [formGroup]="edicion"
+                      (ngSubmit)="guardarEdicion(d)"
+                      class="flex flex-col gap-2 rounded-[10px] border border-linea px-3 py-2.5"
+                    >
+                      <label class="flex flex-col gap-1 text-[12.5px]"
+                        >{{ 'ficha.canal' | transloco }}
+                        <span class="flex gap-2">
+                          <select
+                            formControlName="canalTipo"
+                            class="h-9 rounded-md border border-linea bg-fondo px-2"
+                          >
+                            @for (c of canales; track c) {
+                              <option [value]="c">{{ 'canales.' + c | transloco }}</option>
+                            }
+                          </select>
+                          <input hlmInput class="flex-1" formControlName="canalValor" />
+                        </span>
+                      </label>
+                      <label class="flex flex-col gap-1 text-[12.5px]"
+                        >{{ 'ficha.sueldo' | transloco }}
+                        <span class="flex gap-2">
+                          <input
+                            hlmInput
+                            type="number"
+                            min="0"
+                            class="flex-1"
+                            formControlName="monto"
+                          />
+                          <select
+                            formControlName="moneda"
+                            class="h-9 rounded-md border border-linea bg-fondo px-2"
+                          >
+                            <option value="CLP">CLP</option>
+                            <option value="USD">USD</option>
+                          </select>
+                        </span>
+                      </label>
+                      <label class="flex flex-col gap-1 text-[12.5px]"
+                        >{{ 'nueva.cierre' | transloco }}
+                        <input hlmInput type="date" formControlName="cierre" />
+                      </label>
+                      <div class="flex justify-end gap-2">
+                        <button
+                          hlmBtn
+                          variant="outline"
+                          size="sm"
+                          type="button"
+                          (click)="editando.set(false)"
+                        >
+                          {{ 'ficha.cancelar' | transloco }}
+                        </button>
+                        <button hlmBtn size="sm" type="submit">
+                          {{ 'ficha.guardar' | transloco }}
+                        </button>
+                      </div>
+                    </form>
+                  } @else {
+                    <dl
+                      class="m-0 grid grid-cols-[110px_minmax(0,1fr)] gap-x-2.5 gap-y-1 rounded-[10px] border border-linea px-3 py-2.5"
+                    >
+                      <dt class="text-tinta-suave">{{ 'ficha.canal' | transloco }}</dt>
+                      <dd class="m-0">
+                        {{
+                          d.canal
+                            ? ('canales.' + d.canal.tipo | transloco) + ' · ' + d.canal.valor
+                            : ('ficha.sinDato' | transloco)
+                        }}
+                      </dd>
+                      <dt class="text-tinta-suave">{{ 'ficha.fechaPostulacion' | transloco }}</dt>
+                      <dd class="m-0">
+                        {{
+                          d.fechaPostulacion
+                            ? formato.fechaCorta(d.fechaPostulacion)
+                            : ('ficha.sinDato' | transloco)
+                        }}
+                      </dd>
+                      <dt class="text-tinta-suave">{{ 'ficha.sueldo' | transloco }}</dt>
+                      <dd class="m-0">
+                        {{
+                          d.sueldoPretendido
+                            ? formato.monto(d.sueldoPretendido.monto, d.sueldoPretendido.moneda)
+                            : ('ficha.sinDato' | transloco)
+                        }}
+                      </dd>
+                    </dl>
+                  }
+                </section>
+              </div>
+
+              <section class="flex flex-col gap-2">
+                <h2 class="m-0 font-sans text-sm font-bold">{{ 'ficha.contactos' | transloco }}</h2>
+                <div class="flex flex-wrap gap-2">
+                  @for (c of d.contactos; track c.id) {
+                    <span
+                      class="inline-flex h-[34px] items-center gap-2 rounded-full border border-linea px-3"
+                    >
+                      <b-avatar [empresa]="c.nombre" [tamano]="22" />{{ c.nombre }}
+                      @if (c.rol) {
+                        · {{ c.rol }}
+                      }
+                      @if (c.email) {
+                        <a [href]="'mailto:' + c.email" class="text-acento">{{ c.email }}</a>
+                      }
+                    </span>
+                  }
+                  <button
+                    type="button"
+                    class="h-[34px] rounded-full border border-dashed border-[#D8D1C6] px-3 text-tinta-suave"
+                    (click)="agregarContacto()"
+                  >
+                    + {{ 'ficha.agregarContacto' | transloco }}
+                  </button>
+                </div>
+              </section>
+
+              <section class="flex flex-col gap-2">
+                <h2 class="m-0 font-sans text-sm font-bold">
+                  {{ 'ficha.entrevistas' | transloco }}
+                </h2>
+                @for (e of d.entrevistas; track e.id) {
+                  <div class="flex items-center gap-3 rounded-[10px] border border-linea px-3 py-2">
+                    <span class="font-semibold">{{ 'entrevistas.' + e.tipo | transloco }}</span>
+                    <span class="flex-1 text-tinta-suave"
+                      >{{ formato.fechaHora(e.fecha) }}
+                      @if (e.con) {
+                        · {{ e.con }}
+                      }
+                    </span>
+                    <label class="flex items-center gap-2 text-[12.5px] text-tinta-suave"
+                      >{{ 'ficha.resultado' | transloco }}
+                      <select
+                        class="h-8 rounded-md border border-linea bg-fondo px-2 text-tinta"
+                        [value]="e.resultado"
+                        (change)="resultado(e.id, $any($event.target).value)"
+                      >
+                        @for (r of resultados; track r) {
+                          <option [value]="r">{{ 'resultados.' + r | transloco }}</option>
+                        }
+                      </select>
+                    </label>
+                  </div>
+                } @empty {
+                  <p class="m-0 text-tinta-suave">{{ 'ficha.sinEntrevistas' | transloco }}</p>
+                }
+              </section>
+            </main>
+
+            <aside
+              [attr.aria-label]="'ficha.actividad' | transloco"
+              class="flex w-[380px] flex-none flex-col border-l border-linea bg-superficie-panel"
+            >
+              <div role="tablist" class="flex gap-1 border-b border-linea px-3.5 py-3">
+                @for (p of pestanas; track p) {
+                  <button
+                    role="tab"
+                    type="button"
+                    [attr.aria-selected]="pestana() === p"
+                    class="h-8 flex-1 rounded-lg"
+                    [class.border]="pestana() === p"
+                    [class.border-linea]="pestana() === p"
+                    [class.bg-fondo]="pestana() === p"
+                    [class.font-semibold]="pestana() === p"
+                    [class.text-tinta-suave]="pestana() !== p"
+                    (click)="pestana.set(p)"
+                  >
+                    {{ 'ficha.' + p | transloco }}
+                    @if (p === 'senales' && d.senalesNuevas) {
+                      {{ d.senalesNuevas }}
+                    }
+                  </button>
+                }
+              </div>
+              <div class="flex flex-col gap-3.5 overflow-y-auto p-3.5">
+                <form
+                  id="nota"
+                  class="flex flex-col gap-2 rounded-[12px] border border-linea bg-fondo px-3 py-2.5"
+                  [formGroup]="notaForm"
+                  (ngSubmit)="agregarNota()"
+                >
+                  <label for="nota-texto" class="solo-lector">{{ 'ficha.nota' | transloco }}</label>
+                  <textarea
+                    hlmTextarea
+                    id="nota-texto"
+                    rows="2"
+                    class="border-0 shadow-none focus-visible:ring-0"
+                    [placeholder]="'ficha.escribirNota' | transloco"
+                    formControlName="texto"
+                  ></textarea>
+                  <div class="flex justify-between">
+                    <button
+                      hlmBtn
+                      variant="ghost"
+                      size="sm"
+                      type="button"
+                      (click)="registrarSenal()"
+                    >
+                      + {{ 'ficha.registrarSenal' | transloco }}
+                    </button>
+                    <button
+                      hlmBtn
+                      size="sm"
+                      type="submit"
+                      [disabled]="!notaForm.value.texto?.trim()"
+                    >
+                      {{ 'ficha.agregar' | transloco }}
+                    </button>
+                  </div>
+                </form>
+
+                @for (x of lineaDeTiempo(); track $index) {
+                  @if (x.dia) {
+                    <p class="m-0 text-xs font-semibold text-tinta-suave">{{ x.dia }}</p>
+                  }
+                  @switch (x.e.tipo) {
+                    @case ('cambio') {
+                      @let c = $any(x.e).c;
+                      <div class="flex items-start gap-2.5">
+                        <span
+                          class="grid size-[22px] flex-none place-items-center rounded-full bg-tinta text-[11px] text-white"
+                          aria-hidden="true"
+                          >→</span
+                        >
+                        <span>
+                          @if (c.de) {
+                            {{
+                              'ficha.movida'
+                                | transloco
+                                  : {
+                                      de: ('estados.' + c.de | transloco),
+                                      a: ('estados.' + c.a | transloco),
+                                      origen: ('origenes.' + c.origen | transloco),
+                                    }
+                            }}
+                          } @else {
+                            {{
+                              'ficha.creada'
+                                | transloco
+                                  : {
+                                      a: ('estados.' + c.a | transloco),
+                                      origen: ('origenes.' + c.origen | transloco),
+                                    }
+                            }}
+                          }
+                          @if (c.motivo) {
+                            <br /><span class="text-xs text-tinta-suave">{{
+                              'ficha.motivo' | transloco: { motivo: c.motivo }
+                            }}</span>
+                          }
+                          <br /><span class="text-xs text-tinta-suave">{{
+                            formato.fechaHora(c.ocurridoEn)
+                          }}</span>
+                        </span>
+                      </div>
+                    }
+                    @case ('senal') {
+                      @let s = $any(x.e).s;
+                      <div
+                        class="flex flex-col gap-2 rounded-[12px] border bg-fondo p-3"
+                        [class.border-aviso-borde]="!s.aplicada && s.estadoSugerido"
+                        [class.border-linea]="s.aplicada || !s.estadoSugerido"
+                        [attr.data-senal]="s.id"
+                      >
+                        <span class="flex items-center gap-2">
+                          <span
+                            class="grid size-[22px] place-items-center rounded-full bg-[var(--plat-trabajando-fondo)] text-[11px] text-[var(--plat-trabajando-tinta)]"
+                            aria-hidden="true"
+                            >✉</span
+                          >
+                          <strong>{{ 'fuentes.' + s.fuente | transloco }}</strong>
+                          @if (s.estadoSugerido) {
+                            <span
+                              class="ml-auto rounded-full bg-[#FDE7E2] px-2 py-px text-[11.5px] font-semibold text-[#A33A1F]"
+                              >{{
+                                'ficha.sugiere'
+                                  | transloco
+                                    : { estado: ('estados.' + s.estadoSugerido | transloco) }
+                              }}</span
+                            >
+                          }
+                        </span>
+                        <span class="text-[#3C3632]">{{ s.resumen }}</span>
+                        <span class="flex items-center gap-2">
+                          <span class="text-xs text-tinta-suave"
+                            >{{ formato.fechaHora(s.recibidaEn) }} ·
+                            {{
+                              'ficha.confianza'
+                                | transloco: { valor: formato.porcentaje(s.confianza) }
+                            }}</span
+                          >
+                          @if (s.aplicada) {
+                            <span class="ml-auto text-xs font-semibold text-ok">{{
+                              'ficha.aplicada' | transloco
+                            }}</span>
+                          } @else if (s.estadoSugerido) {
+                            <button
+                              hlmBtn
+                              variant="outline"
+                              size="xs"
+                              class="ml-auto"
+                              type="button"
+                              (click)="aplicar(s)"
+                            >
+                              {{ 'ficha.aplicar' | transloco }}
+                            </button>
+                          }
+                        </span>
+                      </div>
+                    }
+                    @case ('nota') {
+                      <div
+                        class="flex flex-col gap-1 rounded-[12px] border border-linea bg-fondo p-3"
+                      >
+                        <strong>{{ 'ficha.nota' | transloco }}</strong>
+                        <span class="whitespace-pre-line text-[#3C3632]">{{
+                          $any(x.e).texto
+                        }}</span>
+                      </div>
+                    }
+                    @case ('entrevista') {
+                      <div class="flex items-start gap-2.5">
+                        <span
+                          class="grid size-[22px] flex-none place-items-center rounded-full bg-acento text-[11px] text-white"
+                          aria-hidden="true"
+                          >◷</span
+                        >
+                        <span>{{ $any(x.e).texto }}</span>
+                      </div>
+                    }
+                  }
+                }
+              </div>
+            </aside>
+          </div>
+        }
+      }
+    }
+  `,
+})
+export class FichaPagina {
+  readonly id = input.required<string>();
+  protected readonly store = inject(FichaStore);
+  protected readonly formato = inject(Formato);
+  private readonly api = inject(Api);
+  private readonly avisos = inject(Avisos);
+  private readonly dialogos = inject(Dialogos);
+  private readonly transiciones = inject(Transiciones);
+  private readonly t = inject(TranslocoService);
+
+  protected readonly pestanas = ['actividad', 'senales', 'notas'] as const;
+  protected readonly pestana = signal<(typeof this.pestanas)[number]>('actividad');
+  protected readonly canales = ['portal', 'email', 'formulario', 'referido'] as const;
+  protected readonly resultados = ['pendiente', 'avanza', 'no_avanza', 'cancelada'] as const;
+  protected readonly notaForm = new FormGroup({
+    texto: new FormControl('', { nonNullable: true }),
+  });
+  protected readonly editando = signal(false);
+  protected readonly edicion = new FormGroup({
+    canalTipo: new FormControl<'portal' | 'email' | 'formulario' | 'referido'>('portal', {
+      nonNullable: true,
+    }),
+    canalValor: new FormControl('', { nonNullable: true }),
+    monto: new FormControl<number | null>(null),
+    moneda: new FormControl<'CLP' | 'USD'>('CLP', { nonNullable: true }),
+    cierre: new FormControl('', { nonNullable: true }),
+  });
+
+  constructor() {
+    effect(() => void this.store.cargar(this.id()));
+  }
+
+  protected readonly puedeAgendar = computed(() =>
+    ['postulado', 'en_proceso', 'entrevista'].includes(this.store.detalle()?.estado ?? ''),
+  );
+
+  protected esAvance(e: EstadoPostulacion): boolean {
+    return AVANCE.includes(e);
+  }
+
+  /** Etapas apiladas: las recorridas, la actual y la siguiente de avance (maqueta de la ficha). */
+  protected readonly etapas = computed<Etapa[]>(() => {
+    const d = this.store.detalle();
+    if (!d) return [];
+    const recorridas = [...d.historial].reverse();
+    const ultimaVez = (e: EstadoPostulacion) => [...recorridas].reverse().find((c) => c.a === e);
+    const visitadas = EMBUDO.filter((e) => e !== d.estado && ultimaVez(e));
+    const etapas: Etapa[] = visitadas.map((e) => {
+      const c = ultimaVez(e)!;
+      return {
+        estado: e,
+        modo: 'hecha',
+        fecha: c.ocurridoEn,
+        detalle: this.t.translate('origenes.' + c.origen),
+      };
+    });
+    const actual = ultimaVez(d.estado);
+    etapas.push({
+      estado: d.estado,
+      modo: 'actual',
+      fecha: actual?.ocurridoEn ?? null,
+      detalle: actual?.motivo ?? '',
+    });
+    const siguiente = d.transicionesPosibles.find((e) => AVANCE.includes(e));
+    if (siguiente) etapas.push({ estado: siguiente, modo: 'pendiente', fecha: null, detalle: '' });
+    return etapas;
+  });
+
+  /** Mezcla cambios, señales, entrevistas y notas, de lo más nuevo a lo más antiguo, agrupado por día. */
+  protected readonly lineaDeTiempo = computed(() => {
+    const d = this.store.detalle();
+    if (!d) return [];
+    const p = this.pestana();
+    const todos: Elemento[] = [
+      ...(p === 'actividad'
+        ? d.historial.map((c): Elemento => ({ tipo: 'cambio', fecha: c.ocurridoEn, c }))
+        : []),
+      ...(p !== 'notas'
+        ? d.senales.map((s): Elemento => ({ tipo: 'senal', fecha: s.recibidaEn, s }))
+        : []),
+      ...(p !== 'senales'
+        ? d.notas.map((n): Elemento => ({ tipo: 'nota', fecha: n.creadaEn, texto: n.texto }))
+        : []),
+      ...(p === 'actividad'
+        ? d.entrevistas.map((e): Elemento => ({
+            tipo: 'entrevista',
+            fecha: e.fecha,
+            texto: `${this.t.translate('entrevistas.' + e.tipo)} · ${this.formato.fechaHora(e.fecha)}${e.con ? ' · ' + e.con : ''}`,
+          }))
+        : []),
+    ].sort((a, b) => b.fecha.localeCompare(a.fecha));
+    let anterior = '';
+    return todos.map((e) => {
+      const dia = this.formato.fechaCorta(e.fecha);
+      const r = { e, dia: dia !== anterior ? dia : '' };
+      anterior = dia;
+      return r;
+    });
+  });
+
+  protected textoDiscrepancia(x: Discrepancia, d: Detalle): string {
+    const cambio = d.historial.find((c) => c.id === x.cambioId);
+    const senal = d.senales.find((s) => s.id === x.senalId);
+    const a = cambio ? this.t.translate('estados.' + cambio.a) : '';
+    if (!senal) return x.detalle;
+    return this.t.getActiveLang() === 'en'
+      ? `You moved it to ${a} on ${this.formato.fechaCorta(cambio?.ocurridoEn)}, and on ${this.formato.fechaCorta(senal.recibidaEn)} this arrived: «${senal.resumen}».`
+      : `La moviste a ${a} el ${this.formato.fechaCorta(cambio?.ocurridoEn)} y el ${this.formato.fechaCorta(senal.recibidaEn)} llegó: «${senal.resumen}».`;
+  }
+
+  protected async mover(a: EstadoPostulacion): Promise<void> {
+    const d = this.store.detalle()!;
+    const extra = await this.transiciones.datosPara(d, a);
+    if (extra === null) return;
+    await this.intentar(async () => {
+      const nuevo = await this.store.ejecutar((x) =>
+        this.api.cambiarEstado(x.id, { ...extra, a, origen: 'formulario', version: x.version }),
+      );
+      this.avisos.exito('tablero.movida', { estado: this.t.translate('estados.' + a) });
+      if (nuevo.discrepanciasAbiertas > d.discrepanciasAbiertas)
+        this.avisos.aviso('tablero.noCalza');
+    });
+  }
+
+  protected async resolver(x: Discrepancia, decision: 'confirmar' | 'corregir'): Promise<void> {
+    const d = this.store.detalle()!;
+    if (decision === 'confirmar') {
+      await this.intentar(async () => {
+        await this.store.ejecutar((p) =>
+          this.api.resolverDiscrepancia(p.id, x.id, { decision: 'confirmar', version: p.version }),
+        );
+        this.avisos.exito('ficha.resueltaConfirmada');
+      });
+      return;
+    }
+    const a = await this.transiciones.elegirDestino(d, 'dialogos.corregir.titulo');
+    if (!a) return;
+    const extra = await this.transiciones.datosPara(d, a);
+    if (extra === null) return;
+    await this.intentar(async () => {
+      await this.store.ejecutar((p) =>
+        this.api.resolverDiscrepancia(p.id, x.id, {
+          decision: 'corregir',
+          a,
+          ...extra,
+          version: p.version,
+        }),
+      );
+      this.avisos.exito('ficha.resueltaCorregida');
+    });
+  }
+
+  protected async agendar(): Promise<void> {
+    const d = this.store.detalle()!;
+    const r = await this.dialogos.abrir<EntrevistaEntrada, object>(DialogoEntrevista, {
+      empresa: d.empresa,
+      titulo: d.titulo,
+    });
+    if (r)
+      await this.intentar(() => this.store.ejecutar((p) => this.api.agendarEntrevista(p.id, r)));
+  }
+
+  protected async agregarContacto(): Promise<void> {
+    const d = this.store.detalle()!;
+    const r = await this.dialogos.abrir<ContactoEntrada, object>(DialogoContacto, {
+      empresa: d.empresa,
+      titulo: d.titulo,
+    });
+    if (r) await this.intentar(() => this.store.ejecutar((p) => this.api.agregarContacto(p.id, r)));
+  }
+
+  protected async registrarSenal(): Promise<void> {
+    const d = this.store.detalle()!;
+    const r = await this.dialogos.abrir<SenalEntrada, object>(DialogoSenal, {
+      empresa: d.empresa,
+      titulo: d.titulo,
+    });
+    if (!r) return;
+    await this.intentar(async () => {
+      const nuevo = await this.store.ejecutar((p) =>
+        this.api.registrarSenal(p.id, r).pipe(map((x) => x.postulacion)),
+      );
+      this.avisos.exito('ficha.senalRegistrada');
+      if (nuevo.discrepanciasAbiertas > d.discrepanciasAbiertas)
+        this.avisos.aviso('tablero.noCalza');
+    });
+  }
+
+  protected async aplicar(s: Senal): Promise<void> {
+    await this.intentar(() =>
+      this.store.ejecutar((p) => this.api.aplicarSenal(p.id, s.id, p.version)),
+    );
+  }
+
+  protected async agregarNota(): Promise<void> {
+    const texto = this.notaForm.getRawValue().texto.trim();
+    if (!texto) return;
+    await this.intentar(async () => {
+      await this.store.ejecutar((p) => this.api.agregarNota(p.id, texto));
+      this.notaForm.reset();
+      this.avisos.exito('ficha.notaAgregada');
+    });
+  }
+
+  protected async resultado(
+    entrevistaId: string,
+    resultado: (typeof this.resultados)[number],
+  ): Promise<void> {
+    await this.intentar(() =>
+      this.store.ejecutar((p) => this.api.registrarResultado(p.id, entrevistaId, resultado)),
+    );
+  }
+
+  protected empezarEdicion(d: Detalle): void {
+    this.edicion.setValue({
+      canalTipo: (d.canal?.tipo as 'portal') ?? 'portal',
+      canalValor: d.canal?.valor ?? '',
+      monto: d.sueldoPretendido?.monto ?? null,
+      moneda: (d.sueldoPretendido?.moneda as 'CLP') ?? 'CLP',
+      cierre: d.cierre ?? '',
+    });
+    this.editando.set(true);
+  }
+
+  protected async guardarEdicion(d: Detalle): Promise<void> {
+    const v = this.edicion.getRawValue();
+    await this.intentar(async () => {
+      await this.store.ejecutar((p) =>
+        this.api.editar(p.id, {
+          version: p.version,
+          ...(v.canalValor.trim()
+            ? { canal: { tipo: v.canalTipo, valor: v.canalValor.trim() } }
+            : {}),
+          sueldoPretendido: v.monto
+            ? {
+                monto: Number(v.monto),
+                moneda: v.moneda,
+                periodo: d.sueldoPretendido?.periodo ?? 'mes',
+                base: d.sueldoPretendido?.base ?? 'liquido',
+              }
+            : null,
+          cierre: v.cierre || null,
+        }),
+      );
+      this.editando.set(false);
+      this.avisos.exito('ficha.guardado');
+    });
+  }
+
+  private async intentar(f: () => Promise<unknown>): Promise<void> {
+    try {
+      await f();
+    } catch (e) {
+      this.avisos.error(e);
+    }
+  }
+}

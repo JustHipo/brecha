@@ -12,7 +12,7 @@ import { DialogoBase, ESTILO, type ContextoPostulacion } from './base';
   template: `
     <div [class]="e.cabecera">
       <div class="flex-1">
-        <h2 [class]="e.titulo">{{ 'mover.titulo' | transloco }}</h2>
+        <h2 [class]="e.titulo">{{ ctx.tituloClave ?? 'mover.titulo' | transloco }}</h2>
         <p [class]="e.subtitulo">{{ ctx.empresa }} · {{ ctx.titulo }}</p>
       </div>
     </div>
@@ -46,7 +46,11 @@ import { DialogoBase, ESTILO, type ContextoPostulacion } from './base';
   `,
 })
 export class DialogoMover extends DialogoBase<
-  ContextoPostulacion & { estado: EstadoPostulacion; destinos: EstadoPostulacion[] },
+  ContextoPostulacion & {
+    estado: EstadoPostulacion;
+    destinos: EstadoPostulacion[];
+    tituloClave?: string;
+  },
   EstadoPostulacion
 > {
   protected readonly e = ESTILO;

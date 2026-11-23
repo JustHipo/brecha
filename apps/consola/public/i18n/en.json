@@ -250,7 +250,7 @@
       "confirmar": "Correct"
     },
     "cancelar": "Cancel",
-    "cerrar": "Close"
+    "cerrarVentana": "Close"
   },
   "acceso": {
     "titulo": "Brecha is locked",
