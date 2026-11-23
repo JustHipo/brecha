@@ -7,6 +7,10 @@ export const base = tseslint.config(
   js.configs.recommended,
   ...tseslint.configs.recommended,
   {
+    files: ['**/*.cjs'],
+    languageOptions: { sourceType: 'commonjs', globals: { module: 'writable', require: 'readonly' } },
+  },
+  {
     rules: {
       '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }],
     },

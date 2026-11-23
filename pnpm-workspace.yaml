@@ -5,6 +5,8 @@ packages:
 
 # pnpm 11 bloquea los build scripts de las dependencias hasta aprobarlos (ADR 0002).
 allowBuilds:
+  # telemetría de swagger-ui: no se ejecuta
+  '@scarf/scarf': false
   '@prisma/engines': true
   prisma: true
   argon2: true
