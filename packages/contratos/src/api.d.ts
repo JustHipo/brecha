@@ -323,13 +323,13 @@ export interface components {
             modalidad: components["schemas"]["Modalidad"];
             ubicacion: string;
             /** Format: date */
-            cierre: Record<string, never> | null;
+            cierre: string | null;
             /** @description Días hasta el cierre (negativo si ya cerró) */
-            diasAlCierre: Record<string, never> | null;
+            diasAlCierre: number | null;
             estado: components["schemas"]["EstadoPostulacion"];
             prioridad: components["schemas"]["Prioridad"];
             /** Format: date */
-            fechaPostulacion: Record<string, never> | null;
+            fechaPostulacion: string | null;
             /** @description Señales sin aplicar */
             senalesNuevas: number;
             discrepanciasAbiertas: number;
@@ -382,7 +382,7 @@ export interface components {
             modalidad?: components["schemas"]["Modalidad"];
             ubicacion?: string;
             /** Format: date */
-            cierre?: Record<string, never> | null;
+            cierre?: string | null;
         };
         /** @enum {string} */
         Moneda: "CLP" | "USD";
@@ -503,7 +503,7 @@ export interface components {
             /** Format: date-time */
             detectadaEn: string;
             /** Format: date-time */
-            resueltaEn: Record<string, never> | null;
+            resueltaEn: string | null;
         };
         DetallePostulacionDto: {
             id: string;
@@ -514,13 +514,13 @@ export interface components {
             modalidad: components["schemas"]["Modalidad"];
             ubicacion: string;
             /** Format: date */
-            cierre: Record<string, never> | null;
+            cierre: string | null;
             /** @description Días hasta el cierre (negativo si ya cerró) */
-            diasAlCierre: Record<string, never> | null;
+            diasAlCierre: number | null;
             estado: components["schemas"]["EstadoPostulacion"];
             prioridad: components["schemas"]["Prioridad"];
             /** Format: date */
-            fechaPostulacion: Record<string, never> | null;
+            fechaPostulacion: string | null;
             /** @description Señales sin aplicar */
             senalesNuevas: number;
             discrepanciasAbiertas: number;
@@ -576,7 +576,7 @@ export interface components {
              * Format: date
              * @description Cierre del aviso; null lo borra
              */
-            cierre?: Record<string, never> | null;
+            cierre?: string | null;
         };
         TransicionDto: {
             a: components["schemas"]["EstadoPostulacion"];
@@ -647,7 +647,7 @@ export interface components {
             /** Format: date-time */
             ocurridoEn: string;
             prioridad: components["schemas"]["Prioridad"];
-            correlacionId: Record<string, never> | null;
+            correlacionId: string | null;
             /** @description Incluye postulacionId */
             datos: {
                 [key: string]: unknown;

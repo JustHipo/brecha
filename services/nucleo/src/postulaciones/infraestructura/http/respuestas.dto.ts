@@ -117,7 +117,7 @@ export class DiscrepanciaDto {
   @ApiProperty({ enum: ['abierta', 'confirmada', 'corregida'], enumName: 'EstadoDeDiscrepancia' })
   estado!: string;
   @ApiProperty({ format: 'date-time' }) detectadaEn!: string;
-  @ApiProperty({ format: 'date-time', nullable: true }) resueltaEn!: string | null;
+  @ApiProperty({ type: String, format: 'date-time', nullable: true }) resueltaEn!: string | null;
 }
 
 export class ResumenPostulacionDto {
@@ -128,12 +128,12 @@ export class ResumenPostulacionDto {
   @ApiProperty({ enum: PLATAFORMAS, enumName: 'Plataforma' }) plataforma!: string;
   @ApiProperty({ enum: MODALIDADES, enumName: 'Modalidad' }) modalidad!: string;
   @ApiProperty() ubicacion!: string;
-  @ApiProperty({ format: 'date', nullable: true }) cierre!: string | null;
-  @ApiProperty({ nullable: true, description: 'Días hasta el cierre (negativo si ya cerró)' }) diasAlCierre!:
-    number | null;
+  @ApiProperty({ type: String, format: 'date', nullable: true }) cierre!: string | null;
+  @ApiProperty({ type: Number, nullable: true, description: 'Días hasta el cierre (negativo si ya cerró)' })
+  diasAlCierre!: number | null;
   @ApiProperty(estado) estado!: string;
   @ApiProperty({ enum: PRIORIDADES, enumName: 'Prioridad' }) prioridad!: string;
-  @ApiProperty({ format: 'date', nullable: true }) fechaPostulacion!: string | null;
+  @ApiProperty({ type: String, format: 'date', nullable: true }) fechaPostulacion!: string | null;
   @ApiProperty({ description: 'Señales sin aplicar' }) senalesNuevas!: number;
   @ApiProperty() discrepanciasAbiertas!: number;
   @ApiProperty({ ...estado, isArray: true }) transicionesPosibles!: string[];
@@ -194,7 +194,7 @@ export class EventoDto {
   @ApiProperty() version!: number;
   @ApiProperty({ format: 'date-time' }) ocurridoEn!: string;
   @ApiProperty({ enum: PRIORIDADES, enumName: 'Prioridad' }) prioridad!: string;
-  @ApiProperty({ nullable: true }) correlacionId!: string | null;
+  @ApiProperty({ type: String, nullable: true }) correlacionId!: string | null;
   @ApiProperty({ type: 'object', additionalProperties: true, description: 'Incluye postulacionId' })
   datos!: Record<string, unknown>;
 }

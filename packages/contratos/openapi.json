@@ -1443,12 +1443,12 @@
             "type": "string"
           },
           "cierre": {
-            "type": "object",
+            "type": "string",
             "format": "date",
             "nullable": true
           },
           "diasAlCierre": {
-            "type": "object",
+            "type": "number",
             "nullable": true,
             "description": "Días hasta el cierre (negativo si ya cerró)"
           },
@@ -1467,7 +1467,7 @@
             ]
           },
           "fechaPostulacion": {
-            "type": "object",
+            "type": "string",
             "format": "date",
             "nullable": true
           },
@@ -1700,7 +1700,7 @@
             "maxLength": 200
           },
           "cierre": {
-            "type": "object",
+            "type": "string",
             "format": "date",
             "nullable": true
           }
@@ -2205,7 +2205,7 @@
             "format": "date-time"
           },
           "resueltaEn": {
-            "type": "object",
+            "type": "string",
             "format": "date-time",
             "nullable": true
           }
@@ -2254,12 +2254,12 @@
             "type": "string"
           },
           "cierre": {
-            "type": "object",
+            "type": "string",
             "format": "date",
             "nullable": true
           },
           "diasAlCierre": {
-            "type": "object",
+            "type": "number",
             "nullable": true,
             "description": "Días hasta el cierre (negativo si ya cerró)"
           },
@@ -2278,7 +2278,7 @@
             ]
           },
           "fechaPostulacion": {
-            "type": "object",
+            "type": "string",
             "format": "date",
             "nullable": true
           },
@@ -2489,7 +2489,7 @@
             ]
           },
           "cierre": {
-            "type": "object",
+            "type": "string",
             "format": "date",
             "nullable": true,
             "description": "Cierre del aviso; null lo borra"
@@ -2748,7 +2748,7 @@
             ]
           },
           "correlacionId": {
-            "type": "object",
+            "type": "string",
             "nullable": true
           },
           "datos": {

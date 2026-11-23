@@ -46,8 +46,10 @@ export class AvisoEntradaDto {
   @IsIn(MODALIDADES)
   modalidad?: string;
   @ApiPropertyOptional({ maxLength: 200 }) @IsOptional() @IsString() @MaxLength(200) ubicacion?: string;
-  @ApiPropertyOptional({ format: 'date', nullable: true }) @IsOptional() @Matches(FECHA) cierre?:
-    string | null;
+  @ApiPropertyOptional({ type: String, format: 'date', nullable: true })
+  @IsOptional()
+  @Matches(FECHA)
+  cierre?: string | null;
 }
 
 export class CanalEntradaDto {
@@ -122,7 +124,12 @@ export class EditarPostulacionDto {
   @ValidateNested()
   @Type(() => DineroEntradaDto)
   sueldoPretendido?: DineroEntradaDto | null;
-  @ApiPropertyOptional({ format: 'date', nullable: true, description: 'Cierre del aviso; null lo borra' })
+  @ApiPropertyOptional({
+    type: String,
+    format: 'date',
+    nullable: true,
+    description: 'Cierre del aviso; null lo borra',
+  })
   @IsOptional()
   @Matches(FECHA)
   cierre?: string | null;
