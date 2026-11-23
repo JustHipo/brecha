@@ -348,6 +348,21 @@ describe('rutas de postulaciones (F1-10b)', () => {
     await api().get('/postulaciones/resumen?desde=ayer').expect(400);
   });
 
+  it('POST /postulaciones/importar importa el ejemplo y es idempotente', async () => {
+    const { readFileSync } = await import('node:fs');
+    const { resolve } = await import('node:path');
+    const ejemplo = JSON.parse(
+      readFileSync(resolve(__dirname, '../../../../../../datos/ejemplo/artifact-export.json'), 'utf8'),
+    );
+    await api()
+      .post('/postulaciones/importar', ejemplo)
+      .expect(200, { creadas: 5, omitidas: 0, errores: [] });
+    await api()
+      .post('/postulaciones/importar', ejemplo)
+      .expect(200, { creadas: 0, omitidas: 5, errores: [] });
+    await api().post('/postulaciones/importar', { estados: {} }).expect(400);
+  });
+
   it('una ruta que no existe da NO_ENCONTRADO con la forma de error', async () => {
     const r = await api().get('/nada').expect(404);
     expect(r.body.codigo).toBe('NO_ENCONTRADO');

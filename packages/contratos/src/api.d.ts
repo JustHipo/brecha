@@ -89,6 +89,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/postulaciones/importar": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Importa el export del artifact; idempotente por URL del aviso (F1-11) */
+        post: operations["importarFichas"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/postulaciones/{id}": {
         parameters: {
             query?: never;
@@ -526,6 +543,30 @@ export interface components {
             /** Format: date-time */
             creadaEn: string;
         };
+        ImportarArtifactDto: {
+            /** @description Fichas del export del artifact */
+            fichas: {
+                [key: string]: unknown;
+            }[];
+            /** @description Estados guardados por id de ficha */
+            estados?: {
+                [key: string]: unknown;
+            };
+            origen?: string;
+            exportadoEn?: string;
+        };
+        ErrorDeImportacionDto: {
+            url: string;
+            codigo: string;
+            mensaje: string;
+            campo?: string;
+        };
+        ResultadoImportacionDto: {
+            creadas: number;
+            /** @description Ya existían (misma URL de aviso) */
+            omitidas: number;
+            errores: components["schemas"]["ErrorDeImportacionDto"][];
+        };
         EditarPostulacionDto: {
             version: number;
             canal?: components["schemas"]["CanalEntradaDto"];
@@ -816,6 +857,47 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ElementoResumenDto"][];
+                };
+            };
+            /** @description VALIDACION */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorDto"];
+                };
+            };
+            /** @description NO_AUTENTICADO */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorDto"];
+                };
+            };
+        };
+    };
+    importarFichas: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ImportarArtifactDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResultadoImportacionDto"];
                 };
             };
             /** @description VALIDACION */

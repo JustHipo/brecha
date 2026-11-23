@@ -24,12 +24,14 @@ import type { PedidoConAcceso } from '../../../acceso/decoradores';
 import type { Origen } from '../../dominio/objetos-valor/valores';
 import type { FuenteDeSenal, TipoDeEntrevista } from '../../dominio/partes';
 import { CasosDeUso } from '../casos';
+import { fichasDesdeArtifact, type ExportArtifact } from '../importacion/desde-artifact';
 import {
   AplicarSenalDto,
   ContactoEntradaDto,
   CrearPostulacionDto,
   EditarPostulacionDto,
   EntrevistaEntradaDto,
+  ImportarArtifactDto,
   ListarQueryDto,
   NotaDto,
   ResolverDiscrepanciaDto,
@@ -42,6 +44,7 @@ import {
   ElementoResumenDto,
   ErrorDto,
   ListaPostulacionesDto,
+  ResultadoImportacionDto,
   SenalRegistradaDto,
   TableroDto,
 } from './respuestas.dto';
@@ -118,6 +121,18 @@ export class PostulacionesController {
   @Errores(400, 409, 422)
   crear(@Body() dto: CrearPostulacionDto, @Req() req: Pedido) {
     return this.casos.crear.ejecutar({ ...dto, origen: origenDe(req) });
+  }
+
+  @Post('importar')
+  @HttpCode(200)
+  @ApiOperation({
+    operationId: 'importarFichas',
+    summary: 'Importa el export del artifact; idempotente por URL del aviso (F1-11)',
+  })
+  @ApiOkResponse({ type: ResultadoImportacionDto })
+  @Errores(400)
+  importar(@Body() dto: ImportarArtifactDto) {
+    return this.casos.importar.ejecutar(fichasDesdeArtifact(dto as unknown as ExportArtifact));
   }
 
   @Get(':id')

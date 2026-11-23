@@ -1,4 +1,5 @@
 import type { Contexto } from '../aplicacion/base';
+import { ImportarFichas } from '../aplicacion/importar-fichas';
 import {
   AgendarEntrevista,
   AgregarContacto,
@@ -36,6 +37,7 @@ export class CasosDeUso {
   readonly ver: VerPostulacion;
   readonly resumen: ResumenDesde;
   readonly exportar: Exportar;
+  readonly importar: ImportarFichas;
 
   constructor(c: Contexto) {
     this.crear = new CrearPostulacion(c);
@@ -53,5 +55,6 @@ export class CasosDeUso {
     this.ver = new VerPostulacion(c);
     this.resumen = new ResumenDesde(c);
     this.exportar = new Exportar(c);
+    this.importar = new ImportarFichas(c);
   }
 }

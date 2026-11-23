@@ -1,6 +1,7 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Transform, Type } from 'class-transformer';
 import {
+  IsArray,
   IsDateString,
   IsIn,
   IsInt,
@@ -229,4 +230,24 @@ export class ResumenQueryDto {
   @IsOptional()
   @IsDateString()
   desde?: string;
+}
+
+export class ImportarArtifactDto {
+  @ApiProperty({
+    type: 'array',
+    items: { type: 'object', additionalProperties: true },
+    description: 'Fichas del export del artifact',
+  })
+  @IsArray()
+  fichas!: object[];
+  @ApiPropertyOptional({
+    type: 'object',
+    additionalProperties: true,
+    description: 'Estados guardados por id de ficha',
+  })
+  @IsOptional()
+  @IsObject()
+  estados?: Record<string, object>;
+  @ApiPropertyOptional() @IsOptional() @IsString() origen?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() exportadoEn?: string;
 }

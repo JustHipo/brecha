@@ -198,3 +198,16 @@ export class EventoDto {
   @ApiProperty({ type: 'object', additionalProperties: true, description: 'Incluye postulacionId' })
   datos!: Record<string, unknown>;
 }
+
+export class ErrorDeImportacionDto {
+  @ApiProperty() url!: string;
+  @ApiProperty() codigo!: string;
+  @ApiProperty() mensaje!: string;
+  @ApiPropertyOptional() campo?: string;
+}
+
+export class ResultadoImportacionDto {
+  @ApiProperty() creadas!: number;
+  @ApiProperty({ description: 'Ya existían (misma URL de aviso)' }) omitidas!: number;
+  @ApiProperty({ type: [ErrorDeImportacionDto] }) errores!: ErrorDeImportacionDto[];
+}

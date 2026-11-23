@@ -19,6 +19,10 @@ export class RepositorioEnMemoria implements PostulacionRepositorio {
     return d ? Postulacion.reconstituir(structuredClone(d)) : null;
   }
 
+  async idPorUrl(url: string) {
+    return [...this.filas.values()].find((d) => d.aviso.url === url)?.id ?? null;
+  }
+
   async guardar(p: Postulacion) {
     const d = p.datos();
     const pend = p.cambiosPendientes();

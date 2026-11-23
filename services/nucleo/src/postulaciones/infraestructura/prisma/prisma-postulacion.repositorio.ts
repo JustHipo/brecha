@@ -24,6 +24,11 @@ export class PrismaPostulacionRepositorio implements PostulacionRepositorio {
     return fila ? Postulacion.reconstituir(filaADatos(fila)) : null;
   }
 
+  async idPorUrl(url: string): Promise<string | null> {
+    const fila = await this.prisma.postulacion.findFirst({ where: { avisoUrl: url }, select: { id: true } });
+    return fila?.id ?? null;
+  }
+
   async guardar(p: Postulacion): Promise<void> {
     const d = p.datos();
     const pend = p.cambiosPendientes();

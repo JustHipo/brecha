@@ -343,6 +343,63 @@
         ]
       }
     },
+    "/api/v1/postulaciones/importar": {
+      "post": {
+        "operationId": "importarFichas",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ImportarArtifactDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultadoImportacionDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "VALIDACION",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "NO_AUTENTICADO",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Importa el export del artifact; idempotente por URL del aviso (F1-11)",
+        "tags": [
+          "postulaciones"
+        ]
+      }
+    },
     "/api/v1/postulaciones/{id}": {
       "get": {
         "operationId": "verPostulacion",
@@ -2338,6 +2395,78 @@
           "senales",
           "discrepancias",
           "creadaEn"
+        ]
+      },
+      "ImportarArtifactDto": {
+        "type": "object",
+        "properties": {
+          "fichas": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": true
+            },
+            "description": "Fichas del export del artifact"
+          },
+          "estados": {
+            "type": "object",
+            "additionalProperties": true,
+            "description": "Estados guardados por id de ficha"
+          },
+          "origen": {
+            "type": "string"
+          },
+          "exportadoEn": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "fichas"
+        ]
+      },
+      "ErrorDeImportacionDto": {
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string"
+          },
+          "codigo": {
+            "type": "string"
+          },
+          "mensaje": {
+            "type": "string"
+          },
+          "campo": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "url",
+          "codigo",
+          "mensaje"
+        ]
+      },
+      "ResultadoImportacionDto": {
+        "type": "object",
+        "properties": {
+          "creadas": {
+            "type": "number"
+          },
+          "omitidas": {
+            "type": "number",
+            "description": "Ya existían (misma URL de aviso)"
+          },
+          "errores": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ErrorDeImportacionDto"
+            }
+          }
+        },
+        "required": [
+          "creadas",
+          "omitidas",
+          "errores"
         ]
       },
       "EditarPostulacionDto": {
