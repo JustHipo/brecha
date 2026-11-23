@@ -28,3 +28,6 @@ datos/privado/
 
 # Configuración local de herramientas
 .claude/
+
+# Caché de Nx que deja el CLI de Spartan
+.nx/
