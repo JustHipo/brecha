@@ -1,4 +1,5 @@
 import { Body, Controller, Get, HttpCode, Post, Req } from '@nestjs/common';
+import type { PedidoConAcceso } from './decoradores';
 import { ApiOkResponse, ApiOperation, ApiProperty, ApiTags } from '@nestjs/swagger';
 import { IsString, MaxLength } from 'class-validator';
 import type { Request } from 'express';
@@ -17,9 +18,25 @@ class EstadoAccesoDto {
   @ApiProperty({ description: 'true si el pedido trae un token válido' }) desbloqueado!: boolean;
 }
 
+class VerificacionDto {
+  @ApiProperty({ enum: ['sesion', 'mcp', 'servicio'] }) tipo!: string;
+}
+
 class SesionDto {
   @ApiProperty() token!: string;
   @ApiProperty({ format: 'date-time' }) expiraEn!: string;
+}
+
+/** Lo usa la API de IA para validar el token de la consola (docs/diseno/f2.md §6). */
+@ApiTags('acceso')
+@Controller('acceso')
+export class VerificacionController {
+  @Get('verificar')
+  @ApiOperation({ operationId: 'verificarToken', summary: 'Tipo del token del pedido; 401 si no es válido' })
+  @ApiOkResponse({ type: VerificacionDto })
+  verificar(@Req() req: Request & PedidoConAcceso): VerificacionDto {
+    return { tipo: req.acceso!.tipo };
+  }
 }
 
 @ApiTags('acceso')

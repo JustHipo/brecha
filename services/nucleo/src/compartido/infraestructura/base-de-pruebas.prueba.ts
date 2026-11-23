@@ -9,6 +9,6 @@ export function prismaDePrueba(): PrismaClient {
 /** Deja vacías las tablas del esquema `nucleo` (no toca `_prisma_migrations`). */
 export async function vaciar(prisma: PrismaClient): Promise<void> {
   await prisma.$executeRawUnsafe(
-    'TRUNCATE postulacion, cambio_estado, senal, discrepancia, entrevista, contacto, nota, acceso, ajuste, outbox CASCADE',
+    'TRUNCATE postulacion, cambio_estado, senal, senal_pendiente, discrepancia, entrevista, contacto, nota, acceso, ajuste, outbox CASCADE',
   );
 }

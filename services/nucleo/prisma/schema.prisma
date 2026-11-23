@@ -162,3 +162,26 @@ model Outbox {
   @@index([publicadoEn, ocurridoEn])
   @@map("outbox")
 }
+
+/// Señales que llegaron sin postulación (la Bandeja, docs/diseno/f2.md §5).
+model SenalPendiente {
+  id                String    @id @db.Uuid
+  fuente            String
+  plataforma        String
+  resumen           String
+  estadoSugerido    String?   @map("estado_sugerido")
+  confianza         Decimal   @db.Decimal(4, 3)
+  referenciaExterna String?   @unique @map("referencia_externa")
+  recibidaEn        DateTime  @map("recibida_en") @db.Timestamptz(3)
+  remitente         String?
+  asunto            String?
+  empresaDetectada  String?   @map("empresa_detectada")
+  cargoDetectado    String?   @map("cargo_detectado")
+  estado            String
+  postulacionId     String?   @map("postulacion_id") @db.Uuid
+  resueltaEn        DateTime? @map("resuelta_en") @db.Timestamptz(3)
+  creadaEn          DateTime  @map("creada_en") @db.Timestamptz(3)
+
+  @@index([estado, recibidaEn])
+  @@map("senal_pendiente")
+}

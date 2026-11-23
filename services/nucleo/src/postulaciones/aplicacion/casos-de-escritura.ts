@@ -1,5 +1,5 @@
 import type { Fecha } from '../../compartido/dominio/puertos';
-import { DatoInvalido } from '../dominio/errores';
+import { DatoInvalido, SenalDuplicada } from '../dominio/errores';
 import type { EstadoPostulacion } from '../dominio/estado';
 import {
   crearAvisoResumen,
@@ -133,6 +133,10 @@ export class RegistrarSenal {
       this.c.ajustes.umbralConfianza(),
     ]);
     const { id, ...datos } = e;
+    // La referencia externa no se repite ni en las postulaciones ni en la bandeja (ADR 0015).
+    if (datos.referenciaExterna && (await this.c.bandeja.referenciaUsada(datos.referenciaExterna))) {
+      throw new SenalDuplicada(datos.referenciaExterna);
+    }
     const senal = await modificar(this.c, id, undefined, (p) =>
       p.registrarSenal(datos, { ...deps(this.c), aplicarSeguras, umbral }),
     );
@@ -232,6 +236,22 @@ export class RegistrarResultadoEntrevista {
   }): Promise<VistaDetalle> {
     await modificar(this.c, e.id, undefined, (p) =>
       p.registrarResultadoEntrevista(e.entrevistaId, e.resultado, this.c.reloj),
+    );
+    return detalleOFalla(this.c, e.id);
+  }
+}
+
+export class VincularAviso {
+  constructor(private readonly c: Contexto) {}
+  async ejecutar(e: { id: string; avisoId?: string; calce?: number }): Promise<VistaDetalle> {
+    await modificar(this.c, e.id, undefined, (p) =>
+      p.vincularAviso(
+        {
+          ...(e.avisoId ? { avisoId: e.avisoId } : {}),
+          ...(e.calce !== undefined ? { calce: e.calce } : {}),
+        },
+        this.c.reloj,
+      ),
     );
     return detalleOFalla(this.c, e.id);
   }

@@ -38,6 +38,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/acceso/verificar": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Tipo del token del pedido; 401 si no es válido */
+        get: operations["verificarToken"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/postulaciones": {
         parameters: {
             query?: never;
@@ -255,6 +272,106 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/senales": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Registra una señal en su postulación o, sin postulación, en la bandeja */
+        post: operations["recibirSenal"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/bandeja": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Señales que esperan postulación, de la más nueva a la más antigua */
+        get: operations["listarBandeja"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/bandeja/{senalId}/asociar": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["asociarSenal"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/bandeja/{senalId}/crear": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Crea la postulación con los datos del aviso y le asocia la señal */
+        post: operations["crearDesdeSenal"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/bandeja/{senalId}/descartar": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["descartarSenal"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/postulaciones/{id}/aviso": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** El servicio con IA liga el aviso analizado y su calce */
+        patch: operations["vincularAviso"];
+        trace?: never;
+    };
     "/api/v1/eventos/stream": {
         parameters: {
             query?: never;
@@ -305,6 +422,10 @@ export interface components {
             token: string;
             /** Format: date-time */
             expiraEn: string;
+        };
+        VerificacionDto: {
+            /** @enum {string} */
+            tipo: "sesion" | "mcp" | "servicio";
         };
         /** @enum {string} */
         Plataforma: "linkedin" | "trabajando" | "getonboard" | "computrabajo" | "chiletrabajos" | "indeed" | "sitio_empresa" | "otra";
@@ -639,6 +760,63 @@ export interface components {
             canal?: components["schemas"]["CanalEntradaDto"];
             version?: number;
         };
+        SenalRecibidaEntradaDto: {
+            /** @description Sin postulación, la señal va a la bandeja */
+            postulacionId?: string;
+            fuente: components["schemas"]["FuenteDeSenal"];
+            plataforma?: components["schemas"]["Plataforma"];
+            resumen: string;
+            estadoSugerido?: components["schemas"]["EstadoPostulacion"];
+            confianza: number;
+            /** Format: date-time */
+            recibidaEn?: string;
+            /** @description Message-ID u otra id de la fuente: no se duplica */
+            referenciaExterna?: string;
+            remitente?: string;
+            asunto?: string;
+            empresaDetectada?: string;
+            cargoDetectado?: string;
+        };
+        /** @enum {string} */
+        EstadoDePendiente: "pendiente" | "asociada" | "descartada";
+        SenalPendienteDto: {
+            id: string;
+            fuente: components["schemas"]["FuenteDeSenal"];
+            plataforma: components["schemas"]["Plataforma"];
+            resumen: string;
+            estadoSugerido?: components["schemas"]["EstadoPostulacion"];
+            confianza: number;
+            /** Format: date-time */
+            recibidaEn: string;
+            referenciaExterna?: string;
+            remitente?: string;
+            asunto?: string;
+            empresaDetectada?: string;
+            cargoDetectado?: string;
+            estado: components["schemas"]["EstadoDePendiente"];
+            postulacionId?: string;
+            /** Format: date-time */
+            resueltaEn: string | null;
+            /** Format: date-time */
+            creadaEn: string;
+        };
+        ResultadoRecepcionDto: {
+            /** @enum {string} */
+            destino: "postulacion" | "bandeja";
+            senal?: components["schemas"]["SenalDto"];
+            postulacion?: components["schemas"]["DetallePostulacionDto"];
+            pendiente?: components["schemas"]["SenalPendienteDto"];
+        };
+        AsociarDto: {
+            postulacionId: string;
+        };
+        CrearDesdeSenalDto: {
+            aviso: components["schemas"]["AvisoEntradaDto"];
+        };
+        VincularAvisoDto: {
+            avisoId?: string;
+            calce?: number;
+        };
         EventoDto: {
             id: string;
             /** @example postulacion.estado_cambiado */
@@ -700,6 +878,25 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SesionDto"];
+                };
+            };
+        };
+    };
+    verificarToken: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VerificacionDto"];
                 };
             };
         };
@@ -1511,6 +1708,261 @@ export interface operations {
             };
             /** @description TRANSICION_INVALIDA, AVISO_CERRADO o ESTADO_TERMINAL */
             422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorDto"];
+                };
+            };
+        };
+    };
+    recibirSenal: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SenalRecibidaEntradaDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResultadoRecepcionDto"];
+                };
+            };
+            /** @description VALIDACION */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorDto"];
+                };
+            };
+            /** @description NO_ENCONTRADO */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorDto"];
+                };
+            };
+            /** @description YA_EXISTE */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorDto"];
+                };
+            };
+        };
+    };
+    listarBandeja: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SenalPendienteDto"][];
+                };
+            };
+        };
+    };
+    asociarSenal: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                senalId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AsociarDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DetallePostulacionDto"];
+                };
+            };
+            /** @description VALIDACION */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorDto"];
+                };
+            };
+            /** @description NO_ENCONTRADO */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorDto"];
+                };
+            };
+            /** @description YA_EXISTE o CONFLICTO */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorDto"];
+                };
+            };
+        };
+    };
+    crearDesdeSenal: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                senalId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CrearDesdeSenalDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DetallePostulacionDto"];
+                };
+            };
+            /** @description VALIDACION */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorDto"];
+                };
+            };
+            /** @description NO_ENCONTRADO */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorDto"];
+                };
+            };
+            /** @description YA_EXISTE */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorDto"];
+                };
+            };
+        };
+    };
+    descartarSenal: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                senalId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SenalPendienteDto"];
+                };
+            };
+            /** @description VALIDACION */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorDto"];
+                };
+            };
+            /** @description NO_ENCONTRADO */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorDto"];
+                };
+            };
+        };
+    };
+    vincularAviso: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["VincularAvisoDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DetallePostulacionDto"];
+                };
+            };
+            /** @description VALIDACION */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorDto"];
+                };
+            };
+            /** @description NO_ENCONTRADO */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };

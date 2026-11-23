@@ -1,6 +1,13 @@
 import type { Contexto } from '../aplicacion/base';
 import { ImportarFichas } from '../aplicacion/importar-fichas';
 import {
+  AsociarSenal,
+  CrearDesdeSenal,
+  DescartarSenal,
+  ListarBandeja,
+  RecibirSenal,
+} from '../aplicacion/casos-de-bandeja';
+import {
   AgendarEntrevista,
   AgregarContacto,
   AgregarNota,
@@ -11,6 +18,7 @@ import {
   RegistrarResultadoEntrevista,
   RegistrarSenal,
   ResolverDiscrepancia,
+  VincularAviso,
 } from '../aplicacion/casos-de-escritura';
 import {
   Exportar,
@@ -38,6 +46,12 @@ export class CasosDeUso {
   readonly resumen: ResumenDesde;
   readonly exportar: Exportar;
   readonly importar: ImportarFichas;
+  readonly recibirSenal: RecibirSenal;
+  readonly bandeja: ListarBandeja;
+  readonly asociarSenal: AsociarSenal;
+  readonly crearDesdeSenal: CrearDesdeSenal;
+  readonly descartarSenal: DescartarSenal;
+  readonly vincularAviso: VincularAviso;
 
   constructor(c: Contexto) {
     this.crear = new CrearPostulacion(c);
@@ -56,5 +70,11 @@ export class CasosDeUso {
     this.resumen = new ResumenDesde(c);
     this.exportar = new Exportar(c);
     this.importar = new ImportarFichas(c);
+    this.recibirSenal = new RecibirSenal(c);
+    this.bandeja = new ListarBandeja(c);
+    this.asociarSenal = new AsociarSenal(c);
+    this.crearDesdeSenal = new CrearDesdeSenal(c);
+    this.descartarSenal = new DescartarSenal(c);
+    this.vincularAviso = new VincularAviso(c);
   }
 }

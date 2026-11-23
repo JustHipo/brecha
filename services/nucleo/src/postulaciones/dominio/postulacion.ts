@@ -50,6 +50,8 @@ import { calcularPrioridad } from './politica-de-prioridad';
 /** Orígenes que son movimientos de una persona o de su IA: los revisa R13. */
 const ORIGENES_MANUALES: readonly Origen[] = ['tablero', 'formulario', 'ia'];
 const VENTANA_EVIDENCIA_MS = 30 * 86_400_000;
+/** Fuentes que leen solas (el vigía); son las únicas que «aplicar señales seguras» puede aplicar (D27). */
+export const FUENTES_AUTOMATICAS: readonly FuenteDeSenal[] = ['correo', 'plataforma'];
 const MAX_NOTA = 5000;
 
 export interface PostulacionDatos {
@@ -307,8 +309,12 @@ export class Postulacion extends AggregateRoot {
     this.pendientes.nuevos.add(senal.id);
     this.tocar(ahora);
 
+    // D27: solo las fuentes automáticas se aplican solas; lo que registra una persona o su IA queda como sugerencia.
     const segura =
-      deps.aplicarSeguras && senal.estadoSugerido !== undefined && senal.confianza >= deps.umbral;
+      deps.aplicarSeguras &&
+      FUENTES_AUTOMATICAS.includes(senal.fuente) &&
+      senal.estadoSugerido !== undefined &&
+      senal.confianza >= deps.umbral;
     if (segura && this.intentarAplicar(senal, deps)) {
       senal = this.buscarSenal(senal.id);
     }
@@ -450,6 +456,19 @@ export class Postulacion extends AggregateRoot {
   }
 
   /** Edita canal, sueldo pretendido y cierre del aviso (`null` lo borra). */
+  /** El servicio con IA liga el aviso analizado y su calce (PLAN §11.4, F2). */
+  vincularAviso(p: { avisoId?: string; calce?: number }, reloj: Reloj): void {
+    if (p.calce !== undefined && !(p.calce >= 0 && p.calce <= 1))
+      throw new DatoInvalido('calce', 'El calce va de 0 a 1');
+    const avisoId = p.avisoId?.trim();
+    this.d.aviso = {
+      ...this.d.aviso,
+      ...(avisoId ? { avisoId: avisoId.slice(0, 100) } : {}),
+      ...(p.calce !== undefined ? { calce: p.calce } : {}),
+    };
+    this.tocar(reloj.ahora());
+  }
+
   editar(p: { canal?: Canal; sueldoPretendido?: Dinero | null; cierre?: Fecha | null }, reloj: Reloj): void {
     if (p.canal) this.d.canal = p.canal;
     if (p.sueldoPretendido === null) delete this.d.sueldoPretendido;

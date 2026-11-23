@@ -6,6 +6,7 @@ import { esTerminal } from '../dominio/estado';
 import { Postulacion, type PostulacionDatos } from '../dominio/postulacion';
 import type { PostulacionRepositorio } from '../dominio/postulacion.repositorio';
 import type { Contexto } from './base';
+import { SenalPendiente, type BandejaRepositorio, type DatosPendiente } from '../dominio/senal-pendiente';
 import type { Ajustes, ConsultasDePostulaciones } from './puertos';
 import { aDetalle, aResumen, ordenarTarjetas, type VistaExportacion } from './vistas';
 import type { Reloj } from '../../compartido/dominio/puertos';
@@ -110,6 +111,36 @@ export class ConsultasEnMemoria implements ConsultasDePostulaciones {
   }
 }
 
+export class BandejaEnMemoria implements BandejaRepositorio {
+  readonly filas = new Map<string, DatosPendiente>();
+  readonly eventos: string[] = [];
+  constructor(private readonly repo: RepositorioEnMemoria) {}
+  async porId(id: string) {
+    const d = this.filas.get(id);
+    return d ? SenalPendiente.reconstituir(structuredClone(d)) : null;
+  }
+  async guardar(s: SenalPendiente, evento?: { tipo: string }) {
+    const d = s.datos();
+    for (const o of this.filas.values()) {
+      if (o.id !== d.id && d.referenciaExterna && o.referenciaExterna === d.referenciaExterna)
+        throw new SenalDuplicada(d.referenciaExterna);
+    }
+    this.filas.set(d.id, d);
+    if (evento) this.eventos.push(evento.tipo);
+  }
+  async referenciaUsada(ref: string) {
+    return (
+      [...this.filas.values()].some((x) => x.referenciaExterna === ref) ||
+      [...this.repo.filas.values()].some((p) => p.senales.some((x) => x.referenciaExterna === ref))
+    );
+  }
+  async pendientes() {
+    return [...this.filas.values()]
+      .filter((x) => x.estado === 'pendiente')
+      .sort((a, b) => b.recibidaEn.getTime() - a.recibidaEn.getTime());
+  }
+}
+
 export class AjustesFijos implements Ajustes {
   constructor(
     public seguras = false,
@@ -127,6 +158,7 @@ export function contextoDePrueba(fecha?: Date) {
   const { reloj, ids } = depsDePrueba(fecha ?? new Date('2026-11-23T12:00:00Z'));
   const repo = new RepositorioEnMemoria();
   const ajustes = new AjustesFijos();
-  const c: Contexto = { repo, consultas: new ConsultasEnMemoria(repo, reloj), reloj, ids, ajustes };
-  return { c, repo, reloj, ajustes };
+  const bandeja = new BandejaEnMemoria(repo);
+  const c: Contexto = { repo, bandeja, consultas: new ConsultasEnMemoria(repo, reloj), reloj, ids, ajustes };
+  return { c, repo, reloj, ajustes, bandeja };
 }

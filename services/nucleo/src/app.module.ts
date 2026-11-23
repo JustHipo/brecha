@@ -7,7 +7,8 @@ import {
   type OnApplicationShutdown,
 } from '@nestjs/common';
 import { APP_GUARD } from '@nestjs/core';
-import { AccesoController } from './acceso/acceso.controller';
+import { AccesoController, VerificacionController } from './acceso/acceso.controller';
+import { BandejaController } from './postulaciones/infraestructura/http/bandeja.controller';
 import { AccesoGuard } from './acceso/acceso.guard';
 import { AccesoService } from './acceso/acceso.service';
 import { AlmacenDeTokens } from './acceso/almacen-de-tokens';
@@ -22,6 +23,7 @@ import { CasosDeUso } from './postulaciones/infraestructura/casos';
 import { PostulacionesController } from './postulaciones/infraestructura/http/postulaciones.controller';
 import { McpController } from './postulaciones/infraestructura/mcp/mcp.controller';
 import { PrismaAjustes } from './postulaciones/infraestructura/prisma/prisma-ajustes';
+import { PrismaBandeja } from './postulaciones/infraestructura/prisma/prisma-bandeja';
 import { PrismaConsultas } from './postulaciones/infraestructura/prisma/prisma-consultas';
 import { PrismaPostulacionRepositorio } from './postulaciones/infraestructura/prisma/prisma-postulacion.repositorio';
 
@@ -45,7 +47,14 @@ export class AppModule {
   static para(config: Config, extra: { reloj?: Reloj } = {}): DynamicModule {
     return {
       module: AppModule,
-      controllers: [AccesoController, PostulacionesController, EventosController, McpController],
+      controllers: [
+        AccesoController,
+        VerificacionController,
+        PostulacionesController,
+        BandejaController,
+        EventosController,
+        McpController,
+      ],
       providers: [
         { provide: CONFIG, useValue: config },
         { provide: PRISMA, useFactory: () => crearPrisma(config.databaseUrl) },
@@ -62,6 +71,7 @@ export class AppModule {
           useFactory: (prisma: PrismaClient, reloj: Reloj, ids: GeneradorId, flujo: FlujoDeEventos) =>
             new CasosDeUso({
               repo: new PrismaPostulacionRepositorio(prisma, ids, flujo),
+              bandeja: new PrismaBandeja(prisma, ids, flujo),
               consultas: new PrismaConsultas(prisma, reloj),
               reloj,
               ids,

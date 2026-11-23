@@ -55,6 +55,28 @@
         ]
       }
     },
+    "/api/v1/acceso/verificar": {
+      "get": {
+        "operationId": "verificarToken",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VerificacionDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Tipo del token del pedido; 401 si no es válido",
+        "tags": [
+          "acceso"
+        ]
+      }
+    },
     "/api/v1/postulaciones": {
       "get": {
         "operationId": "listarPostulaciones",
@@ -1262,6 +1284,377 @@
         ]
       }
     },
+    "/api/v1/senales": {
+      "post": {
+        "operationId": "recibirSenal",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SenalRecibidaEntradaDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultadoRecepcionDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "VALIDACION",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "NO_ENCONTRADO",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "YA_EXISTE",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Registra una señal en su postulación o, sin postulación, en la bandeja",
+        "tags": [
+          "bandeja"
+        ]
+      }
+    },
+    "/api/v1/bandeja": {
+      "get": {
+        "operationId": "listarBandeja",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SenalPendienteDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Señales que esperan postulación, de la más nueva a la más antigua",
+        "tags": [
+          "bandeja"
+        ]
+      }
+    },
+    "/api/v1/bandeja/{senalId}/asociar": {
+      "post": {
+        "operationId": "asociarSenal",
+        "parameters": [
+          {
+            "name": "senalId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AsociarDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DetallePostulacionDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "VALIDACION",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "NO_ENCONTRADO",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "YA_EXISTE o CONFLICTO",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "bandeja"
+        ]
+      }
+    },
+    "/api/v1/bandeja/{senalId}/crear": {
+      "post": {
+        "operationId": "crearDesdeSenal",
+        "parameters": [
+          {
+            "name": "senalId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CrearDesdeSenalDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DetallePostulacionDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "VALIDACION",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "NO_ENCONTRADO",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "YA_EXISTE",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Crea la postulación con los datos del aviso y le asocia la señal",
+        "tags": [
+          "bandeja"
+        ]
+      }
+    },
+    "/api/v1/bandeja/{senalId}/descartar": {
+      "post": {
+        "operationId": "descartarSenal",
+        "parameters": [
+          {
+            "name": "senalId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SenalPendienteDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "VALIDACION",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "NO_ENCONTRADO",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "bandeja"
+        ]
+      }
+    },
+    "/api/v1/postulaciones/{id}/aviso": {
+      "patch": {
+        "operationId": "vincularAviso",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VincularAvisoDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DetallePostulacionDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "VALIDACION",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "NO_ENCONTRADO",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "El servicio con IA liga el aviso analizado y su calce",
+        "tags": [
+          "bandeja"
+        ]
+      }
+    },
     "/api/v1/eventos/stream": {
       "get": {
         "operationId": "flujoDeEventos",
@@ -1364,6 +1757,22 @@
         "required": [
           "token",
           "expiraEn"
+        ]
+      },
+      "VerificacionDto": {
+        "type": "object",
+        "properties": {
+          "tipo": {
+            "type": "string",
+            "enum": [
+              "sesion",
+              "mcp",
+              "servicio"
+            ]
+          }
+        },
+        "required": [
+          "tipo"
         ]
       },
       "Plataforma": {
@@ -2722,6 +3131,227 @@
         "required": [
           "decision"
         ]
+      },
+      "SenalRecibidaEntradaDto": {
+        "type": "object",
+        "properties": {
+          "postulacionId": {
+            "type": "string",
+            "description": "Sin postulación, la señal va a la bandeja"
+          },
+          "fuente": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/FuenteDeSenal"
+              }
+            ]
+          },
+          "plataforma": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Plataforma"
+              }
+            ]
+          },
+          "resumen": {
+            "type": "string",
+            "maxLength": 1000
+          },
+          "estadoSugerido": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/EstadoPostulacion"
+              }
+            ]
+          },
+          "confianza": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "recibidaEn": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "referenciaExterna": {
+            "type": "string",
+            "maxLength": 500,
+            "description": "Message-ID u otra id de la fuente: no se duplica"
+          },
+          "remitente": {
+            "type": "string",
+            "maxLength": 320
+          },
+          "asunto": {
+            "type": "string",
+            "maxLength": 500
+          },
+          "empresaDetectada": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "cargoDetectado": {
+            "type": "string",
+            "maxLength": 300
+          }
+        },
+        "required": [
+          "fuente",
+          "resumen",
+          "confianza"
+        ]
+      },
+      "EstadoDePendiente": {
+        "type": "string",
+        "enum": [
+          "pendiente",
+          "asociada",
+          "descartada"
+        ]
+      },
+      "SenalPendienteDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "fuente": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/FuenteDeSenal"
+              }
+            ]
+          },
+          "plataforma": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Plataforma"
+              }
+            ]
+          },
+          "resumen": {
+            "type": "string"
+          },
+          "estadoSugerido": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/EstadoPostulacion"
+              }
+            ]
+          },
+          "confianza": {
+            "type": "number"
+          },
+          "recibidaEn": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "referenciaExterna": {
+            "type": "string"
+          },
+          "remitente": {
+            "type": "string"
+          },
+          "asunto": {
+            "type": "string"
+          },
+          "empresaDetectada": {
+            "type": "string"
+          },
+          "cargoDetectado": {
+            "type": "string"
+          },
+          "estado": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/EstadoDePendiente"
+              }
+            ]
+          },
+          "postulacionId": {
+            "type": "string"
+          },
+          "resueltaEn": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "creadaEn": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "fuente",
+          "plataforma",
+          "resumen",
+          "confianza",
+          "recibidaEn",
+          "estado",
+          "resueltaEn",
+          "creadaEn"
+        ]
+      },
+      "ResultadoRecepcionDto": {
+        "type": "object",
+        "properties": {
+          "destino": {
+            "type": "string",
+            "enum": [
+              "postulacion",
+              "bandeja"
+            ]
+          },
+          "senal": {
+            "$ref": "#/components/schemas/SenalDto"
+          },
+          "postulacion": {
+            "$ref": "#/components/schemas/DetallePostulacionDto"
+          },
+          "pendiente": {
+            "$ref": "#/components/schemas/SenalPendienteDto"
+          }
+        },
+        "required": [
+          "destino"
+        ]
+      },
+      "AsociarDto": {
+        "type": "object",
+        "properties": {
+          "postulacionId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "postulacionId"
+        ]
+      },
+      "CrearDesdeSenalDto": {
+        "type": "object",
+        "properties": {
+          "aviso": {
+            "$ref": "#/components/schemas/AvisoEntradaDto"
+          }
+        },
+        "required": [
+          "aviso"
+        ]
+      },
+      "VincularAvisoDto": {
+        "type": "object",
+        "properties": {
+          "avisoId": {
+            "type": "string",
+            "maxLength": 100
+          },
+          "calce": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          }
+        }
       },
       "EventoDto": {
         "type": "object",

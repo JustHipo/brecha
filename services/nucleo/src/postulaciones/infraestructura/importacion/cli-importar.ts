@@ -6,6 +6,7 @@ import { crearPrisma } from '../../../compartido/infraestructura/prisma';
 import { GeneradorUuidV7, RelojDelSistema } from '../../../compartido/infraestructura/reloj-y-ids';
 import { ImportarFichas } from '../../aplicacion/importar-fichas';
 import { PrismaAjustes } from '../prisma/prisma-ajustes';
+import { PrismaBandeja } from '../prisma/prisma-bandeja';
 import { PrismaConsultas } from '../prisma/prisma-consultas';
 import { PrismaPostulacionRepositorio } from '../prisma/prisma-postulacion.repositorio';
 import { fichasDesdeArtifact } from './desde-artifact';
@@ -22,6 +23,7 @@ async function main() {
   const ids = new GeneradorUuidV7();
   const caso = new ImportarFichas({
     repo: new PrismaPostulacionRepositorio(prisma, ids),
+    bandeja: new PrismaBandeja(prisma, ids),
     consultas: new PrismaConsultas(prisma, reloj),
     reloj,
     ids,

@@ -228,9 +228,9 @@ export function crearServidorMcp(casos: CasosDeUso): McpServer {
     {
       title: 'Registrar señal',
       description:
-        'Registra evidencia de una fuente (por ejemplo, un correo que leíste con tu propio MCP de correo). No cambia el estado salvo que «aplicar señales seguras» esté activo. Usa referenciaExterna (Message-ID) para no duplicar.',
+        'Registra evidencia de una fuente (por ejemplo, un correo que leíste con tu propio MCP de correo). Sin id de postulación, queda en la bandeja para que la persona la asocie. Una señal registrada por ti no cambia el estado: queda como sugerencia. Usa referenciaExterna (Message-ID) para no duplicar.',
       inputSchema: {
-        id: z.string().describe('Postulación'),
+        id: z.string().optional().describe('Postulación; sin ella, va a la bandeja'),
         fuente: z.enum(FUENTES_DE_SENAL),
         resumen: z.string(),
         estadoSugerido: estado.optional(),
@@ -238,20 +238,54 @@ export function crearServidorMcp(casos: CasosDeUso): McpServer {
         plataforma: z.enum(PLATAFORMAS).optional(),
         recibidaEn: z.string().optional().describe('ISO 8601'),
         referenciaExterna: z.string().optional(),
+        empresaDetectada: z.string().optional(),
+        cargoDetectado: z.string().optional(),
       },
     },
     (a) =>
       correr(async () => {
-        const { recibidaEn, ...resto } = a;
-        const r = await casos.registrarSenal.ejecutar({
+        const { recibidaEn, id, ...resto } = a;
+        const r = await casos.recibirSenal.ejecutar({
           ...resto,
+          ...(id ? { postulacionId: id } : {}),
           ...(recibidaEn ? { recibidaEn: new Date(recibidaEn) } : {}),
         });
+        if (r.destino === 'bandeja')
+          return ok(
+            'Señal en la bandeja: la persona la asocia desde la consola o con asociar_senal',
+            r.pendiente,
+          );
         const aviso = r.postulacion.discrepanciasAbiertas
           ? ` · ⚠ abrió o mantiene ${r.postulacion.discrepanciasAbiertas} discrepancia(s)`
           : '';
         return ok(`Señal registrada (${r.senal.aplicada ? 'aplicada' : 'como sugerencia'})${aviso}`, r);
       }),
+  );
+
+  s.registerTool(
+    'listar_bandeja',
+    {
+      title: 'Listar bandeja',
+      description: 'Señales que llegaron sin postulación.',
+      inputSchema: {},
+      annotations: lectura,
+    },
+    () =>
+      correr(async () => {
+        const r = await casos.bandeja.ejecutar();
+        return ok(`${r.length} señales en la bandeja`, r);
+      }),
+  );
+
+  s.registerTool(
+    'asociar_senal',
+    {
+      title: 'Asociar señal',
+      description:
+        'Lleva una señal de la bandeja a una postulación (con la misma referencia, no se duplica).',
+      inputSchema: { senalId: z.string(), postulacionId: z.string() },
+    },
+    (a) => correr(async () => ok('Señal asociada', await casos.asociarSenal.ejecutar(a))),
   );
 
   s.registerTool(

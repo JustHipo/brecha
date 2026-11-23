@@ -109,6 +109,103 @@ describe('acceso (F1-09) y seguridad (ADR 0019)', () => {
   });
 });
 
+describe('señales como comando y Bandeja (F2-04)', () => {
+  const servicio = () => t.token('servicio');
+  const conToken = (tok: string) => ({
+    get: (u: string) => http.get(`/api/v1${u}`).set('Authorization', `Bearer ${tok}`),
+    post: (u: string, b?: object) =>
+      http
+        .post(`/api/v1${u}`)
+        .set('Authorization', `Bearer ${tok}`)
+        .send(b ?? {}),
+    patch: (u: string, b: object) => http.patch(`/api/v1${u}`).set('Authorization', `Bearer ${tok}`).send(b),
+  });
+  const SENAL = {
+    fuente: 'correo',
+    resumen: 'Agendemos una entrevista',
+    estadoSugerido: 'entrevista',
+    confianza: 0.7,
+  };
+
+  it('GET /acceso/verificar devuelve el tipo del token y 401 sin token', async () => {
+    expect((await conToken(servicio()).get('/acceso/verificar').expect(200)).body).toEqual({
+      tipo: 'servicio',
+    });
+    expect((await api().get('/acceso/verificar').expect(200)).body).toEqual({ tipo: 'sesion' });
+    await http.get('/api/v1/acceso/verificar').expect(401);
+  });
+
+  it('POST /senales sin postulación va a la bandeja; el token de la consola no puede usarlo', async () => {
+    await api().post('/senales', SENAL).expect(401);
+    const r = await conToken(servicio())
+      .post('/senales', { ...SENAL, referenciaExterna: '<b1@x>', empresaDetectada: 'Ficticia' })
+      .expect(201);
+    expect(r.body).toMatchObject({
+      destino: 'bandeja',
+      pendiente: { estado: 'pendiente', empresaDetectada: 'Ficticia' },
+    });
+    const lista = await api().get('/bandeja').expect(200);
+    expect(lista.body).toHaveLength(1);
+    const dup = await conToken(servicio())
+      .post('/senales', { ...SENAL, referenciaExterna: '<b1@x>' })
+      .expect(409);
+    expect(dup.body.codigo).toBe('YA_EXISTE');
+  });
+
+  it('D27: un correo de entrevista con confianza alta mueve la postulación solo; uno bajo queda como sugerencia', async () => {
+    const p = await crear({ estado: 'postulado', fechaPostulacion: hoy, canal: CANAL });
+    const baja = await conToken(servicio())
+      .post('/senales', { ...SENAL, postulacionId: p.id })
+      .expect(201);
+    expect(baja.body).toMatchObject({
+      destino: 'postulacion',
+      senal: { aplicada: false },
+      postulacion: { estado: 'postulado' },
+    });
+    const alta = await conToken(servicio())
+      .post('/senales', { ...SENAL, postulacionId: p.id, confianza: 0.95 })
+      .expect(201);
+    expect(alta.body).toMatchObject({ senal: { aplicada: true }, postulacion: { estado: 'entrevista' } });
+    await conToken(servicio())
+      .post('/senales', { ...SENAL, postulacionId: '00000000-0000-7000-8000-000000000000' })
+      .expect(404);
+  });
+
+  it('asociar, crear desde la señal y descartar', async () => {
+    const p = await crear({ estado: 'postulado', fechaPostulacion: hoy, canal: CANAL });
+    const ids: string[] = [];
+    for (const ref of ['<c1@x>', '<c2@x>', '<c3@x>']) {
+      ids.push(
+        (
+          await conToken(servicio())
+            .post('/senales', { ...SENAL, referenciaExterna: ref })
+            .expect(201)
+        ).body.pendiente.id,
+      );
+    }
+    const asociada = await api().post(`/bandeja/${ids[0]}/asociar`, { postulacionId: p.id }).expect(200);
+    expect(asociada.body.senales[0]).toMatchObject({ referenciaExterna: '<c1@x>' });
+    const creada = await api()
+      .post(`/bandeja/${ids[1]}/crear`, { aviso: { ...AVISO, url: 'https://ejemplo.test/desde-bandeja' } })
+      .expect(201);
+    expect(creada.body.senales).toHaveLength(1);
+    expect((await api().post(`/bandeja/${ids[2]}/descartar`).expect(200)).body.estado).toBe('descartada');
+    expect((await api().get('/bandeja').expect(200)).body).toHaveLength(0);
+    await api().post(`/bandeja/${ids[2]}/descartar`).expect(400);
+    await api().post('/bandeja/no-existe/asociar', { postulacionId: p.id }).expect(404);
+  });
+
+  it('PATCH /postulaciones/:id/aviso solo con el token del servicio', async () => {
+    const p = await crear();
+    await api().patch(`/postulaciones/${p.id}/aviso`, { calce: 0.5 }).expect(401);
+    const r = await conToken(servicio())
+      .patch(`/postulaciones/${p.id}/aviso`, { avisoId: 'a-9', calce: 0.81 })
+      .expect(200);
+    expect(r.body.aviso).toMatchObject({ avisoId: 'a-9', calce: 0.81 });
+    await conToken(servicio()).patch(`/postulaciones/${p.id}/aviso`, { calce: 3 }).expect(400);
+  });
+});
+
 describe('rutas de postulaciones (F1-10b)', () => {
   it('POST /postulaciones crea; con el mismo aviso da YA_EXISTE con el id existente', async () => {
     const p = await crear();
@@ -253,7 +350,7 @@ describe('rutas de postulaciones (F1-10b)', () => {
       .expect(422);
   });
 
-  it('POST /senales registra, abre la discrepancia y una referencia repetida da YA_EXISTE', async () => {
+  it('POST /postulaciones/:id/senales registra, abre la discrepancia y una referencia repetida da YA_EXISTE', async () => {
     const p = await crear();
     await api()
       .post(`/postulaciones/${p.id}/transiciones`, {
@@ -264,7 +361,7 @@ describe('rutas de postulaciones (F1-10b)', () => {
       })
       .expect(200);
     const senal = {
-      fuente: 'correo',
+      fuente: 'manual',
       resumen: 'No continuaremos',
       estadoSugerido: 'rechazado',
       confianza: 0.92,
