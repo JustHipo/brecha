@@ -14,7 +14,7 @@ Escrito el 23-nov-2026 a partir de una revisión de 46 ofertas de empleo backend
 
 - **Qué es:** Brecha es un proyecto personal para aprender, en un sistema real, las herramientas que más piden las ofertas de desarrollo backend en Chile (Angular, React y Next.js, microservicios, RAG, colas y eventos, arquitectura hexagonal), conectadas a un stack conocido (NestJS, Prisma, PostgreSQL).
 - **Qué hace la app:** sigue postulaciones de empleo en varias plataformas, con evidencia del correo y validación por IA (sección 4).
-- **Qué se decidió:** sección 6 (D1 a D29). **Qué falta decidir:** sección 6.3.
+- **Qué se decidió:** sección 6 (D1 a D33). **Qué falta decidir:** sección 6.3.
 
 ## 2. Qué cubre y qué deja fuera
 
@@ -149,6 +149,10 @@ Una pyme registra sus importaciones y las sigue por hitos, con RAG sobre normati
 | D27 | Aplicar señales seguras (R11) | **Encendido por defecto, umbral 0,9** | Una señal con confianza 0,9 o más y un salto válido cambia el estado sola (origen `senal`); bajo el umbral queda como sugerencia. Cambia el valor por defecto de `PrismaAjustes` (hoy apagado) |
 | D28 | Trazas del modelo | **Trazas propias** en el esquema `ia` (llamada, modelo, tokens, costo, resultado) y los sets de evaluación con un script; **sin Langfuse** | Nada pesado extra en Docker. Langfuse puede volver como perfil aparte si hace falta |
 | D29 | Frecuencia del vigía | **Cada 15 minutos** | Una consulta IMAP por vuelta; ajustable desde Ajustes en F3. IMAP IDLE queda como mejora posible |
+| D30 | Umbrales de evaluación de F2 | **Laxos:** correos ≥ 80 % estado, ≥ 75 % asociación, máximo 1 falso rechazo; preguntas ≥ 70 % y 100 % de citas válidas | Definen el «hecho» de F2 (`docs/diseno/f2.md` §9) |
+| D31 | trabajando | **Fuera de F2**: solo sus correos | Su API no es pública; el portal lo revisa la IA del usuario por MCP (D14) |
+| D32 | Perfil para brechas y calce | **Desde los datos del CV** (archivo local), editable en Conexiones | Nunca al repo |
+| D33 | Primera sincronización del correo | **Últimos 60 días** | Después, solo lo nuevo |
 
 ### 6.1 D8: lo que pidió Juan después del checkpoint de F0
 
