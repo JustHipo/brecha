@@ -22,3 +22,6 @@ datos/privado/
 # Sistema
 .DS_Store
 *.log
+
+# Carpeta de la instancia en desarrollo (tokens)
+.brecha/
