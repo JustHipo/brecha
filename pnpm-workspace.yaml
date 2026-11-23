@@ -7,6 +7,8 @@ packages:
 allowBuilds:
   # telemetría de swagger-ui: no se ejecuta
   '@scarf/scarf': false
+  # postinstall de nx (lo trae el CLI de Spartan): no hace falta
+  nx: false
   '@prisma/engines': true
   prisma: true
   argon2: true

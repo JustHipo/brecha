@@ -6,3 +6,5 @@ datos/
 packages/contratos/openapi.json
 packages/contratos/src/api.d.ts
 **/migrations/**/*.sql
+apps/consola/.angular/
+apps/consola/public/

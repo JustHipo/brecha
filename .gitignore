@@ -25,3 +25,6 @@ datos/privado/
 
 # Carpeta de la instancia en desarrollo (tokens)
 .brecha/
+
+# Configuración local de herramientas
+.claude/
