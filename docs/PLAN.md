@@ -14,7 +14,7 @@ Escrito el 23-nov-2026 a partir de una revisión de 46 ofertas de empleo backend
 
 - **Qué es:** Brecha es un proyecto personal para aprender, en un sistema real, las herramientas que más piden las ofertas de desarrollo backend en Chile (Angular, React y Next.js, microservicios, RAG, colas y eventos, arquitectura hexagonal), conectadas a un stack conocido (NestJS, Prisma, PostgreSQL).
 - **Qué hace la app:** sigue postulaciones de empleo en varias plataformas, con evidencia del correo y validación por IA (sección 4).
-- **Qué se decidió:** sección 6 (D1 a D24). **Qué falta decidir:** sección 6.3.
+- **Qué se decidió:** sección 6 (D1 a D29). **Qué falta decidir:** sección 6.3.
 
 ## 2. Qué cubre y qué deja fuera
 
@@ -144,6 +144,11 @@ Una pyme registra sus importaciones y las sigue por hitos, con RAG sobre normati
 | D22 | Dirección visual | **«Cálida» con barra lateral en degradé terracota.** Sale de las referencias de Refero que Juan eligió: 2 Marathon, 4 Fibery, 5 y 9 Homerun, 6 Teal. Fondo blanco, beige cálido en superficies, acento azul para acciones, terracota solo en la barra, amarillo para avisos y discrepancias; títulos en Plus Jakarta Sans 800 y texto en Inter; botones en píldora; embudo de etapas en flechas arriba del tablero; tarjetas con etiqueta de plataforma, iniciales de la empresa y filas de datos; ficha con etapas apiladas y panel de actividad a la derecha | Maquetas aprobadas en el lienzo (página «Maquetas v2»); tokens en `docs/diseno/ui.md` §7. F1-00 queda casi hecha: falta exportar los tokens al tema de Tailwind y Spartan |
 | D23 | Modo oscuro | **Solo modo claro en F1**; los tokens quedan preparados para sumar el oscuro después | Sin segunda paleta ni pruebas de tema en F1 |
 | D24 | Librería de idioma | **Transloco 8.4** (cambia de idioma en vivo, sin recompilar) | F1-12 la instala con `es` y `en` |
+| D25 | Lector de correo (F2) | **IMAP con contraseña de aplicación**, solo lectura; la contraseña va al llavero de macOS | Sin proyecto en Google Cloud (P-BRECHA-SIN-NUBE). Sirve también para otros proveedores. Confirmar al empezar que Google sigue entregando contraseñas de aplicación para IMAP |
+| D26 | Proveedor de IA en F2 | **Solo OpenAI por ahora**: clasificación y embeddings con la llave del usuario | El adaptador de modelo local (ADR 0016) queda para después; la interfaz se diseña igual para los dos. El gasto de OpenAI es de cada persona |
+| D27 | Aplicar señales seguras (R11) | **Encendido por defecto, umbral 0,9** | Una señal con confianza 0,9 o más y un salto válido cambia el estado sola (origen `senal`); bajo el umbral queda como sugerencia. Cambia el valor por defecto de `PrismaAjustes` (hoy apagado) |
+| D28 | Trazas del modelo | **Trazas propias** en el esquema `ia` (llamada, modelo, tokens, costo, resultado) y los sets de evaluación con un script; **sin Langfuse** | Nada pesado extra en Docker. Langfuse puede volver como perfil aparte si hace falta |
+| D29 | Frecuencia del vigía | **Cada 15 minutos** | Una consulta IMAP por vuelta; ajustable desde Ajustes en F3. IMAP IDLE queda como mejora posible |
 
 ### 6.1 D8: lo que pidió Juan después del checkpoint de F0
 
@@ -169,7 +174,7 @@ Con esto no queda nada abierto antes de planificar la UI y el backend.
 
 **Se preguntan al empezar su fase (D18):**
 - **F1:** nada abierto: paleta y tipografía en D22, modo claro en D23, Transloco en D24.
-- **F2:** protocolo del lector de correo (IMAP o API de Gmail); modelo local y modelo de embeddings; valor por defecto y umbral de «aplicar señales seguras»; Langfuse local; cada cuánto revisa el vigía.
+- **F2:** ~~protocolo del lector, modelo local y embeddings, señales seguras, Langfuse, frecuencia del vigía~~ → decididos el 23-nov-2026 (D25 a D29).
 - **F3:** librería de avisos del sistema operativo; hooks de ejemplo.
 - **F4:** Panorama como app aparte o sección de la consola; página del proyecto en GitHub Pages.
 
