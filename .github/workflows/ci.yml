@@ -1,0 +1,61 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verificar:
+    name: Lint, tipos, pruebas, build y contrato
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      DATABASE_URL: postgresql://nucleo:nucleo_local@127.0.0.1:5433/brecha?schema=nucleo
+      DATABASE_URL_PRUEBAS: postgresql://nucleo:nucleo_local@127.0.0.1:5433/brecha_pruebas?schema=nucleo
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Instalar dependencias
+        run: pnpm install --frozen-lockfile
+
+      - name: Levantar PostgreSQL (mismo compose que en local)
+        run: docker compose --profile liviano up -d --wait
+
+      - name: Generar clientes (prisma generate)
+        run: pnpm turbo run generar
+
+      - name: Formato
+        run: pnpm format:check
+
+      - name: Lint y reglas de capas
+        run: pnpm turbo run lint
+
+      - name: Tipos
+        run: pnpm turbo run typecheck
+
+      - name: Pruebas
+        run: pnpm turbo run test
+
+      - name: Build
+        run: pnpm turbo run build
+
+      - name: Contrato sin cambios sin commitear
+        run: |
+          pnpm turbo run contrato:exportar
+          git diff --exit-code -- packages/contratos || (echo "::error::openapi.json o los tipos cambiaron: corre 'pnpm turbo run contrato:exportar' y commitea" && exit 1)
+
+      - name: Sin datos privados en el repo
+        run: |
+          if git ls-files | grep -q '^datos/privado/'; then echo "::error::datos/privado/ no puede ir al repo (ADR 0008)"; exit 1; fi
