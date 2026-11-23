@@ -1,6 +1,9 @@
+import swc from 'unplugin-swc';
 import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
+  // SWC emite la metadata de los decoradores que Nest necesita para inyectar dependencias.
+  plugins: [swc.vite({ module: { type: 'es6' } })],
   test: {
     include: ['src/**/*.spec.ts'],
     environment: 'node',

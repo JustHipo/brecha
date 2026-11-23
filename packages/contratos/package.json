@@ -1,0 +1,19 @@
+{
+  "name": "@brecha/contratos",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Contrato OpenAPI del núcleo y tipos generados para la consola (ADR 0006).",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./openapi.json": "./openapi.json"
+  },
+  "scripts": {
+    "tipos": "openapi-typescript openapi.json -o src/api.d.ts",
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "devDependencies": {
+    "openapi-typescript": "7.13.0",
+    "typescript": "6.0.3"
+  }
+}
