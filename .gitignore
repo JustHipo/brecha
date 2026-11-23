@@ -1,0 +1,24 @@
+# Dependencias y salidas
+node_modules/
+dist/
+.turbo/
+.angular/
+coverage/
+playwright-report/
+test-results/
+*.tsbuildinfo
+
+# Cliente de Prisma generado
+services/nucleo/src/generado/
+
+# Entorno y secretos locales
+.env
+.env.*
+!.env.example
+
+# Datos reales: nunca al repo (ADR 0008)
+datos/privado/
+
+# Sistema
+.DS_Store
+*.log
