@@ -1,0 +1,14 @@
+generator client {
+  provider     = "prisma-client"
+  output       = "../src/generado/prisma"
+  moduleFormat = "cjs"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Humo {
+  id    Int    @id @default(autoincrement())
+  texto String
+}
