@@ -31,3 +31,10 @@ datos/privado/
 
 # Caché de Nx que deja el CLI de Spartan
 .nx/
+
+# Python (servicio con IA)
+.venv/
+__pycache__/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
