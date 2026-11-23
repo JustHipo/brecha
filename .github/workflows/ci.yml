@@ -51,6 +51,20 @@ jobs:
       - name: Build
         run: pnpm turbo run build
 
+      - name: Navegador para Playwright
+        run: pnpm --filter consola exec playwright install --with-deps chromium
+
+      - name: Playwright del flujo de F1-14 con axe (consola contra el núcleo real)
+        run: pnpm turbo run e2e
+
+      - name: Informe de Playwright si falla
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: apps/consola/playwright-report
+          retention-days: 7
+
       - name: Contrato sin cambios sin commitear
         run: |
           pnpm turbo run contrato:exportar

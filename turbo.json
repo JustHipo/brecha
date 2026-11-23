@@ -26,6 +26,11 @@
     "contrato:exportar": {
       "dependsOn": ["generar"],
       "cache": false
+    },
+    "e2e": {
+      "dependsOn": ["^build", "nucleo#build"],
+      "cache": false,
+      "env": ["DATABASE_URL_PRUEBAS", "CI"]
     }
   }
 }
