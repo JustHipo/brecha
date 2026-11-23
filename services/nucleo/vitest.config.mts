@@ -4,6 +4,10 @@ export default defineConfig({
   test: {
     include: ['src/**/*.spec.ts'],
     environment: 'node',
+    setupFiles: ['./vitest.entorno.ts'],
+    globalSetup: ['./vitest.global.ts'],
+    // Las pruebas de integración comparten la base de pruebas: un archivo a la vez.
+    fileParallelism: false,
     coverage: {
       provider: 'v8',
       include: ['src/**/dominio/**/*.ts'],
