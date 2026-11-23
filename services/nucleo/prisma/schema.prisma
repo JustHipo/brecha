@@ -1,0 +1,164 @@
+// Esquema `nucleo` (backend.md §5.2). El esquema `ia` y la extensión vector no los toca Prisma (ADR 0013).
+generator client {
+  provider     = "prisma-client"
+  output       = "../src/generado/prisma"
+  moduleFormat = "cjs"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Postulacion {
+  id               String    @id @db.Uuid
+  avisoTitulo      String    @map("aviso_titulo")
+  avisoEmpresa     String    @map("aviso_empresa")
+  avisoUrl         String    @map("aviso_url")
+  avisoPlataforma  String    @map("aviso_plataforma")
+  avisoModalidad   String    @map("aviso_modalidad")
+  avisoUbicacion   String    @map("aviso_ubicacion")
+  avisoCierre      DateTime? @map("aviso_cierre") @db.Date
+  avisoIdMercado   String?   @map("aviso_id_mercado")
+  avisoCalce       Decimal?  @map("aviso_calce") @db.Decimal(4, 3)
+  estado           String
+  canalTipo        String?   @map("canal_tipo")
+  canalValor       String?   @map("canal_valor")
+  fechaPostulacion DateTime? @map("fecha_postulacion") @db.Date
+  sueldoMonto      Decimal?  @map("sueldo_monto") @db.Decimal(14, 2)
+  sueldoMoneda     String?   @map("sueldo_moneda")
+  sueldoPeriodo    String?   @map("sueldo_periodo")
+  sueldoBase       String?   @map("sueldo_base")
+  /// Vale aviso_url mientras el estado no es terminal y null cuando lo es (R4 sin índice parcial).
+  avisoUrlActiva   String?   @unique @map("aviso_url_activa")
+  version          Int       @default(0)
+  creadaEn         DateTime  @map("creada_en") @db.Timestamptz(3)
+  actualizadaEn    DateTime  @map("actualizada_en") @db.Timestamptz(3)
+
+  cambios       CambioEstado[]
+  senales       Senal[]
+  discrepancias Discrepancia[]
+  entrevistas   Entrevista[]
+  contactos     Contacto[]
+  notas         Nota[]
+
+  @@index([estado])
+  @@index([actualizadaEn])
+  @@map("postulacion")
+}
+
+model CambioEstado {
+  id            String      @id @db.Uuid
+  postulacionId String      @map("postulacion_id") @db.Uuid
+  de            String?
+  a             String
+  motivo        String?
+  origen        String
+  ocurridoEn    DateTime    @map("ocurrido_en") @db.Timestamptz(3)
+  postulacion   Postulacion @relation(fields: [postulacionId], references: [id], onDelete: Cascade)
+
+  @@index([postulacionId, ocurridoEn])
+  @@map("cambio_estado")
+}
+
+model Senal {
+  id                String       @id @db.Uuid
+  /// null = bandeja (F2)
+  postulacionId     String?      @map("postulacion_id") @db.Uuid
+  fuente            String
+  plataforma        String
+  resumen           String
+  estadoSugerido    String?      @map("estado_sugerido")
+  confianza         Decimal      @db.Decimal(4, 3)
+  referenciaExterna String?      @unique @map("referencia_externa")
+  recibidaEn        DateTime     @map("recibida_en") @db.Timestamptz(3)
+  aplicada          Boolean      @default(false)
+  postulacion       Postulacion? @relation(fields: [postulacionId], references: [id], onDelete: Cascade)
+
+  @@index([postulacionId, recibidaEn])
+  @@map("senal")
+}
+
+model Discrepancia {
+  id             String      @id @db.Uuid
+  postulacionId  String      @map("postulacion_id") @db.Uuid
+  cambioEstadoId String      @map("cambio_estado_id") @db.Uuid
+  senalId        String?     @map("senal_id") @db.Uuid
+  regla          String
+  severidad      String
+  detalle        String
+  estado         String
+  detectadaEn    DateTime    @map("detectada_en") @db.Timestamptz(3)
+  resueltaEn     DateTime?   @map("resuelta_en") @db.Timestamptz(3)
+  postulacion    Postulacion @relation(fields: [postulacionId], references: [id], onDelete: Cascade)
+
+  @@index([postulacionId, estado])
+  @@map("discrepancia")
+}
+
+model Entrevista {
+  id            String      @id @db.Uuid
+  postulacionId String      @map("postulacion_id") @db.Uuid
+  fecha         DateTime    @db.Timestamptz(3)
+  tipo          String
+  con           String?
+  resultado     String
+  postulacion   Postulacion @relation(fields: [postulacionId], references: [id], onDelete: Cascade)
+
+  @@index([postulacionId])
+  @@map("entrevista")
+}
+
+model Contacto {
+  id            String      @id @db.Uuid
+  postulacionId String      @map("postulacion_id") @db.Uuid
+  nombre        String
+  rol           String?
+  email         String?
+  linkedin      String?
+  postulacion   Postulacion @relation(fields: [postulacionId], references: [id], onDelete: Cascade)
+
+  @@index([postulacionId])
+  @@map("contacto")
+}
+
+model Nota {
+  id            String      @id @db.Uuid
+  postulacionId String      @map("postulacion_id") @db.Uuid
+  texto         String
+  creadaEn      DateTime    @map("creada_en") @db.Timestamptz(3)
+  postulacion   Postulacion @relation(fields: [postulacionId], references: [id], onDelete: Cascade)
+
+  @@index([postulacionId, creadaEn])
+  @@map("nota")
+}
+
+/// Una sola fila (id = 1) con el hash argon2id de la clave local, si existe.
+model Acceso {
+  id            Int      @id
+  claveHash     String?  @map("clave_hash")
+  actualizadaEn DateTime @map("actualizada_en") @db.Timestamptz(3)
+
+  @@map("acceso")
+}
+
+model Ajuste {
+  clave String @id
+  valor Json
+
+  @@map("ajuste")
+}
+
+model Outbox {
+  id            String    @id @db.Uuid
+  tipo          String
+  version       Int
+  prioridad     String
+  datos         Json
+  correlacionId String?   @map("correlacion_id")
+  ocurridoEn    DateTime  @map("ocurrido_en") @db.Timestamptz(3)
+  publicadoEn   DateTime? @map("publicado_en") @db.Timestamptz(3)
+  intentos      Int       @default(0)
+
+  @@index([publicadoEn, ocurridoEn])
+  @@map("outbox")
+}

@@ -1,0 +1,186 @@
+/*
+ * Tema de Brecha (F1-00, D22 «Cálida» con barra terracota). Tokens de docs/diseno/ui.md §7.
+ * Las variables de :root usan los nombres que esperan los estilos de Spartan (--primary, --border…);
+ * @theme las expone como utilidades de Tailwind (bg-superficie, text-tinta-suave…).
+ * Solo modo claro en F1 (D23): para sumar el oscuro basta otro bloque con las mismas variables.
+ */
+@layer theme, base, components, utilities;
+@import 'tailwindcss/theme.css' layer(theme);
+@import 'tailwindcss/preflight.css' layer(base);
+@import 'tailwindcss/utilities.css';
+@import 'tw-animate-css';
+@import '@spartan-ng/brain/hlm-tailwind-preset.css';
+
+@source './app';
+
+:root {
+  color-scheme: light;
+
+  /* Tokens de Brecha */
+  --fondo: #ffffff;
+  --superficie: #f7f5f2;
+  --superficie-panel: #faf8f5;
+  --linea: #e7e2da;
+  --tinta: #26211e;
+  --tinta-suave: #6b645e;
+  --acento: #3d63dd;
+  --acento-hover: #2a4bb5;
+  --acento-suave: #eef2fd;
+  --barra-desde: #bf5a2f;
+  --barra-hasta: #873719;
+  --barra-tinta: #ffffff;
+  --barra-tinta-suave: #f7d6c6;
+  --aviso-fondo: #fff6d6;
+  --aviso-borde: #f1df9b;
+  --aviso-tinta: #7a5300;
+  --prioridad-alta: #e2622b;
+  --prioridad-media: #d9a21b;
+  --prioridad-baja: #a8a19a;
+  --ok: #2f9e6b;
+  --error: #b3261e;
+
+  /* Plataformas (fondo / texto) */
+  --plat-linkedin-fondo: #e7eef9;
+  --plat-linkedin-tinta: #1e4e95;
+  --plat-getonboard-fondo: #efe8f8;
+  --plat-getonboard-tinta: #5b3593;
+  --plat-trabajando-fondo: #fbebdd;
+  --plat-trabajando-tinta: #9a4207;
+  --plat-computrabajo-fondo: #e3f2e8;
+  --plat-computrabajo-tinta: #1d6638;
+  --plat-otra-fondo: #eeeeec;
+  --plat-otra-tinta: #4a4743;
+
+  /* Nombres de Spartan apuntando a los tokens */
+  --radius: 0.75rem;
+  --background: var(--fondo);
+  --foreground: var(--tinta);
+  --card: var(--fondo);
+  --card-foreground: var(--tinta);
+  --popover: var(--fondo);
+  --popover-foreground: var(--tinta);
+  --primary: var(--acento);
+  --primary-foreground: #ffffff;
+  --secondary: var(--superficie);
+  --secondary-foreground: var(--tinta);
+  --muted: var(--superficie);
+  --muted-foreground: var(--tinta-suave);
+  --accent: var(--superficie);
+  --accent-foreground: var(--tinta);
+  --destructive: var(--error);
+  --border: var(--linea);
+  --input: var(--linea);
+  --ring: var(--acento);
+
+  --font-sans: 'Inter Variable', 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-titulo:
+    'Plus Jakarta Sans Variable', 'Plus Jakarta Sans', 'Inter Variable', system-ui, sans-serif;
+}
+
+@theme inline {
+  --color-fondo: var(--fondo);
+  --color-superficie: var(--superficie);
+  --color-superficie-panel: var(--superficie-panel);
+  --color-linea: var(--linea);
+  --color-tinta: var(--tinta);
+  --color-tinta-suave: var(--tinta-suave);
+  --color-acento: var(--acento);
+  --color-acento-hover: var(--acento-hover);
+  --color-acento-suave: var(--acento-suave);
+  --color-barra-tinta-suave: var(--barra-tinta-suave);
+  --color-aviso-fondo: var(--aviso-fondo);
+  --color-aviso-borde: var(--aviso-borde);
+  --color-aviso-tinta: var(--aviso-tinta);
+  --color-prioridad-alta: var(--prioridad-alta);
+  --color-prioridad-media: var(--prioridad-media);
+  --color-prioridad-baja: var(--prioridad-baja);
+  --color-ok: var(--ok);
+  --color-error: var(--error);
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --font-sans: var(--font-sans);
+  --font-titulo: var(--font-titulo);
+  --text-cuerpo: 13.5px;
+  --text-etiqueta: 10.5px;
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --radius-tarjeta: 12px;
+  --radius-dialogo: 16px;
+  --shadow-tarjeta: 0 1px 2px rgb(40 30 20 / 0.05), 0 2px 6px rgb(40 30 20 / 0.04);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  html,
+  body {
+    height: 100%;
+  }
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    font-size: var(--text-cuerpo);
+    line-height: 1.45;
+  }
+  h1,
+  h2,
+  h3 {
+    font-family: var(--font-titulo);
+  }
+  :focus-visible {
+    outline: 2px solid var(--acento);
+    outline-offset: 2px;
+  }
+}
+
+@layer components {
+  /* Barra lateral en degradé terracota: solo aquí se usa la terracota (D22). */
+  .barra-terracota {
+    background: linear-gradient(180deg, var(--barra-desde) 0%, var(--barra-hasta) 100%);
+    color: var(--barra-tinta);
+  }
+  .etiqueta {
+    font-size: var(--text-etiqueta);
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+  .titulo-pagina {
+    font-family: var(--font-titulo);
+    font-weight: 800;
+    font-size: 27px;
+    letter-spacing: -0.02em;
+    line-height: 1.15;
+  }
+  .solo-lector {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+}

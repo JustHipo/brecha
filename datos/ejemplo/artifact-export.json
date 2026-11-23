@@ -1,0 +1,64 @@
+{
+  "origen": "Datos inventados para probar el importador (ADR 0008)",
+  "fichas": [
+    {
+      "id": "andes-backend",
+      "titulo": "Desarrollador Backend NestJS",
+      "empresa": "Andes Lab (ficticia)",
+      "aviso": "https://ejemplo.test/avisos/andes-backend",
+      "sitio": "getonbrd",
+      "modalidad": "Remoto (Chile)",
+      "ubicacion": "Chile",
+      "estado_inicial": "sin_decidir"
+    },
+    {
+      "id": "kora-fullstack",
+      "titulo": "Full Stack Angular y Node",
+      "empresa": "Kora Software (ficticia)",
+      "aviso": "https://ejemplo.test/avisos/kora-fullstack",
+      "sitio": "linkedin",
+      "modalidad": "Híbrido",
+      "ubicacion": "Santiago",
+      "estado_inicial": "postulado",
+      "fecha_inicial": "2026-11-10"
+    },
+    {
+      "id": "pampa-datos",
+      "titulo": "Ingeniero de Datos",
+      "empresa": "Pampa Datos (ficticia)",
+      "aviso": "https://ejemplo.test/avisos/pampa-datos",
+      "sitio": "trabajando",
+      "modalidad": "Presencial",
+      "ubicacion": "Valparaíso",
+      "estado_inicial": "por_postular"
+    },
+    {
+      "id": "quantix-ia",
+      "titulo": "Backend con IA",
+      "empresa": "Quantix (ficticia)",
+      "aviso": "https://ejemplo.test/avisos/quantix-ia",
+      "sitio": "empresa",
+      "modalidad": "Remoto (cualquier país)",
+      "ubicacion": "Remoto",
+      "estado_inicial": "sin_decidir"
+    }
+  ],
+  "estados": {
+    "kora-fullstack": {
+      "estado": "en_proceso",
+      "fecha": "2026-11-10",
+      "nota": "Respondieron por correo: pasa a revisión técnica."
+    },
+    "quantix-ia": {
+      "estado": "descartado",
+      "nota": "Pide 5 años de experiencia."
+    },
+    "solo-en-estados": {
+      "estado": "rechazado",
+      "fecha": "2026-11-05",
+      "aviso": "https://ejemplo.test/avisos/sur-python",
+      "empresa": "Sur Tecnología (ficticia)",
+      "titulo": "Desarrollador Python"
+    }
+  }
+}

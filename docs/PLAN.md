@@ -6,7 +6,9 @@ Escrito el 23-nov-2026 a partir de una revisión de 46 ofertas de empleo backend
 
 **Versión 4 (23-nov-2026, segunda ronda):** D9 a D18 (sección 6). Modo liviano en segundo plano y completo al abrir (3.1), FastAPI con PostgreSQL y pgvector en vez de MongoDB, lector de correo propio más MCP, proveedor de IA OpenAI o local, sin celular, capa de idioma para inglés, macOS primero. ADR 0013 a 0016; 0007 rechazado y 0011 reemplazado. Lo que falta decidir está en 6.3.
 
-**Diseño detallado (23-nov-2026):** `docs/diseno/backend.md` (aprobado por Juan, con los cambios C1 a C7 de su sección 9: MCP por HTTP en el núcleo, token siempre más validación de Host y Origin, señales como comando HTTP, R4 con `aviso_url_activa`, prueba de humo de Prisma 7 con NestJS, flujo SSE de eventos y lado de lectura aparte; ADR 0018 y 0019) y `docs/diseno/ui.md` (**aprobado** el 23-nov con la dirección visual D22). Maquetas: https://claude.ai/artifact/XuQMrzncy3ysvrSx3yMZud (página «Maquetas v2»). La primera versión no le gustó a Juan; la segunda se hizo con referencias reales del MCP de Refero. Vista para leer: artifact «Plan de Brecha» (https://claude.ai/artifact/NKp2cCezZgsjFVqv9bGP84). Todavía no hay código.
+**Diseño detallado (23-nov-2026):** `docs/diseno/backend.md` (aprobado por Juan, con los cambios C1 a C7 de su sección 9: MCP por HTTP en el núcleo, token siempre más validación de Host y Origin, señales como comando HTTP, R4 con `aviso_url_activa`, prueba de humo de Prisma 7 con NestJS, flujo SSE de eventos y lado de lectura aparte; ADR 0018 y 0019) y `docs/diseno/ui.md` (**aprobado** el 23-nov con la dirección visual D22). Maquetas: https://claude.ai/artifact/XuQMrzncy3ysvrSx3yMZud (página «Maquetas v2»). La primera versión no le gustó a Juan; la segunda se hizo con referencias reales del MCP de Refero. Vista para leer: artifact «Plan de Brecha» (https://claude.ai/artifact/NKp2cCezZgsjFVqv9bGP84).
+
+**F1 implementada (23-nov-2026):** estado, problemas y soluciones en la sección 7 (F1).
 
 ## 1. Contexto en simple
 
@@ -207,7 +209,33 @@ Cada fase termina con un checkpoint: la revisas, la pruebas y decides si seguimo
 **Problemas encontrados:** el `latest` de Prisma en npm es una versión candidata (8.0.0-rc.35). **Solución aplicada:** fijar 7.10.1 (sección 10).
 
 ### F1: Esqueleto + núcleo hexagonal + consola Angular con Tailwind + MCP
-**Estado**: ⬜ Pendiente · desglose en la sección 15
+**Estado**: 🔄 Implementada el 23-nov-2026; falta la PR a `main` con el CI en verde y tu merge · desglose en la sección 15
+
+**Archivos creados o modificados:**
+| Archivo | Cambio |
+|---|---|
+| `package.json`, `pnpm-workspace.yaml`, `turbo.json`, `packages/config` | Monorepo con pnpm 11 y Turborepo (F1-01) |
+| `docker-compose.yml`, `infra/postgres/init` | PostgreSQL 17 con pgvector en 127.0.0.1:5433, esquemas `nucleo` e `ia` y base `brecha_pruebas` (F1-02) |
+| `.github/workflows/ci.yml` | Formato, lint con reglas de capas, tipos, pruebas, build, Playwright y contrato (F1-03, F1-15) |
+| `services/nucleo` | Dominio, Prisma, casos de uso, acceso, REST, SSE, MCP por HTTP e importador (F1-05 a F1-11) |
+| `packages/contratos` | `openapi.json` y tipos generados (F1-10a) |
+| `apps/consola` | Tema, base, Tablero, Lista, Desbloquear, Ficha, Nueva, diálogos y pruebas (F1-00, F1-12 a F1-15) |
+| `datos/ejemplo/artifact-export.json` | 5 fichas inventadas para probar el importador (F1-11) |
+
+**Problemas encontrados:**
+- TypeScript 7 es el `latest` de npm, pero Angular 22 y `@nestjs/swagger` 12 piden la 6.0.
+- Prisma 7 es ESM y NestJS se compila a CommonJS (F1-07a).
+- El export del artifact tiene 52 fichas únicas (50 en la página y 2 descartadas que solo están en su base), no 46.
+- El token de `gh` no tenía el permiso `workflow`, que GitHub exige para subir `.github/workflows`.
+- La Playwright encontró formularios con `(ngSubmit)` sin `[formGroup]` (recargaban la página), una clave de idioma repetida y un gris de la maqueta sin contraste suficiente.
+
+**Soluciones aplicadas:**
+- TypeScript fijo en 6.0.3 en todo el monorepo.
+- Cliente de Prisma con `moduleFormat = "cjs"` (detalle en `docs/diseno/backend.md` §5.1).
+- Se importan las 52; el importador es idempotente por URL del aviso.
+- Formularios con `FormGroup`; el chequeo de idiomas detecta claves repetidas; la etapa pendiente de la ficha usa `tinta-suave` (#6B645E).
+- Las columnas no permitidas se atenúan al arrastrar pero aceptan soltar: la API decide y la tarjeta vuelve con `TRANSICION_INVALIDA` (criterio de F1-13; ui.md §1 «la API manda»).
+
 - Acceso solo local (clave local opcional), sin login de servidor (ADR 0010).
 - El dominio ya modela señales, discrepancias y prioridad (la parte determinista); la IA que las produce llega en F2 y F3.
 - Servidor MCP sobre los mismos casos de uso (ADR 0012).
@@ -447,7 +475,7 @@ Nada silencioso: un filtro desconocido es `VALIDACION`, nunca una lista vacía.
 
 ### 12.2 Servidor MCP del núcleo (F1, ADR 0012)
 
-Transporte stdio, para conectarlo a Claude Code o Claude Desktop con una línea de configuración. Cada herramienta llama al mismo caso de uso que la ruta REST equivalente; los errores devuelven el mismo `codigo`.
+Transporte **Streamable HTTP en `/mcp` dentro del núcleo** (ADR 0018, reemplaza al stdio original), con el token `mcp`; se conecta a Claude Code o Claude Desktop con una línea de configuración (README). Cada herramienta llama al mismo caso de uso que la ruta REST equivalente; los errores devuelven el mismo `codigo`.
 
 | Herramienta | Equivale a |
 |---|---|
@@ -528,12 +556,11 @@ services/nucleo/src/
 │   │                         resolver-discrepancia, agregar-nota, agendar-entrevista, consultas
 │   └── infraestructura/
 │       ├── http/             controladores, DTO, mapeo de errores        ← adaptador de entrada 1
-│       ├── mcp/              servidor MCP (stdio), herramientas          ← adaptador de entrada 2
+│       ├── mcp/              servidor MCP por HTTP en /mcp, herramientas ← adaptador de entrada 2
 │       ├── prisma/           repositorio Prisma, mappers                 ← adaptador de salida
 │       └── outbox/           escritura en la tabla outbox (el publicador llega en F3)
 ├── acceso/                   clave local, token de sesión, token de MCP, guard global
-├── main.ts                   API REST en 127.0.0.1
-└── mcp.ts                    punto de entrada del servidor MCP
+└── main.ts                   API REST, flujo SSE y MCP en 127.0.0.1
 services/nucleo/prisma/schema.prisma
 services/nucleo/.dependency-cruiser.cjs     dominio/ y aplicacion/ no importan @nestjs/*, @prisma/*, el SDK de MCP ni infraestructura/
 ```
@@ -593,7 +620,7 @@ Corre en la misma máquina que el resto; no se publica con datos.
 | F1-09 | Acceso local: el núcleo escucha solo en `127.0.0.1`; clave local opcional con argon2id y token de sesión; token de MCP generado al instalar; guard global. Configuración cargada antes de usarla | Sin clave configurada, la API responde en local; con clave, sin token da 401 `NO_AUTENTICADO`; una clave mala da `CLAVE_INVALIDA` |
 | F1-10a | Contrato: controladores y DTO de la sección 12.1 con `@nestjs/swagger`; `openapi.json` exportado a `packages/contratos` con tipos generados por `openapi-typescript` | `/docs` muestra todas las rutas; el CI falla si `openapi.json` cambia sin commitearse |
 | F1-10b | Conectar controladores con casos de uso y el filtro de errores con la tabla de códigos | Una prueba por ruta con un caso de éxito y uno de error esperado |
-| F1-10c | Servidor MCP (stdio) con las herramientas de 12.2 sobre los mismos casos de uso, y la línea de configuración para Claude Code en el README | Desde Claude Code: listar, mover una postulación (queda con origen `ia`) y registrar una señal; un salto inválido devuelve `TRANSICION_INVALIDA` |
+| F1-10c | Servidor MCP (HTTP en `/mcp`, ADR 0018) con las herramientas de 12.2 sobre los mismos casos de uso, y la línea de configuración para Claude Code en el README | Desde Claude Code: listar, mover una postulación (queda con origen `ia`) y registrar una señal; un salto inválido devuelve `TRANSICION_INVALIDA` |
 | F1-11 | Importador: lee el export del artifact desde `datos/privado/` (46 fichas con `estado_inicial`) y crea las postulaciones con su estado (origen `importacion`). Idempotente por `aviso.url`. Para el repo, `datos/ejemplo/` con 5 fichas inventadas | Importar dos veces deja 46 postulaciones, no 92; el estado de cada una coincide con el del artifact |
 | F1-12 | Consola: `ng new` en `apps/consola` con standalone, Tailwind 4 y Spartan (confirmar compatibilidad con Angular 22), integrada a turbo; cliente tipado desde `packages/contratos`; interceptores de token y de errores; guard de ruta condicionado a la clave; capa de idioma (es, en) con la librería que elijas al empezar F1 | `pnpm dev` levanta núcleo y consola; con clave configurada, `/tablero` manda a `/desbloquear` |
 | F1-13 | Pantallas Desbloquear, Tablero (CDK drag and drop, prioridad, señales, discrepancias) y Lista | Mover una tarjeta de `sin_decidir` a `entrevista` vuelve atrás con el mensaje de `TRANSICION_INVALIDA`; una tarjeta con discrepancia muestra el aviso; se ve bien en una ventana de 1280 px de ancho |

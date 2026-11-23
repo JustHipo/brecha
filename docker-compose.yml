@@ -1,0 +1,29 @@
+# Entorno de desarrollo y CI de Brecha. En la app de escritorio (F3) no se usa Docker.
+# Todos los puertos se publican solo en 127.0.0.1 (ADR 0010).
+name: brecha
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg17
+    profiles: [liviano, completo]
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: brecha
+      POSTGRES_USER: brecha
+      POSTGRES_PASSWORD: '${POSTGRES_PASSWORD:-brecha_local}'
+      NUCLEO_DB_PASSWORD: '${NUCLEO_DB_PASSWORD:-nucleo_local}'
+      IA_DB_PASSWORD: '${IA_DB_PASSWORD:-ia_local}'
+    ports:
+      - '127.0.0.1:5433:5432'
+    volumes:
+      - brecha-postgres:/var/lib/postgresql/data
+      - ./infra/postgres/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -h 127.0.0.1 -U brecha -d brecha']
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+volumes:
+  brecha-postgres:
+    name: brecha-postgres

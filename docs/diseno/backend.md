@@ -126,6 +126,7 @@ Los casos de uso de escritura reintentan una vez si hay `CONFLICTO` solo cuando 
 - Prisma es ESM. Hay que probar que conviva con NestJS 12: **tarea F1-07a**, una prueba de humo antes de escribir el repositorio. Si choca, el núcleo entero pasa a ESM o se genera el cliente en formato CommonJS, lo que la prueba muestre que funciona.
 - `migrate diff` usa `--from-config-datasource` y `--to-schema`; `migrate dev` ya no corre `generate` ni el seed: todo explícito en los scripts.
 - La versión fija es 7.10.1 (`prisma` y `@prisma/client`); el `latest` de `prisma` es una RC de la 8.
+- **Resultado de F1-07a (23-nov-2026):** el núcleo queda en **CommonJS** (`tsc` con `module: nodenext`, sin `"type": "module"`) y el cliente se genera con `moduleFormat = "cjs"` en `src/generado/prisma`. Con `new PrismaPg({ connectionString }, { schema: 'nucleo' })` una consulta desde un servicio de Nest respondió `current_schema() = nucleo`. TypeScript queda en 6.0.3: Angular 22 y `@nestjs/swagger` 12 no aceptan la 7.
 
 ### 5.2 Tablas del esquema `nucleo`
 

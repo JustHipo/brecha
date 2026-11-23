@@ -1,0 +1,2772 @@
+{
+  "openapi": "3.0.0",
+  "paths": {
+    "/api/v1/acceso/estado": {
+      "get": {
+        "operationId": "estadoAcceso",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EstadoAccesoDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "¿Hay clave local? ¿Este pedido está desbloqueado?",
+        "tags": [
+          "acceso"
+        ]
+      }
+    },
+    "/api/v1/acceso/desbloquear": {
+      "post": {
+        "operationId": "desbloquear",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DesbloquearDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SesionDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Cambia la clave local por un token de sesión de 12 horas",
+        "tags": [
+          "acceso"
+        ]
+      }
+    },
+    "/api/v1/postulaciones": {
+      "get": {
+        "operationId": "listarPostulaciones",
+        "parameters": [
+          {
+            "name": "estado",
+            "required": false,
+            "in": "query",
+            "description": "Uno o varios separados por coma",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "example": "postulado,entrevista"
+            }
+          },
+          {
+            "name": "plataforma",
+            "required": false,
+            "in": "query",
+            "description": "Una o varias separadas por coma",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          {
+            "name": "prioridad",
+            "required": false,
+            "in": "query",
+            "description": "alta, media o baja; varias separadas por coma",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          {
+            "name": "q",
+            "required": false,
+            "in": "query",
+            "description": "Texto en título o empresa",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "maximum": 200,
+              "default": 50,
+              "type": "number"
+            }
+          },
+          {
+            "name": "offset",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 0,
+              "default": 0,
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListaPostulacionesDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "VALIDACION",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "NO_AUTENTICADO",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Lista paginada; orden por actualización",
+        "tags": [
+          "postulaciones"
+        ]
+      },
+      "post": {
+        "operationId": "crearPostulacion",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CrearPostulacionDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DetallePostulacionDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "VALIDACION",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "NO_AUTENTICADO",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "YA_EXISTE o CONFLICTO",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDto"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "TRANSICION_INVALIDA, AVISO_CERRADO o ESTADO_TERMINAL",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "postulaciones"
+        ]
+      }
+    },
+    "/api/v1/postulaciones/tablero": {
+      "get": {
+        "operationId": "verTablero",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TableroDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "NO_AUTENTICADO",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Tarjetas por estado, ordenadas por prioridad, cierre y actualización",
+        "tags": [
+          "postulaciones"
+        ]
+      }
+    },
+    "/api/v1/postulaciones/resumen": {
+      "get": {
+        "operationId": "resumenDesde",
+        "parameters": [
+          {
+            "name": "desde",
+            "required": false,
+            "in": "query",
+            "description": "Por defecto, hace 7 días",
+            "schema": {
+              "format": "date-time",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ElementoResumenDto"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "VALIDACION",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "NO_AUTENTICADO",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Qué cambió desde una fecha, ordenado por prioridad",
+        "tags": [
+          "postulaciones"
+        ]
+      }
+    },
+    "/api/v1/postulaciones/importar": {
+      "post": {
+        "operationId": "importarFichas",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ImportarArtifactDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultadoImportacionDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "VALIDACION",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "NO_AUTENTICADO",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Importa el export del artifact; idempotente por URL del aviso (F1-11)",
+        "tags": [
+          "postulaciones"
+        ]
+      }
+    },
+    "/api/v1/postulaciones/{id}": {
+      "get": {
+        "operationId": "verPostulacion",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DetallePostulacionDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "NO_AUTENTICADO",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "NO_ENCONTRADO",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Detalle con historial, señales, discrepancias y transiciones posibles",
+        "tags": [
+          "postulaciones"
+        ]
+      },
+      "patch": {
+        "operationId": "editarPostulacion",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EditarPostulacionDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DetallePostulacionDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "VALIDACION",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "NO_AUTENTICADO",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "NO_ENCONTRADO",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "YA_EXISTE o CONFLICTO",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Edita canal, sueldo pretendido y cierre del aviso",
+        "tags": [
+          "postulaciones"
+        ]
+      }
+    },
+    "/api/v1/postulaciones/{id}/transiciones": {
+      "post": {
+        "operationId": "cambiarEstado",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TransicionDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DetallePostulacionDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "VALIDACION",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "NO_AUTENTICADO",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "NO_ENCONTRADO",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "YA_EXISTE o CONFLICTO",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDto"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "TRANSICION_INVALIDA, AVISO_CERRADO o ESTADO_TERMINAL",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "postulaciones"
+        ]
+      }
+    },
+    "/api/v1/postulaciones/{id}/notas": {
+      "post": {
+        "operationId": "agregarNota",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NotaDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DetallePostulacionDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "VALIDACION",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "NO_AUTENTICADO",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "NO_ENCONTRADO",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "postulaciones"
+        ]
+      }
+    },
+    "/api/v1/postulaciones/{id}/contactos": {
+      "post": {
+        "operationId": "agregarContacto",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ContactoEntradaDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DetallePostulacionDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "VALIDACION",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "NO_AUTENTICADO",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "NO_ENCONTRADO",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDto"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "TRANSICION_INVALIDA, AVISO_CERRADO o ESTADO_TERMINAL",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "postulaciones"
+        ]
+      }
+    },
+    "/api/v1/postulaciones/{id}/entrevistas": {
+      "post": {
+        "operationId": "agendarEntrevista",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EntrevistaEntradaDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DetallePostulacionDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "VALIDACION",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "NO_AUTENTICADO",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "NO_ENCONTRADO",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDto"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "TRANSICION_INVALIDA, AVISO_CERRADO o ESTADO_TERMINAL",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Si no está en entrevista, la mueve (R7)",
+        "tags": [
+          "postulaciones"
+        ]
+      }
+    },
+    "/api/v1/postulaciones/{id}/entrevistas/{entrevistaId}": {
+      "patch": {
+        "operationId": "registrarResultadoEntrevista",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "entrevistaId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResultadoEntrevistaDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DetallePostulacionDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "VALIDACION",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "NO_AUTENTICADO",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "NO_ENCONTRADO",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "postulaciones"
+        ]
+      }
+    },
+    "/api/v1/postulaciones/{id}/senales": {
+      "post": {
+        "operationId": "registrarSenal",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SenalEntradaDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SenalRegistradaDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "VALIDACION",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "NO_AUTENTICADO",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "NO_ENCONTRADO",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "YA_EXISTE o CONFLICTO",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Registra evidencia; nunca cambia el estado sola salvo «aplicar señales seguras» (R11)",
+        "tags": [
+          "postulaciones"
+        ]
+      }
+    },
+    "/api/v1/postulaciones/{id}/senales/{senalId}/aplicar": {
+      "post": {
+        "operationId": "aplicarSenal",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "senalId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AplicarSenalDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DetallePostulacionDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "VALIDACION",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "NO_AUTENTICADO",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "NO_ENCONTRADO",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "YA_EXISTE o CONFLICTO",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDto"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "TRANSICION_INVALIDA, AVISO_CERRADO o ESTADO_TERMINAL",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "postulaciones"
+        ]
+      }
+    },
+    "/api/v1/postulaciones/{id}/discrepancias/{discrepanciaId}/resolver": {
+      "post": {
+        "operationId": "resolverDiscrepancia",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "discrepanciaId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResolverDiscrepanciaDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DetallePostulacionDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "VALIDACION",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "NO_AUTENTICADO",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "NO_ENCONTRADO",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "YA_EXISTE o CONFLICTO",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDto"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "TRANSICION_INVALIDA, AVISO_CERRADO o ESTADO_TERMINAL",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Confirmar el movimiento o corregir el estado (R14)",
+        "tags": [
+          "postulaciones"
+        ]
+      }
+    },
+    "/api/v1/eventos/stream": {
+      "get": {
+        "operationId": "flujoDeEventos",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Cada mensaje trae un evento; cada 25 s llega un latido",
+            "content": {
+              "text/event-stream": {
+                "schema": {
+                  "$ref": "#/components/schemas/EventoDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Server-Sent Events con los eventos recién guardados",
+        "tags": [
+          "sistema"
+        ]
+      }
+    },
+    "/api/v1/salud": {
+      "get": {
+        "operationId": "salud",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "",
+        "tags": [
+          "sistema"
+        ]
+      }
+    }
+  },
+  "info": {
+    "title": "Brecha · núcleo",
+    "description": "API local del núcleo de Brecha (PLAN §12.1). Escucha solo en 127.0.0.1 y siempre pide token.",
+    "version": "1",
+    "contact": {}
+  },
+  "tags": [],
+  "servers": [],
+  "components": {
+    "securitySchemes": {
+      "bearer": {
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "type": "http"
+      }
+    },
+    "schemas": {
+      "EstadoAccesoDto": {
+        "type": "object",
+        "properties": {
+          "claveConfigurada": {
+            "type": "boolean"
+          },
+          "desbloqueado": {
+            "type": "boolean",
+            "description": "true si el pedido trae un token válido"
+          }
+        },
+        "required": [
+          "claveConfigurada",
+          "desbloqueado"
+        ]
+      },
+      "DesbloquearDto": {
+        "type": "object",
+        "properties": {
+          "clave": {
+            "type": "string",
+            "description": "Clave local"
+          }
+        },
+        "required": [
+          "clave"
+        ]
+      },
+      "SesionDto": {
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string"
+          },
+          "expiraEn": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "token",
+          "expiraEn"
+        ]
+      },
+      "Plataforma": {
+        "type": "string",
+        "enum": [
+          "linkedin",
+          "trabajando",
+          "getonboard",
+          "computrabajo",
+          "chiletrabajos",
+          "indeed",
+          "sitio_empresa",
+          "otra"
+        ]
+      },
+      "Modalidad": {
+        "type": "string",
+        "enum": [
+          "remoto",
+          "hibrido",
+          "presencial",
+          "no_indica"
+        ]
+      },
+      "EstadoPostulacion": {
+        "type": "string",
+        "enum": [
+          "sin_decidir",
+          "por_postular",
+          "postulado",
+          "en_proceso",
+          "entrevista",
+          "oferta",
+          "aceptada",
+          "rechazado",
+          "descartado"
+        ]
+      },
+      "Prioridad": {
+        "type": "string",
+        "enum": [
+          "alta",
+          "media",
+          "baja"
+        ]
+      },
+      "ResumenPostulacionDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "titulo": {
+            "type": "string"
+          },
+          "empresa": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          },
+          "plataforma": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Plataforma"
+              }
+            ]
+          },
+          "modalidad": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Modalidad"
+              }
+            ]
+          },
+          "ubicacion": {
+            "type": "string"
+          },
+          "cierre": {
+            "type": "string",
+            "format": "date",
+            "nullable": true
+          },
+          "diasAlCierre": {
+            "type": "number",
+            "nullable": true,
+            "description": "Días hasta el cierre (negativo si ya cerró)"
+          },
+          "estado": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/EstadoPostulacion"
+              }
+            ]
+          },
+          "prioridad": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Prioridad"
+              }
+            ]
+          },
+          "fechaPostulacion": {
+            "type": "string",
+            "format": "date",
+            "nullable": true
+          },
+          "senalesNuevas": {
+            "type": "number",
+            "description": "Señales sin aplicar"
+          },
+          "discrepanciasAbiertas": {
+            "type": "number"
+          },
+          "transicionesPosibles": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EstadoPostulacion"
+            }
+          },
+          "version": {
+            "type": "number"
+          },
+          "actualizadaEn": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "titulo",
+          "empresa",
+          "url",
+          "plataforma",
+          "modalidad",
+          "ubicacion",
+          "cierre",
+          "diasAlCierre",
+          "estado",
+          "prioridad",
+          "fechaPostulacion",
+          "senalesNuevas",
+          "discrepanciasAbiertas",
+          "transicionesPosibles",
+          "version",
+          "actualizadaEn"
+        ]
+      },
+      "ListaPostulacionesDto": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ResumenPostulacionDto"
+            }
+          },
+          "total": {
+            "type": "number"
+          },
+          "limit": {
+            "type": "number"
+          },
+          "offset": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "items",
+          "total",
+          "limit",
+          "offset"
+        ]
+      },
+      "CodigoError": {
+        "type": "string",
+        "enum": [
+          "VALIDACION",
+          "NO_AUTENTICADO",
+          "CLAVE_INVALIDA",
+          "NO_ENCONTRADO",
+          "YA_EXISTE",
+          "CONFLICTO",
+          "TRANSICION_INVALIDA",
+          "AVISO_CERRADO",
+          "ESTADO_TERMINAL",
+          "ERROR_INTERNO"
+        ]
+      },
+      "ErrorDto": {
+        "type": "object",
+        "properties": {
+          "codigo": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CodigoError"
+              }
+            ]
+          },
+          "mensaje": {
+            "type": "string"
+          },
+          "campo": {
+            "type": "string",
+            "description": "Campo que causó el error"
+          },
+          "existenteId": {
+            "type": "string",
+            "description": "Con YA_EXISTE: la postulación que ya sigue ese aviso"
+          }
+        },
+        "required": [
+          "codigo",
+          "mensaje"
+        ]
+      },
+      "ColumnaTableroDto": {
+        "type": "object",
+        "properties": {
+          "estado": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/EstadoPostulacion"
+              }
+            ]
+          },
+          "total": {
+            "type": "number"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ResumenPostulacionDto"
+            }
+          }
+        },
+        "required": [
+          "estado",
+          "total",
+          "items"
+        ]
+      },
+      "TableroDto": {
+        "type": "object",
+        "properties": {
+          "columnas": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ColumnaTableroDto"
+            }
+          }
+        },
+        "required": [
+          "columnas"
+        ]
+      },
+      "ElementoResumenDto": {
+        "type": "object",
+        "properties": {
+          "postulacionId": {
+            "type": "string"
+          },
+          "empresa": {
+            "type": "string"
+          },
+          "titulo": {
+            "type": "string"
+          },
+          "tipo": {
+            "type": "string",
+            "enum": [
+              "cambio",
+              "senal",
+              "discrepancia",
+              "nota"
+            ]
+          },
+          "descripcion": {
+            "type": "string"
+          },
+          "prioridad": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Prioridad"
+              }
+            ]
+          },
+          "ocurridoEn": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "postulacionId",
+          "empresa",
+          "titulo",
+          "tipo",
+          "descripcion",
+          "prioridad",
+          "ocurridoEn"
+        ]
+      },
+      "AvisoEntradaDto": {
+        "type": "object",
+        "properties": {
+          "titulo": {
+            "type": "string",
+            "maxLength": 300
+          },
+          "empresa": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "url": {
+            "type": "string",
+            "format": "uri"
+          },
+          "plataforma": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Plataforma"
+              }
+            ]
+          },
+          "modalidad": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Modalidad"
+              }
+            ]
+          },
+          "ubicacion": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "cierre": {
+            "type": "string",
+            "format": "date",
+            "nullable": true
+          }
+        },
+        "required": [
+          "titulo",
+          "empresa",
+          "url",
+          "plataforma"
+        ]
+      },
+      "Moneda": {
+        "type": "string",
+        "enum": [
+          "CLP",
+          "USD"
+        ]
+      },
+      "Periodo": {
+        "type": "string",
+        "enum": [
+          "mes",
+          "anio",
+          "hora"
+        ]
+      },
+      "BaseSueldo": {
+        "type": "string",
+        "enum": [
+          "bruto",
+          "liquido"
+        ]
+      },
+      "DineroEntradaDto": {
+        "type": "object",
+        "properties": {
+          "monto": {
+            "type": "number",
+            "minimum": 0,
+            "exclusiveMinimum": true
+          },
+          "moneda": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Moneda"
+              }
+            ]
+          },
+          "periodo": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Periodo"
+              }
+            ]
+          },
+          "base": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/BaseSueldo"
+              }
+            ]
+          }
+        },
+        "required": [
+          "monto",
+          "moneda"
+        ]
+      },
+      "TipoDeCanal": {
+        "type": "string",
+        "enum": [
+          "portal",
+          "email",
+          "formulario",
+          "referido"
+        ]
+      },
+      "CanalEntradaDto": {
+        "type": "object",
+        "properties": {
+          "tipo": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/TipoDeCanal"
+              }
+            ]
+          },
+          "valor": {
+            "type": "string",
+            "maxLength": 500
+          }
+        },
+        "required": [
+          "tipo",
+          "valor"
+        ]
+      },
+      "CrearPostulacionDto": {
+        "type": "object",
+        "properties": {
+          "aviso": {
+            "$ref": "#/components/schemas/AvisoEntradaDto"
+          },
+          "estado": {
+            "type": "string",
+            "enum": [
+              "sin_decidir",
+              "por_postular",
+              "postulado"
+            ],
+            "description": "Por defecto sin_decidir"
+          },
+          "sueldoPretendido": {
+            "$ref": "#/components/schemas/DineroEntradaDto"
+          },
+          "fechaPostulacion": {
+            "type": "string",
+            "format": "date"
+          },
+          "canal": {
+            "$ref": "#/components/schemas/CanalEntradaDto"
+          }
+        },
+        "required": [
+          "aviso"
+        ]
+      },
+      "AvisoDto": {
+        "type": "object",
+        "properties": {
+          "titulo": {
+            "type": "string"
+          },
+          "empresa": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          },
+          "plataforma": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Plataforma"
+              }
+            ]
+          },
+          "modalidad": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Modalidad"
+              }
+            ]
+          },
+          "ubicacion": {
+            "type": "string"
+          },
+          "cierre": {
+            "type": "string",
+            "format": "date"
+          },
+          "avisoId": {
+            "type": "string"
+          },
+          "calce": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "titulo",
+          "empresa",
+          "url",
+          "plataforma",
+          "modalidad",
+          "ubicacion"
+        ]
+      },
+      "CanalDto": {
+        "type": "object",
+        "properties": {
+          "tipo": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/TipoDeCanal"
+              }
+            ]
+          },
+          "valor": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "tipo",
+          "valor"
+        ]
+      },
+      "DineroDto": {
+        "type": "object",
+        "properties": {
+          "monto": {
+            "type": "number"
+          },
+          "moneda": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Moneda"
+              }
+            ]
+          },
+          "periodo": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Periodo"
+              }
+            ]
+          },
+          "base": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/BaseSueldo"
+              }
+            ]
+          }
+        },
+        "required": [
+          "monto",
+          "moneda",
+          "periodo",
+          "base"
+        ]
+      },
+      "ContactoDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "nombre": {
+            "type": "string"
+          },
+          "rol": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "linkedin": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "nombre"
+        ]
+      },
+      "TipoDeEntrevista": {
+        "type": "string",
+        "enum": [
+          "rrhh",
+          "tecnica",
+          "caso",
+          "final"
+        ]
+      },
+      "ResultadoDeEntrevista": {
+        "type": "string",
+        "enum": [
+          "pendiente",
+          "avanza",
+          "no_avanza",
+          "cancelada"
+        ]
+      },
+      "EntrevistaDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "fecha": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "tipo": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/TipoDeEntrevista"
+              }
+            ]
+          },
+          "con": {
+            "type": "string"
+          },
+          "resultado": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ResultadoDeEntrevista"
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "fecha",
+          "tipo",
+          "resultado"
+        ]
+      },
+      "NotaSalidaDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "texto": {
+            "type": "string"
+          },
+          "creadaEn": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "texto",
+          "creadaEn"
+        ]
+      },
+      "Origen": {
+        "type": "string",
+        "enum": [
+          "tablero",
+          "formulario",
+          "ia",
+          "senal",
+          "importacion"
+        ]
+      },
+      "CambioDeEstadoDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "de": {
+            "nullable": true,
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/EstadoPostulacion"
+              }
+            ]
+          },
+          "a": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/EstadoPostulacion"
+              }
+            ]
+          },
+          "motivo": {
+            "type": "string"
+          },
+          "origen": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Origen"
+              }
+            ]
+          },
+          "ocurridoEn": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "de",
+          "a",
+          "origen",
+          "ocurridoEn"
+        ]
+      },
+      "FuenteDeSenal": {
+        "type": "string",
+        "enum": [
+          "correo",
+          "plataforma",
+          "manual",
+          "ia"
+        ]
+      },
+      "SenalDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "fuente": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/FuenteDeSenal"
+              }
+            ]
+          },
+          "plataforma": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Plataforma"
+              }
+            ]
+          },
+          "resumen": {
+            "type": "string"
+          },
+          "estadoSugerido": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/EstadoPostulacion"
+              }
+            ]
+          },
+          "confianza": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "recibidaEn": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "referenciaExterna": {
+            "type": "string"
+          },
+          "aplicada": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "fuente",
+          "plataforma",
+          "resumen",
+          "confianza",
+          "recibidaEn",
+          "aplicada"
+        ]
+      },
+      "ReglaDeDiscrepancia": {
+        "type": "string",
+        "enum": [
+          "senal_de_rechazo",
+          "senal_de_avance",
+          "sin_evidencia"
+        ]
+      },
+      "EstadoDeDiscrepancia": {
+        "type": "string",
+        "enum": [
+          "abierta",
+          "confirmada",
+          "corregida"
+        ]
+      },
+      "DiscrepanciaDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "cambioId": {
+            "type": "string",
+            "description": "Id del cambio de estado revisado"
+          },
+          "senalId": {
+            "type": "string"
+          },
+          "regla": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ReglaDeDiscrepancia"
+              }
+            ]
+          },
+          "severidad": {
+            "type": "string",
+            "enum": [
+              "normal",
+              "baja"
+            ]
+          },
+          "detalle": {
+            "type": "string"
+          },
+          "estado": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/EstadoDeDiscrepancia"
+              }
+            ]
+          },
+          "detectadaEn": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "resueltaEn": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          }
+        },
+        "required": [
+          "id",
+          "cambioId",
+          "regla",
+          "severidad",
+          "detalle",
+          "estado",
+          "detectadaEn",
+          "resueltaEn"
+        ]
+      },
+      "DetallePostulacionDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "titulo": {
+            "type": "string"
+          },
+          "empresa": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          },
+          "plataforma": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Plataforma"
+              }
+            ]
+          },
+          "modalidad": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Modalidad"
+              }
+            ]
+          },
+          "ubicacion": {
+            "type": "string"
+          },
+          "cierre": {
+            "type": "string",
+            "format": "date",
+            "nullable": true
+          },
+          "diasAlCierre": {
+            "type": "number",
+            "nullable": true,
+            "description": "Días hasta el cierre (negativo si ya cerró)"
+          },
+          "estado": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/EstadoPostulacion"
+              }
+            ]
+          },
+          "prioridad": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Prioridad"
+              }
+            ]
+          },
+          "fechaPostulacion": {
+            "type": "string",
+            "format": "date",
+            "nullable": true
+          },
+          "senalesNuevas": {
+            "type": "number",
+            "description": "Señales sin aplicar"
+          },
+          "discrepanciasAbiertas": {
+            "type": "number"
+          },
+          "transicionesPosibles": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EstadoPostulacion"
+            }
+          },
+          "version": {
+            "type": "number"
+          },
+          "actualizadaEn": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "aviso": {
+            "$ref": "#/components/schemas/AvisoDto"
+          },
+          "canal": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CanalDto"
+              }
+            ]
+          },
+          "sueldoPretendido": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/DineroDto"
+              }
+            ]
+          },
+          "contactos": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ContactoDto"
+            }
+          },
+          "entrevistas": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EntrevistaDto"
+            }
+          },
+          "notas": {
+            "description": "De la más nueva a la más antigua",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/NotaSalidaDto"
+            }
+          },
+          "historial": {
+            "description": "Del más nuevo al más antiguo",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CambioDeEstadoDto"
+            }
+          },
+          "senales": {
+            "description": "De la más nueva a la más antigua",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SenalDto"
+            }
+          },
+          "discrepancias": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DiscrepanciaDto"
+            }
+          },
+          "creadaEn": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "titulo",
+          "empresa",
+          "url",
+          "plataforma",
+          "modalidad",
+          "ubicacion",
+          "cierre",
+          "diasAlCierre",
+          "estado",
+          "prioridad",
+          "fechaPostulacion",
+          "senalesNuevas",
+          "discrepanciasAbiertas",
+          "transicionesPosibles",
+          "version",
+          "actualizadaEn",
+          "aviso",
+          "canal",
+          "sueldoPretendido",
+          "contactos",
+          "entrevistas",
+          "notas",
+          "historial",
+          "senales",
+          "discrepancias",
+          "creadaEn"
+        ]
+      },
+      "ImportarArtifactDto": {
+        "type": "object",
+        "properties": {
+          "fichas": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": true
+            },
+            "description": "Fichas del export del artifact"
+          },
+          "estados": {
+            "type": "object",
+            "additionalProperties": true,
+            "description": "Estados guardados por id de ficha"
+          },
+          "origen": {
+            "type": "string"
+          },
+          "exportadoEn": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "fichas"
+        ]
+      },
+      "ErrorDeImportacionDto": {
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string"
+          },
+          "codigo": {
+            "type": "string"
+          },
+          "mensaje": {
+            "type": "string"
+          },
+          "campo": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "url",
+          "codigo",
+          "mensaje"
+        ]
+      },
+      "ResultadoImportacionDto": {
+        "type": "object",
+        "properties": {
+          "creadas": {
+            "type": "number"
+          },
+          "omitidas": {
+            "type": "number",
+            "description": "Ya existían (misma URL de aviso)"
+          },
+          "errores": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ErrorDeImportacionDto"
+            }
+          }
+        },
+        "required": [
+          "creadas",
+          "omitidas",
+          "errores"
+        ]
+      },
+      "EditarPostulacionDto": {
+        "type": "object",
+        "properties": {
+          "version": {
+            "type": "number"
+          },
+          "canal": {
+            "$ref": "#/components/schemas/CanalEntradaDto"
+          },
+          "sueldoPretendido": {
+            "nullable": true,
+            "description": "null lo borra",
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/DineroEntradaDto"
+              }
+            ]
+          },
+          "cierre": {
+            "type": "string",
+            "format": "date",
+            "nullable": true,
+            "description": "Cierre del aviso; null lo borra"
+          }
+        },
+        "required": [
+          "version"
+        ]
+      },
+      "TransicionDto": {
+        "type": "object",
+        "properties": {
+          "a": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/EstadoPostulacion"
+              }
+            ]
+          },
+          "motivo": {
+            "type": "string",
+            "maxLength": 1000
+          },
+          "fechaPostulacion": {
+            "type": "string",
+            "format": "date"
+          },
+          "canal": {
+            "$ref": "#/components/schemas/CanalEntradaDto"
+          },
+          "origen": {
+            "type": "string",
+            "enum": [
+              "tablero",
+              "formulario"
+            ],
+            "description": "Por defecto formulario; con token mcp siempre es ia"
+          },
+          "version": {
+            "type": "number",
+            "description": "Versión que tenías (bloqueo optimista)"
+          }
+        },
+        "required": [
+          "a",
+          "version"
+        ]
+      },
+      "NotaDto": {
+        "type": "object",
+        "properties": {
+          "texto": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 5000
+          }
+        },
+        "required": [
+          "texto"
+        ]
+      },
+      "ContactoEntradaDto": {
+        "type": "object",
+        "properties": {
+          "nombre": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "rol": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "email": {
+            "type": "string",
+            "maxLength": 320
+          },
+          "linkedin": {
+            "type": "string",
+            "maxLength": 500
+          }
+        },
+        "required": [
+          "nombre"
+        ]
+      },
+      "EntrevistaEntradaDto": {
+        "type": "object",
+        "properties": {
+          "fecha": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "tipo": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/TipoDeEntrevista"
+              }
+            ]
+          },
+          "con": {
+            "type": "string",
+            "maxLength": 200
+          }
+        },
+        "required": [
+          "fecha",
+          "tipo"
+        ]
+      },
+      "ResultadoEntrevistaDto": {
+        "type": "object",
+        "properties": {
+          "resultado": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ResultadoDeEntrevista"
+              }
+            ]
+          }
+        },
+        "required": [
+          "resultado"
+        ]
+      },
+      "SenalEntradaDto": {
+        "type": "object",
+        "properties": {
+          "fuente": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/FuenteDeSenal"
+              }
+            ]
+          },
+          "plataforma": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Plataforma"
+              }
+            ]
+          },
+          "resumen": {
+            "type": "string",
+            "maxLength": 1000
+          },
+          "estadoSugerido": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/EstadoPostulacion"
+              }
+            ]
+          },
+          "confianza": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "recibidaEn": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "referenciaExterna": {
+            "type": "string",
+            "maxLength": 500,
+            "description": "Id del correo o del portal, para no duplicar"
+          }
+        },
+        "required": [
+          "fuente",
+          "resumen",
+          "confianza"
+        ]
+      },
+      "SenalRegistradaDto": {
+        "type": "object",
+        "properties": {
+          "senal": {
+            "$ref": "#/components/schemas/SenalDto"
+          },
+          "postulacion": {
+            "$ref": "#/components/schemas/DetallePostulacionDto"
+          }
+        },
+        "required": [
+          "senal",
+          "postulacion"
+        ]
+      },
+      "AplicarSenalDto": {
+        "type": "object",
+        "properties": {
+          "version": {
+            "type": "number"
+          }
+        }
+      },
+      "ResolverDiscrepanciaDto": {
+        "type": "object",
+        "properties": {
+          "decision": {
+            "type": "string",
+            "enum": [
+              "confirmar",
+              "corregir"
+            ]
+          },
+          "a": {
+            "description": "Destino al corregir",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/EstadoPostulacion"
+              }
+            ]
+          },
+          "motivo": {
+            "type": "string",
+            "maxLength": 1000
+          },
+          "fechaPostulacion": {
+            "type": "string",
+            "format": "date"
+          },
+          "canal": {
+            "$ref": "#/components/schemas/CanalEntradaDto"
+          },
+          "version": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "decision"
+        ]
+      },
+      "EventoDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "tipo": {
+            "type": "string",
+            "example": "postulacion.estado_cambiado"
+          },
+          "version": {
+            "type": "number"
+          },
+          "ocurridoEn": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "prioridad": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Prioridad"
+              }
+            ]
+          },
+          "correlacionId": {
+            "type": "string",
+            "nullable": true
+          },
+          "datos": {
+            "type": "object",
+            "additionalProperties": true,
+            "description": "Incluye postulacionId"
+          }
+        },
+        "required": [
+          "id",
+          "tipo",
+          "version",
+          "ocurridoEn",
+          "prioridad",
+          "correlacionId",
+          "datos"
+        ]
+      }
+    }
+  }
+}

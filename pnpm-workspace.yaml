@@ -1,0 +1,33 @@
+packages:
+  - apps/*
+  - services/*
+  - packages/*
+
+# pnpm 11 bloquea los build scripts de las dependencias hasta aprobarlos (ADR 0002).
+allowBuilds:
+  # telemetría de swagger-ui: no se ejecuta
+  '@scarf/scarf': false
+  # postinstall de nx (lo trae el CLI de Spartan): no hace falta
+  nx: false
+  '@prisma/engines': true
+  prisma: true
+  argon2: true
+  esbuild: true
+  '@swc/core': true
+  lmdb: true
+  msgpackr-extract: true
+  '@parcel/watcher': true
+  '@tailwindcss/oxide': true
+
+minimumReleaseAgeExclude:
+  - '@typescript-eslint/eslint-plugin@8.74.0'
+  - '@typescript-eslint/parser@8.74.0'
+  - '@typescript-eslint/project-service@8.74.0'
+  - '@typescript-eslint/scope-manager@8.74.0'
+  - '@typescript-eslint/tsconfig-utils@8.74.0'
+  - '@typescript-eslint/type-utils@8.74.0'
+  - '@typescript-eslint/types@8.74.0'
+  - '@typescript-eslint/typescript-estree@8.74.0'
+  - '@typescript-eslint/utils@8.74.0'
+  - '@typescript-eslint/visitor-keys@8.74.0'
+  - typescript-eslint@8.74.0

@@ -1,0 +1,47 @@
+{
+  "compileOnSave": false,
+  "compilerOptions": {
+    "noImplicitOverride": true,
+    "noPropertyAccessFromIndexSignature": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
+    "skipLibCheck": true,
+    "isolatedModules": true,
+    "experimentalDecorators": true,
+    "importHelpers": true,
+    "target": "ES2022",
+    "module": "preserve",
+    "strict": true,
+    "noUncheckedIndexedAccess": false,
+    "paths": {
+      "@brecha/ui/button": ["./src/app/ui/button/src/index.ts"],
+      "@brecha/ui/utils": ["./src/app/ui/utils/src/index.ts"],
+      "@brecha/ui/dialog": ["./src/app/ui/dialog/src/index.ts"],
+      "@brecha/ui/input": ["./src/app/ui/input/src/index.ts"],
+      "@brecha/ui/label": ["./src/app/ui/label/src/index.ts"],
+      "@brecha/ui/textarea": ["./src/app/ui/textarea/src/index.ts"],
+      "@brecha/ui/sonner": ["./src/app/ui/sonner/src/index.ts"],
+      "@brecha/ui/dropdown-menu": ["./src/app/ui/dropdown-menu/src/index.ts"],
+      "@brecha/ui/badge": ["./src/app/ui/badge/src/index.ts"],
+      "@brecha/ui/skeleton": ["./src/app/ui/skeleton/src/index.ts"],
+      "@brecha/ui/sheet": ["./src/app/ui/sheet/src/index.ts"],
+      "@brecha/ui/radio-group": ["./src/app/ui/radio-group/src/index.ts"],
+      "@brecha/ui/tabs": ["./src/app/ui/tabs/src/index.ts"]
+    }
+  },
+  "angularCompilerOptions": {
+    "enableI18nLegacyMessageIdFormat": false,
+    "strictInjectionParameters": true,
+    "strictInputAccessModifiers": true,
+    "strictTemplates": true
+  },
+  "files": [],
+  "references": [
+    {
+      "path": "./tsconfig.app.json"
+    },
+    {
+      "path": "./tsconfig.spec.json"
+    }
+  ]
+}
