@@ -41,6 +41,20 @@ def credenciales(args: argparse.Namespace, llavero: Credenciales) -> int:
             for t in TipoDeCredencial:
                 llavero.borrar(t)
             print("Credenciales de Brecha borradas del llavero.")
+        case "importar":
+            # Lee {"usuario", "clave", "openai"} por la entrada estándar (de otro programa,
+            # nunca de la pantalla) y los guarda en este llavero. No imprime ningún valor.
+            datos = json.loads(sys.stdin.read() or "{}")
+            guardadas = []
+            for clave_json, tipo in (
+                ("usuario", TipoDeCredencial.CORREO_USUARIO),
+                ("clave", TipoDeCredencial.CORREO_CLAVE),
+                ("openai", TipoDeCredencial.OPENAI),
+            ):
+                if isinstance(datos.get(clave_json), str) and datos[clave_json].strip():
+                    llavero.guardar(tipo, datos[clave_json])
+                    guardadas.append(clave_json)
+            print(f"Importadas: {', '.join(guardadas) or 'ninguna'}.")
     return 0
 
 
@@ -276,7 +290,7 @@ def main(argv: list[str] | None = None, llavero: Credenciales | None = None) -> 
     parser = argparse.ArgumentParser(prog="ia", description="Herramientas del servicio con IA de Brecha")
     sub = parser.add_subparsers(dest="comando", required=True)
     cred = sub.add_parser("credenciales", help="Guardar, revisar o borrar credenciales en el llavero")
-    cred.add_argument("accion", choices=["correo", "openai", "estado", "borrar"])
+    cred.add_argument("accion", choices=["correo", "openai", "estado", "borrar", "importar"])
     av = sub.add_parser("avisos", help="Importar, buscar en Get on Board y procesar avisos")
     av.add_argument("accion", choices=["importar", "buscar", "procesar", "estado"])
     av.add_argument("valor", nargs="*", help="archivo para importar o consultas para buscar")

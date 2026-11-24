@@ -83,6 +83,8 @@ export class Servicios {
       BRECHA_DIR: this.instancia,
       CONSOLA_ORIGEN: `http://127.0.0.1:${PUERTOS.nucleo}`,
       NUCLEO_URL: `http://127.0.0.1:${PUERTOS.nucleo}`,
+      // Entrada propia en el llavero: la app es su dueña y macOS no le pide permiso para leerla.
+      BRECHA_LLAVERO: process.env.BRECHA_LLAVERO ?? 'brecha-app',
     };
     await this.migrarIa(k, comun);
 

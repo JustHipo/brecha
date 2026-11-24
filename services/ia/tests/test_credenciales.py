@@ -70,3 +70,28 @@ def test_una_vuelta_que_falla_no_detiene_al_vigia(caplog: pytest.LogCaptureFixtu
     # main() envuelve cada vuelta en try/except y sigue; aquí se mira el log de una vuelta sana
     vigia.una_vuelta(ll, None, None, None)
     assert "falta la llave de OpenAI" in caplog.text
+
+
+def test_importar_lee_la_entrada_estandar_y_no_imprime_valores(monkeypatch, capsys) -> None:  # type: ignore[no-untyped-def]
+    import io
+
+    from ia.aplicacion.puertos import TipoDeCredencial
+    from ia.entradas.cli import main
+
+    llavero = LlaveroEnMemoria()
+    monkeypatch.setattr(
+        "sys.stdin", io.StringIO('{"usuario": "a@ejemplo.test", "clave": "abcdefghijklmnop", "openai": ""}')
+    )
+    assert main(["credenciales", "importar"], llavero) == 0
+    assert llavero.obtener(TipoDeCredencial.CORREO_CLAVE) == "abcdefghijklmnop"
+    assert llavero.obtener(TipoDeCredencial.OPENAI) is None
+    salida = capsys.readouterr().out
+    assert "abcdefghijklmnop" not in salida and "usuario, clave" in salida
+
+
+def test_el_servicio_del_llavero_se_puede_cambiar(monkeypatch) -> None:  # type: ignore[no-untyped-def]
+    from ia.infraestructura.llavero import servicio
+
+    assert servicio() == "brecha"
+    monkeypatch.setenv("BRECHA_LLAVERO", "brecha-app")
+    assert servicio() == "brecha-app"
