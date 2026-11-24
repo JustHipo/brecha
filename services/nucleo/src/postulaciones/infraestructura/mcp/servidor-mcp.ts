@@ -72,6 +72,8 @@ export function crearServidorMcp(casos: CasosDeUso, red?: CasosDeRed, csv?: Caso
         'Para pasar a postulado hacen falta fechaPostulacion y canal; rechazado y descartado piden motivo. Registrar una señal nunca cambia el estado por sí sola. ' +
         'Tu red de LinkedIn (contactos, solicitudes y mensajes) se lleva con listar_red, registrar_contacto_red, registrar_interaccion_red y editar_contacto_red: ' +
         'LinkedIn no tiene API, así que la revisas desde el navegador de la persona y registras aquí, ligando cada contacto a sus postulaciones. ' +
+        'Liga a una persona a una postulación solo si trabaja hoy en esa empresa: si su cargo actual dice otra empresa o te cuenta que ya no está ahí, ' +
+        'desvincúlala de esa postulación (editar_contacto_red con desvincular), corrige su empresa y anótalo en sus notas. ' +
         'Pasos pendientes: cuando un correo, un mensaje de LinkedIn o un portal le pida algo a la persona (un test, mandar el CV, un formulario, agendar), regístralo: ' +
         'con registrar_interaccion_red y su campo paso si vino por LinkedIn, o con registrar_paso si lo viste en un portal (también lo que ya hizo, con estado hecho). ' +
         'Antes de registrar, mira los pasos de la postulación (ver_postulacion o listar_pasos) para no duplicar. Para ubicar la postulación desde la página de un aviso usa listar_postulaciones con url. ' +
@@ -695,7 +697,8 @@ function registrarRed(s: McpServer, red: CasosDeRed, casos: CasosDeUso): void {
     {
       title: 'Editar un contacto de tu red',
       description:
-        'Notas, fecha de seguimiento (AAAA-MM-DD o null), titular, empresa; vincular o desvincular una postulación por id.',
+        'Notas, fecha de seguimiento (AAAA-MM-DD o null), titular, empresa; vincular o desvincular una postulación por id. ' +
+        'Si la persona ya no trabaja en la empresa de una postulación ligada, desvincúlala de esa postulación.',
       inputSchema: {
         id: z.string(),
         nombre: z.string().optional(),
