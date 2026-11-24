@@ -4,7 +4,12 @@ import type { Prisma, PrismaClient } from '../../../compartido/infraestructura/p
 import { ESTADOS, type EstadoPostulacion } from '../../dominio/estado';
 import type { Modalidad, Plataforma } from '../../dominio/objetos-valor/valores';
 import { calcularPrioridad } from '../../dominio/politica-de-prioridad';
-import type { ConsultasDePostulaciones, FiltrosPostulaciones, Pagina } from '../../aplicacion/puertos';
+import type {
+  ConsultasDePostulaciones,
+  EtiquetaEnUso,
+  FiltrosPostulaciones,
+  Pagina,
+} from '../../aplicacion/puertos';
 import {
   aDetalle,
   diasAlCierre,
@@ -28,6 +33,8 @@ const SELECT_RESUMEN = {
   avisoUbicacion: true,
   avisoCierre: true,
   estado: true,
+  etiquetas: true,
+  prioridadFijada: true,
   fechaPostulacion: true,
   version: true,
   actualizadaEn: true,
@@ -67,8 +74,11 @@ export class PrismaConsultas implements ConsultasDePostulaciones {
     return { items: filas.map((x) => this.aResumen(x)), total };
   }
 
-  async tablero(): Promise<VistaTablero> {
-    const filas = await this.prisma.postulacion.findMany({ select: SELECT_RESUMEN });
+  async tablero(f: Pick<FiltrosPostulaciones, 'etiquetas'> = {}): Promise<VistaTablero> {
+    const filas = await this.prisma.postulacion.findMany({
+      ...(f.etiquetas?.length ? { where: { etiquetas: { hasEvery: f.etiquetas } } } : {}),
+      select: SELECT_RESUMEN,
+    });
     const resumenes = filas.map((x) => this.aResumen(x));
     return {
       columnas: ESTADOS.map((estado) => {
@@ -76,6 +86,13 @@ export class PrismaConsultas implements ConsultasDePostulaciones {
         return { estado, total: items.length, items };
       }),
     };
+  }
+
+  async etiquetasEnUso(): Promise<EtiquetaEnUso[]> {
+    const filas = await this.prisma.$queryRaw<{ etiqueta: string; total: bigint }[]>`
+      SELECT e AS etiqueta, count(*) AS total FROM postulacion, unnest(etiquetas) AS e
+      GROUP BY e ORDER BY count(*) DESC, e ASC`;
+    return filas.map((x) => ({ etiqueta: x.etiqueta, total: Number(x.total) }));
   }
 
   async detalle(id: string) {
@@ -86,7 +103,14 @@ export class PrismaConsultas implements ConsultasDePostulaciones {
 
   async resumenDesde(desde: Date): Promise<ElementoResumen[]> {
     const post = {
-      select: { id: true, avisoEmpresa: true, avisoTitulo: true, estado: true, avisoCierre: true },
+      select: {
+        id: true,
+        avisoEmpresa: true,
+        avisoTitulo: true,
+        estado: true,
+        avisoCierre: true,
+        prioridadFijada: true,
+      },
     };
     const [cambios, senales, discrepancias, notas] = await Promise.all([
       this.prisma.cambioEstado.findMany({
@@ -110,6 +134,7 @@ export class PrismaConsultas implements ConsultasDePostulaciones {
       avisoTitulo: string;
       estado: string;
       avisoCierre: Date | null;
+      prioridadFijada: string | null;
     }) => ({
       postulacionId: p.id,
       empresa: p.avisoEmpresa,
@@ -118,6 +143,7 @@ export class PrismaConsultas implements ConsultasDePostulaciones {
         p.estado as EstadoPostulacion,
         p.avisoCierre ? aFecha(p.avisoCierre) : undefined,
         hoy,
+        p.prioridadFijada as Prioridad | null,
       ),
     });
     const elementos: ElementoResumen[] = [
@@ -182,7 +208,14 @@ export class PrismaConsultas implements ConsultasDePostulaciones {
       cierre,
       diasAlCierre: diasAlCierre(cierre, this.reloj),
       estado,
-      prioridad: calcularPrioridad(estado, cierre ?? undefined, this.reloj.hoy()),
+      prioridad: calcularPrioridad(
+        estado,
+        cierre ?? undefined,
+        this.reloj.hoy(),
+        x.prioridadFijada as Prioridad | null,
+      ),
+      prioridadFijada: (x.prioridadFijada as Prioridad | null) ?? null,
+      etiquetas: x.etiquetas ?? [],
       fechaPostulacion: x.fechaPostulacion ? aFecha(x.fechaPostulacion) : null,
       senalesNuevas: x._count.senales,
       discrepanciasAbiertas: x._count.discrepancias,
@@ -197,6 +230,7 @@ export class PrismaConsultas implements ConsultasDePostulaciones {
     const y: Prisma.PostulacionWhereInput[] = [];
     if (f.estados) y.push({ estado: { in: f.estados } });
     if (f.plataformas) y.push({ avisoPlataforma: { in: f.plataformas } });
+    if (f.etiquetas?.length) y.push({ etiquetas: { hasEvery: f.etiquetas } });
     if (f.q) {
       y.push({
         OR: [
@@ -210,17 +244,27 @@ export class PrismaConsultas implements ConsultasDePostulaciones {
       const en2 = new Date(hoy.getTime() + 2 * 86_400_000);
       const cierraPronto: Prisma.PostulacionWhereInput = { avisoCierre: { gte: hoy, lte: en2 } };
       const o: Prisma.PostulacionWhereInput[] = [];
+      // Una prioridad fijada a mano manda en los estados abiertos (csv.md P2); si no hay, R12.
+      const fijada = (p: Prioridad): Prisma.PostulacionWhereInput => ({
+        AND: [{ prioridadFijada: p }, { estado: { notIn: CERRADOS } }],
+      });
+      const calculada: Prisma.PostulacionWhereInput = { prioridadFijada: null };
       if (f.prioridades.includes('alta')) {
-        o.push({ estado: { in: AVANCE } }, { AND: [{ estado: { in: PREVIOS } }, cierraPronto] });
+        o.push(fijada('alta'), {
+          AND: [
+            calculada,
+            { OR: [{ estado: { in: AVANCE } }, { AND: [{ estado: { in: PREVIOS } }, cierraPronto] }] },
+          ],
+        });
       }
       if (f.prioridades.includes('media')) {
         // Sin cierre o con cierre fuera de los próximos 2 días (un NOT con null en SQL dejaría fuera las sin cierre).
         const noPronto: Prisma.PostulacionWhereInput = {
           OR: [{ avisoCierre: null }, { avisoCierre: { lt: hoy } }, { avisoCierre: { gt: en2 } }],
         };
-        o.push({ AND: [{ estado: { in: PREVIOS } }, noPronto] });
+        o.push(fijada('media'), { AND: [calculada, { estado: { in: PREVIOS } }, noPronto] });
       }
-      if (f.prioridades.includes('baja')) o.push({ estado: { in: CERRADOS } });
+      if (f.prioridades.includes('baja')) o.push(fijada('baja'), { estado: { in: CERRADOS } });
       y.push({ OR: o });
     }
     return y.length ? { AND: y } : {};

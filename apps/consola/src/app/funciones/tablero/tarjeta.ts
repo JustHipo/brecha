@@ -4,7 +4,7 @@ import { RouterLink } from '@angular/router';
 import { TranslocoPipe } from '@jsverse/transloco';
 import type { Resumen } from '@brecha/contratos';
 import { HlmDropdownMenuImports } from '@brecha/ui/dropdown-menu';
-import { Avatar, EtiquetaPlataforma, PuntoPrioridad } from '../../compartido/piezas';
+import { Avatar, EtiquetaPlataforma, Etiquetas, PuntoPrioridad } from '../../compartido/piezas';
 
 const I = {
   reloj: 'M12 7v5l3 2M12 21a9 9 0 1 1 0-18 9 9 0 0 1 0 18z',
@@ -20,6 +20,7 @@ const I = {
     TranslocoPipe,
     Avatar,
     EtiquetaPlataforma,
+    Etiquetas,
     PuntoPrioridad,
     CdkMenuModule,
     HlmDropdownMenuImports,
@@ -113,6 +114,9 @@ const I = {
           </span>
         }
       </div>
+      @if (t.etiquetas.length) {
+        <b-etiquetas [etiquetas]="t.etiquetas" />
+      }
       @if (t.discrepanciasAbiertas) {
         <p
           class="-mx-[13px] mt-0 mb-0 flex items-start gap-[7px] border-t border-aviso-borde bg-aviso-fondo px-[13px] py-[9px] text-[12.5px] font-semibold text-aviso-tinta"

@@ -115,7 +115,9 @@ test('Escape lo cierra, y se vuelve a ver desde Ajustes y desde la búsqueda', a
 
   // Desde la búsqueda (⌘K o Ctrl+K), escribiendo «recorrido».
   await page.getByRole('button', { name: /Buscar o ejecutar/ }).click();
-  await page.getByRole('combobox').fill('recorrido');
+  await page
+    .getByPlaceholder('Busca una empresa o un cargo, o escribe un comando')
+    .fill('recorrido');
   await page.getByRole('option', { name: 'Ver el recorrido guiado' }).click();
   await expect(popup(page)).toHaveAttribute('data-recorrido-paso', 'bienvenida');
   await sinViolaciones(page);

@@ -110,7 +110,8 @@ export class DialogoNuevoContacto extends DialogoBase<ContextoNuevo, ContactoRed
     }),
     perfilUrl: new FormControl('', {
       nonNullable: true,
-      validators: [Validators.required, Validators.pattern(PERFIL_LINKEDIN)],
+      // Opcional (decisión de Juan del 24-nov): sin perfil, el contacto se reconoce por nombre y empresa.
+      validators: [Validators.pattern(PERFIL_LINKEDIN)],
     }),
     titular: new FormControl('', { nonNullable: true }),
     empresa: new FormControl(this.ctx.empresa ?? '', { nonNullable: true }),
@@ -129,7 +130,7 @@ export class DialogoNuevoContacto extends DialogoBase<ContextoNuevo, ContactoRed
     const postulacionId = this.ctx.postulacionId ?? v.postulacionId;
     this.cerrar({
       nombre: v.nombre.trim(),
-      perfilUrl: v.perfilUrl.trim(),
+      ...(v.perfilUrl.trim() ? { perfilUrl: v.perfilUrl.trim() } : {}),
       ...(v.titular.trim() ? { titular: v.titular.trim() } : {}),
       ...(v.empresa.trim() ? { empresa: v.empresa.trim() } : {}),
       ...(postulacionId ? { postulacionId } : {}),

@@ -125,4 +125,41 @@ describe('ContactoDeRed', () => {
     c.desvincularPostulacion('p1', deps.reloj);
     expect(c.datos().postulacionIds).toEqual([]);
   });
+
+  it('sin perfil de LinkedIn se crea igual y el perfil se completa después, pero no se cambia por otro', () => {
+    const c = ContactoDeRed.crear({ nombre: 'Bruno Ficticio', empresa: 'Universidad Ficticia' }, deps);
+    expect(c.datos().perfilUrl).toBeUndefined();
+    c.actualizar({ perfilUrl: 'linkedin.com/in/bruno' }, deps.reloj);
+    expect(c.datos().perfilUrl).toBe('https://www.linkedin.com/in/bruno');
+    expect(() => c.actualizar({ perfilUrl: 'linkedin.com/in/otro' }, deps.reloj)).toThrow(DatoInvalido);
+    c.actualizar({ perfilUrl: 'https://www.linkedin.com/in/bruno/' }, deps.reloj);
+    expect(c.datos().perfilUrl).toBe('https://www.linkedin.com/in/bruno');
+  });
+
+  it('el aviso por correo no cuenta dos veces un mensaje ya leído desde LinkedIn', () => {
+    const c = nuevo();
+    const real = {
+      tipo: 'mensaje_recibido',
+      resumen: 'Ya no trabaja en la empresa',
+      ocurridaEn: en('2026-11-21T10:47:00Z'),
+      origen: 'ia' as const,
+    };
+    const aviso = {
+      tipo: 'mensaje_recibido',
+      resumen: 'Te escribió por LinkedIn',
+      ocurridaEn: en('2026-11-21T11:03:00Z'),
+      origen: 'correo' as const,
+    };
+    // El aviso llega después del mensaje leído: sobra.
+    expect(c.registrarInteraccion(real, deps)).toBe(true);
+    expect(c.registrarInteraccion(aviso, deps)).toBe(false);
+    expect(c.ultimaInteraccion()?.resumen).toBe('Ya no trabaja en la empresa');
+    // El aviso llegó primero: el mensaje leído lo reemplaza.
+    const otro = nuevo();
+    expect(otro.registrarInteraccion(aviso, deps)).toBe(true);
+    expect(otro.registrarInteraccion(real, deps)).toBe(true);
+    expect(otro.datos().interacciones.map((i) => i.origen)).toEqual(['ia']);
+    // Un mensaje nuevo al día siguiente sí entra.
+    expect(c.registrarInteraccion({ ...aviso, ocurridaEn: en('2026-11-22T15:00:00Z') }, deps)).toBe(true);
+  });
 });

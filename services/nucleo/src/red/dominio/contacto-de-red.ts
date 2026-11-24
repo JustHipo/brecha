@@ -46,7 +46,8 @@ export interface Interaccion {
 export interface DatosContactoRed {
   id: string;
   nombre: string;
-  perfilUrl: string;
+  /** Sin perfil de LinkedIn el contacto se reconoce por nombre y empresa (csv.md, decisión de Juan del 24-nov). */
+  perfilUrl?: string;
   titular?: string;
   empresa?: string;
   conexion: EstadoDeConexion;
@@ -76,6 +77,8 @@ export function perfilNormalizado(url: unknown): string {
   return `https://www.linkedin.com/in/${/^AC[a-zA-Z]AA/.test(id) ? id : id.toLowerCase()}`;
 }
 
+const VENTANA_AVISO_MS = 12 * 3_600_000;
+
 const opcional = (campo: string, v: unknown, max: number) =>
   v === undefined || v === null || v === '' ? undefined : textoObligatorio(campo, v, max);
 
@@ -83,16 +86,20 @@ export class ContactoDeRed {
   private constructor(private d: DatosContactoRed) {}
 
   static crear(
-    p: { nombre: unknown; perfilUrl: unknown; titular?: unknown; empresa?: unknown },
+    p: { nombre: unknown; perfilUrl?: unknown; titular?: unknown; empresa?: unknown },
     deps: Deps,
   ): ContactoDeRed {
     const ahora = deps.reloj.ahora();
     const titular = opcional('titular', p.titular, 300);
     const empresa = opcional('empresa', p.empresa, 200);
+    const perfil =
+      p.perfilUrl === undefined || p.perfilUrl === null || p.perfilUrl === ''
+        ? undefined
+        : perfilNormalizado(p.perfilUrl);
     return new ContactoDeRed({
       id: deps.ids.nuevo(),
       nombre: textoObligatorio('nombre', p.nombre, 200),
-      perfilUrl: perfilNormalizado(p.perfilUrl),
+      ...(perfil ? { perfilUrl: perfil } : {}),
       ...(titular ? { titular } : {}),
       ...(empresa ? { empresa } : {}),
       conexion: 'ninguna',
@@ -124,10 +131,24 @@ export class ContactoDeRed {
   }
 
   actualizar(
-    p: { nombre?: unknown; titular?: unknown; empresa?: unknown; notas?: unknown; seguimiento?: unknown },
+    p: {
+      nombre?: unknown;
+      perfilUrl?: unknown;
+      titular?: unknown;
+      empresa?: unknown;
+      notas?: unknown;
+      seguimiento?: unknown;
+    },
     reloj: Reloj,
   ): void {
     if (p.nombre !== undefined) this.d.nombre = textoObligatorio('nombre', p.nombre, 200);
+    // El perfil se puede completar después, pero no cambiar por otro (es lo que identifica a la persona).
+    if (p.perfilUrl !== undefined && p.perfilUrl !== null && p.perfilUrl !== '') {
+      const perfil = perfilNormalizado(p.perfilUrl);
+      if (this.d.perfilUrl && this.d.perfilUrl !== perfil)
+        throw new DatoInvalido('perfilUrl', 'Este contacto ya tiene otro perfil de LinkedIn');
+      this.d.perfilUrl = perfil;
+    }
     for (const [campo, max] of [
       ['titular', 300],
       ['empresa', 200],
@@ -169,6 +190,7 @@ export class ContactoDeRed {
     }
     const referencia = opcional('referenciaExterna', p.referenciaExterna, 500);
     const dia = deps.reloj.fechaDe(ocurridaEn);
+    if (p.tipo === 'mensaje_recibido' && this.avisoDeCorreoSobra(p.origen, ocurridaEn, deps)) return false;
     const repetida = this.d.interacciones.some(
       (i) =>
         (referencia && i.referenciaExterna === referencia) ||
@@ -189,6 +211,37 @@ export class ContactoDeRed {
     if (ultimaSolicitud) this.d.conexion = CONEXION_POR_TIPO[ultimaSolicitud.tipo]!;
     this.d.actualizadoEn = deps.reloj.ahora();
     return true;
+  }
+
+  /**
+   * D40: el aviso por correo de un mensaje nuevo no trae el texto y llega después del mensaje.
+   * Si el mensaje ya se leyó desde LinkedIn (hasta 12 h antes del aviso), el aviso sobra; si el aviso
+   * llegó primero, el mensaje leído lo reemplaza. Así el mismo mensaje no se cuenta dos veces.
+   */
+  private avisoDeCorreoSobra(origen: OrigenDeRed, ocurridaEn: Date, deps: Deps): boolean {
+    const t = ocurridaEn.getTime();
+    const recibido = (i: Interaccion) => i.tipo === 'mensaje_recibido';
+    if (origen === 'correo') {
+      return this.d.interacciones.some(
+        (i) =>
+          recibido(i) &&
+          i.origen !== 'correo' &&
+          t - i.ocurridaEn.getTime() >= 0 &&
+          t - i.ocurridaEn.getTime() <= VENTANA_AVISO_MS,
+      );
+    }
+    const antes = this.d.interacciones.length;
+    this.d.interacciones = this.d.interacciones.filter(
+      (i) =>
+        !(
+          recibido(i) &&
+          i.origen === 'correo' &&
+          i.ocurridaEn.getTime() - t >= 0 &&
+          i.ocurridaEn.getTime() - t <= VENTANA_AVISO_MS
+        ),
+    );
+    if (this.d.interacciones.length !== antes) this.d.actualizadoEn = deps.reloj.ahora();
+    return false;
   }
 
   vincularPostulacion(postulacionId: string, reloj: Reloj): void {
@@ -225,6 +278,8 @@ export class ContactoDeRed {
 export interface RedRepositorio {
   porId(id: string): Promise<ContactoDeRed | null>;
   porPerfil(perfilUrl: string): Promise<ContactoDeRed | null>;
+  /** Contacto sin perfil de LinkedIn con ese nombre y empresa (sin distinguir mayúsculas). */
+  sinPerfil(nombre: string, empresa?: string): Promise<ContactoDeRed | null>;
   todos(): Promise<ContactoDeRed[]>;
   guardar(c: ContactoDeRed): Promise<void>;
 }

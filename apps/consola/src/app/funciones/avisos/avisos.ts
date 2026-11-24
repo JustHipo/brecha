@@ -6,7 +6,7 @@ import { HlmInput } from '@brecha/ui/input';
 import { firstValueFrom } from 'rxjs';
 import { Ia, type AvisoIa, type AvisoPegado } from '../../nucleo/api/ia.service';
 import { Avisos } from '../../nucleo/avisos';
-import { EtiquetaPlataforma } from '../../compartido/piezas';
+import { EtiquetaPlataforma, herramientasDeTarjeta, ListaStack } from '../../compartido/piezas';
 import { MODALIDADES, PLATAFORMAS } from '../bandeja/dialogos';
 import { Dialogos } from '../postulacion/dialogos/dialogos.service';
 import { AvisosStore } from './avisos.store';
@@ -17,6 +17,7 @@ import { CitaAviso, InsigniaCalce } from './piezas';
 @Component({
   selector: 'b-avisos',
   imports: [
+    ListaStack,
     RouterLink,
     TranslocoPipe,
     HlmButton,
@@ -162,23 +163,10 @@ import { CitaAviso, InsigniaCalce } from './piezas';
             <b-plataforma [plataforma]="a.plataforma" />
             <b-calce [calce]="a.calce" [analizado]="a.analizado" />
           </div>
-          @if (a.stack.length) {
-            <ul
-              class="m-0 flex list-none flex-wrap gap-1 p-0"
-              [attr.aria-label]="'avisos.herramientas' | transloco"
-            >
-              @for (h of a.stack; track h) {
-                <li class="rounded-[5px] bg-superficie px-[7px] py-[1px] text-xs">{{ h }}</li>
-              }
-            </ul>
-          }
-          @if (a.brechas.length) {
-            <p class="m-0 text-[12.5px]">
-              <span class="font-semibold text-aviso-tinta"
-                >{{ 'avisos.brechas' | transloco }}:</span
-              >
-              {{ a.brechas.join(', ') }}
-            </p>
+          @if (herramientasDe(a); as hs) {
+            @if (hs.length) {
+              <b-stack [herramientas]="hs" [maximo]="8" />
+            }
           }
           <div class="flex flex-wrap items-center gap-3">
             <b-cita class="flex-1" [aviso]="a" />
@@ -220,6 +208,9 @@ import { CitaAviso, InsigniaCalce } from './piezas';
   `,
 })
 export class AvisosPagina {
+  /** Stack del aviso con las brechas en rojo (csv.md §7). */
+  protected readonly herramientasDe = herramientasDeTarjeta;
+
   protected readonly store = inject(AvisosStore);
   private readonly ia = inject(Ia);
   private readonly avisos = inject(Avisos);

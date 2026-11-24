@@ -26,6 +26,7 @@ import {
   ResumenDesde,
   VerPostulacion,
   VerTablero,
+  EtiquetasEnUso,
 } from '../aplicacion/casos-de-lectura';
 
 /** Todos los casos de uso armados sobre un mismo contexto. Los usan REST y MCP por igual (ADR 0012). */
@@ -42,6 +43,7 @@ export class CasosDeUso {
   readonly registrarResultadoEntrevista: RegistrarResultadoEntrevista;
   readonly listar: ListarPostulaciones;
   readonly tablero: VerTablero;
+  readonly etiquetas: EtiquetasEnUso;
   readonly ver: VerPostulacion;
   readonly resumen: ResumenDesde;
   readonly exportar: Exportar;
@@ -66,6 +68,7 @@ export class CasosDeUso {
     this.registrarResultadoEntrevista = new RegistrarResultadoEntrevista(c);
     this.listar = new ListarPostulaciones(c);
     this.tablero = new VerTablero(c);
+    this.etiquetas = new EtiquetasEnUso(c);
     this.ver = new VerPostulacion(c);
     this.resumen = new ResumenDesde(c);
     this.exportar = new Exportar(c);

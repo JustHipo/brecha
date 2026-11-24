@@ -1,6 +1,6 @@
 import { AggregateRoot } from '../../compartido/dominio/aggregate-root';
 import { ErrorDeDominio } from '../../compartido/dominio/error-de-dominio';
-import type { Prioridad } from '../../compartido/dominio/evento-de-dominio';
+import { PRIORIDADES, type Prioridad } from '../../compartido/dominio/evento-de-dominio';
 import { diasEntre, type Deps, type Fecha, type Reloj } from '../../compartido/dominio/puertos';
 import {
   AvisoCerrado,
@@ -20,9 +20,12 @@ import {
   type EstadoPostulacion,
 } from './estado';
 import { EVENTOS } from './eventos';
+import { crearEtiquetas } from './objetos-valor/etiquetas';
 import {
   crearContacto,
+  crearStack,
   esUno,
+  textoOpcional,
   fechaValida,
   textoObligatorio,
   type AvisoResumen,
@@ -61,6 +64,10 @@ export interface PostulacionDatos {
   canal?: Canal;
   fechaPostulacion?: Fecha;
   sueldoPretendido?: Dinero;
+  /** Etiquetas normalizadas (objeto de valor `Etiquetas`). */
+  etiquetas: string[];
+  /** Prioridad que fijó la persona; sin ella, la calcula R12. */
+  prioridadFijada?: Prioridad;
   contactos: Contacto[];
   entrevistas: Entrevista[];
   notas: Nota[];
@@ -130,6 +137,8 @@ export class Postulacion extends AggregateRoot {
       fechaPostulacion?: Fecha;
       canal?: Canal;
       motivo?: string;
+      etiquetas?: unknown;
+      prioridadFijada?: Prioridad;
       origen: Origen;
     },
     deps: Deps,
@@ -147,6 +156,9 @@ export class Postulacion extends AggregateRoot {
       );
     }
     if (p.fechaPostulacion !== undefined) fechaValida('fechaPostulacion', p.fechaPostulacion);
+    const etiquetas = crearEtiquetas(p.etiquetas);
+    if (p.prioridadFijada !== undefined && !esUno(PRIORIDADES, p.prioridadFijada))
+      throw new DatoInvalido('prioridad', 'Prioridad desconocida');
     if (estado === 'postulado' && !importada) {
       Postulacion.exigirDatosDePostular(p.fechaPostulacion, p.canal, deps.reloj);
       if (Postulacion.avisoCerrado(p.aviso, deps.reloj)) throw new AvisoCerrado();
@@ -167,6 +179,8 @@ export class Postulacion extends AggregateRoot {
       ...(p.canal ? { canal: p.canal } : {}),
       ...(p.fechaPostulacion ? { fechaPostulacion: p.fechaPostulacion } : {}),
       ...(p.sueldoPretendido ? { sueldoPretendido: p.sueldoPretendido } : {}),
+      etiquetas,
+      ...(p.prioridadFijada ? { prioridadFijada: p.prioridadFijada } : {}),
       contactos: [],
       entrevistas: [],
       notas: [],
@@ -218,7 +232,7 @@ export class Postulacion extends AggregateRoot {
   }
 
   prioridad(reloj: Reloj): Prioridad {
-    return calcularPrioridad(this.d.estado, this.d.aviso.cierre, reloj.hoy());
+    return calcularPrioridad(this.d.estado, this.d.aviso.cierre, reloj.hoy(), this.d.prioridadFijada);
   }
 
   /** Destinos válidos. Con reloj, quita los que el aviso cerrado impide (R3 y R6). */
@@ -473,7 +487,47 @@ export class Postulacion extends AggregateRoot {
     this.tocar(reloj.ahora());
   }
 
-  editar(p: { canal?: Canal; sueldoPretendido?: Dinero | null; cierre?: Fecha | null }, reloj: Reloj): void {
+  editar(
+    p: {
+      canal?: Canal;
+      sueldoPretendido?: Dinero | null;
+      cierre?: Fecha | null;
+      etiquetas?: unknown;
+      prioridad?: Prioridad | null;
+      stack?: unknown;
+      requisitos?: string | null;
+      sueldoPublicado?: string | null;
+    },
+    reloj: Reloj,
+  ): void {
+    // Todo se valida antes de cambiar nada.
+    const etiquetas = p.etiquetas !== undefined ? crearEtiquetas(p.etiquetas) : undefined;
+    if (p.prioridad !== undefined && p.prioridad !== null && !esUno(PRIORIDADES, p.prioridad))
+      throw new DatoInvalido('prioridad', 'Prioridad desconocida');
+    const stack = p.stack !== undefined ? crearStack(p.stack) : undefined;
+    const requisitos =
+      p.requisitos === undefined ? undefined : (textoOpcional('requisitos', p.requisitos, 5000) ?? null);
+    const sueldoPublicado =
+      p.sueldoPublicado === undefined
+        ? undefined
+        : (textoOpcional('sueldoPublicado', p.sueldoPublicado, 200) ?? null);
+
+    if (etiquetas) this.d.etiquetas = etiquetas;
+    if (p.prioridad === null) delete this.d.prioridadFijada;
+    else if (p.prioridad) this.d.prioridadFijada = p.prioridad;
+    if (stack || requisitos !== undefined || sueldoPublicado !== undefined) {
+      const { stack: _s, requisitos: _r, sueldoPublicado: _sp, ...base } = this.d.aviso;
+      const s2 = stack ?? this.d.aviso.stack ?? [];
+      const r2 = requisitos === undefined ? this.d.aviso.requisitos : (requisitos ?? undefined);
+      const sp2 =
+        sueldoPublicado === undefined ? this.d.aviso.sueldoPublicado : (sueldoPublicado ?? undefined);
+      this.d.aviso = {
+        ...base,
+        ...(s2.length ? { stack: s2 } : {}),
+        ...(r2 ? { requisitos: r2 } : {}),
+        ...(sp2 ? { sueldoPublicado: sp2 } : {}),
+      };
+    }
     if (p.canal) this.d.canal = p.canal;
     if (p.sueldoPretendido === null) delete this.d.sueldoPretendido;
     else if (p.sueldoPretendido) this.d.sueldoPretendido = p.sueldoPretendido;

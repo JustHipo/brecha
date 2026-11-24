@@ -54,6 +54,15 @@ El instalador sale del CI: en la PR o en Actions → «App de escritorio», baja
 claude mcp add --transport http --scope user brecha http://127.0.0.1:4300/mcp --header "Authorization: Bearer $(Get-Content $env:APPDATA\Brecha\instancia\token-mcp)"
 ```
 
+### Importar y exportar por CSV
+
+En **Importar y exportar** (barra lateral, o ⌘K) cargas una planilla de postulaciones o de contactos de LinkedIn, ves un informe por fila (línea, columna y motivo de cada error o advertencia) y bajas tus datos en el mismo formato para que otra persona los importe en su Brecha. Hay plantillas con dos filas de ejemplo. Importar dos veces el mismo archivo deja lo mismo: una postulación se reconoce por la URL del aviso y un contacto por su perfil de LinkedIn (o por nombre y empresa si no tiene). Importa primero las postulaciones y después los contactos. Formato completo en `docs/diseno/csv.md`; ejemplos inventados en `datos/ejemplo/csv/`.
+
+- **Postulaciones:** `titulo,empresa,url,plataforma,modalidad,ubicacion,cierre,estado,prioridad,fecha_postulacion,canal_tipo,canal_valor,correo_postulacion,sueldo_publicado,stack,requisitos,etiquetas,notas` y, opcional, `motivo`. Coma, UTF-8 y encabezado; `stack` y `etiquetas` separadas por `;`; fechas AAAA-MM-DD. Desde `postulado` en adelante hacen falta `fecha_postulacion`, `canal_tipo` y `canal_valor`.
+- **Contactos:** `nombre,perfil_url,titular,empresa,correo,url_postulacion,motivo,mensaje_sugerido`.
+- Cada postulación entra también a **Avisos**: su `stack` se compara con tu perfil y la ficha muestra en rojo, con ✕ y «falta», las herramientas que no tienes.
+- Desde la terminal: `pnpm --filter nucleo importar archivo.csv`.
+
 ## Correrlo en desarrollo
 
 Requisitos: Node 22.22 o más, pnpm 11, uv y Docker (solo para PostgreSQL en desarrollo).
@@ -87,7 +96,7 @@ Con el núcleo corriendo, el token de MCP está en `.brecha/token-mcp` (permisos
 claude mcp add --transport http --scope local brecha http://127.0.0.1:4300/mcp --header "Authorization: Bearer $(cat .brecha/token-mcp)"
 ```
 
-Herramientas: `listar_postulaciones`, `ver_postulacion`, `crear_postulacion`, `cambiar_estado`, `editar_postulacion`, `agregar_nota`, `agregar_contacto`, `agendar_entrevista`, `registrar_senal`, `aplicar_senal`, `listar_bandeja`, `asociar_senal`, `listar_discrepancias`, `resolver_discrepancia`, `resumen` y `exportar`. Lo que haga la IA queda con origen `ia` y pasa por las mismas reglas que la consola.
+Herramientas: `listar_postulaciones` (con filtro por `etiquetas`), `listar_etiquetas`, `ver_postulacion`, `crear_postulacion`, `cambiar_estado`, `editar_postulacion` (también etiquetas y prioridad), `agregar_nota`, `agregar_contacto`, `agendar_entrevista`, `registrar_senal`, `aplicar_senal`, `listar_bandeja`, `asociar_senal`, `listar_discrepancias`, `resolver_discrepancia`, `resumen`, `exportar`, `importar_csv` y `exportar_csv`. Lo que haga la IA queda con origen `ia` y pasa por las mismas reglas que la consola.
 
 **Tu red de LinkedIn.** LinkedIn no tiene API, pero te avisa por correo: el vigía reconoce esos avisos (mensajes nuevos e invitaciones), crea o actualiza el contacto con su nombre, cargo, empresa y perfil, marca que te toca responder y lo liga a la postulación de esa empresa. Activa en LinkedIn → Preferencias → Comunicaciones los correos de mensajes e invitaciones. Lo que el correo no trae (el texto de los mensajes y los que envías tú) lo completa tu IA desde tu navegador con `listar_red`, `ver_contacto_red`, `registrar_contacto_red`, `registrar_interaccion_red` y `editar_contacto_red`: contactos, solicitudes de conexión y mensajes, cada uno ligado a sus postulaciones. Brecha calcula a quién le toca responder y te muestra, en la ficha de cada postulación, con quién estás hablando y por qué vía.
 

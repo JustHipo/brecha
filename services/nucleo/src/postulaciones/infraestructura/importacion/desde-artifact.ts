@@ -1,7 +1,9 @@
 import { DatoInvalido } from '../../dominio/errores';
 import { esEstado, esDeAvance, type EstadoPostulacion } from '../../dominio/estado';
 import { esFecha } from '../../../compartido/dominio/puertos';
-import type { Plataforma } from '../../dominio/objetos-valor/valores';
+import { plataformaDesdeUrl, type Plataforma } from '../../dominio/objetos-valor/valores';
+
+export { plataformaDesdeUrl };
 import type { FichaImportable } from '../../aplicacion/importar-fichas';
 
 /**
@@ -53,23 +55,6 @@ const NOMBRES: Record<Plataforma, string> = {
   sitio_empresa: 'Sitio de la empresa',
   otra: 'Otra',
 };
-
-export function plataformaDesdeUrl(url: string): Plataforma {
-  const host = (() => {
-    try {
-      return new URL(url).hostname;
-    } catch {
-      return '';
-    }
-  })();
-  if (host.includes('linkedin.')) return 'linkedin';
-  if (host.includes('trabajando.')) return 'trabajando';
-  if (host.includes('getonbrd.') || host.includes('getonboard.')) return 'getonboard';
-  if (host.includes('chiletrabajos.')) return 'chiletrabajos';
-  if (host.includes('computrabajo.')) return 'computrabajo';
-  if (host.includes('indeed.')) return 'indeed';
-  return host ? 'sitio_empresa' : 'otra';
-}
 
 export function modalidadDesdeTexto(texto: string | undefined): string {
   const t = (texto ?? '').toLowerCase();

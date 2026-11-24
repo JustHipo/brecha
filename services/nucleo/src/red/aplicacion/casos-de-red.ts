@@ -1,5 +1,6 @@
 import type { Deps, GeneradorId, Reloj } from '../../compartido/dominio/puertos';
 import { DatoInvalido, NoEncontrada } from '../../postulaciones/dominio/errores';
+import { textoObligatorio } from '../../postulaciones/dominio/objetos-valor/valores';
 import {
   ContactoDeRed,
   perfilNormalizado,
@@ -28,7 +29,7 @@ export interface VistaInteraccion {
 export interface VistaContactoRed {
   id: string;
   nombre: string;
-  perfilUrl: string;
+  perfilUrl: string | null;
   titular: string | null;
   empresa: string | null;
   conexion: EstadoDeConexion;
@@ -68,7 +69,7 @@ export function vista(c: ContactoDeRed, reloj: Reloj): VistaContactoRed {
   return {
     id: d.id,
     nombre: d.nombre,
-    perfilUrl: d.perfilUrl,
+    perfilUrl: d.perfilUrl ?? null,
     titular: d.titular ?? null,
     empresa: d.empresa ?? null,
     conexion: d.conexion,
@@ -95,18 +96,39 @@ async function cargar(c: ContextoDeRed, id: string): Promise<ContactoDeRed> {
   return x;
 }
 
-/** Crea el contacto o, si el perfil ya está, actualiza sus datos (la IA puede sincronizar las veces que quiera). */
+/** Lo que identifica y describe al contacto, sin fechas: para saber si una sincronización cambió algo. */
+function huella(c: ContactoDeRed): string {
+  const { actualizadoEn: _a, creadoEn: _c, ...resto } = c.datos();
+  return JSON.stringify(resto);
+}
+
+/**
+ * Crea el contacto o, si ya está (mismo perfil, o sin perfil con el mismo nombre y empresa), actualiza sus datos:
+ * la IA o un CSV pueden sincronizar las veces que quieran. Las notas solo se escriben si el contacto no tenía.
+ */
 export class RegistrarContacto {
   constructor(private readonly c: ContextoDeRed) {}
   async ejecutar(e: {
     nombre: string;
-    perfilUrl: string;
+    perfilUrl?: string;
     titular?: string;
     empresa?: string;
     postulacionId?: string;
-  }): Promise<VistaContactoRedDetalle & { nuevo: boolean }> {
-    const existente = await this.c.red.porPerfil(perfilNormalizado(e.perfilUrl));
-    const contacto = existente ?? ContactoDeRed.crear(e, deps(this.c));
+    notas?: string;
+  }): Promise<VistaContactoRedDetalle & { nuevo: boolean; cambiado: boolean }> {
+    const perfil = e.perfilUrl?.trim() ? perfilNormalizado(e.perfilUrl) : undefined;
+    const nombre = textoObligatorio('nombre', e.nombre, 200);
+    const existente = perfil
+      ? await this.c.red.porPerfil(perfil)
+      : await this.c.red.sinPerfil(nombre, e.empresa);
+    if (e.postulacionId && !(await this.c.existePostulacion(e.postulacionId))) throw new NoEncontrada();
+    const antes = existente ? huella(existente) : '';
+    const contacto =
+      existente ??
+      ContactoDeRed.crear(
+        { ...e, ...(perfil ? { perfilUrl: perfil } : { perfilUrl: undefined }) },
+        deps(this.c),
+      );
     if (existente) {
       existente.actualizar(
         {
@@ -117,12 +139,11 @@ export class RegistrarContacto {
         this.c.reloj,
       );
     }
-    if (e.postulacionId) {
-      if (!(await this.c.existePostulacion(e.postulacionId))) throw new NoEncontrada();
-      contacto.vincularPostulacion(e.postulacionId, this.c.reloj);
-    }
-    await this.c.red.guardar(contacto);
-    return { ...detalle(contacto, this.c.reloj), nuevo: !existente };
+    if (e.notas?.trim() && !contacto.datos().notas) contacto.actualizar({ notas: e.notas }, this.c.reloj);
+    if (e.postulacionId) contacto.vincularPostulacion(e.postulacionId, this.c.reloj);
+    const cambiado = !existente || huella(contacto) !== antes;
+    if (cambiado) await this.c.red.guardar(contacto);
+    return { ...detalle(contacto, this.c.reloj), nuevo: !existente, cambiado };
   }
 }
 
@@ -165,6 +186,7 @@ export class EditarContacto {
   async ejecutar(e: {
     id: string;
     nombre?: string;
+    perfilUrl?: string;
     titular?: string | null;
     empresa?: string | null;
     notas?: string | null;
@@ -173,6 +195,11 @@ export class EditarContacto {
     desvincular?: string;
   }): Promise<VistaContactoRedDetalle> {
     const contacto = await cargar(this.c, e.id);
+    if (e.perfilUrl) {
+      const otro = await this.c.red.porPerfil(perfilNormalizado(e.perfilUrl));
+      if (otro && otro.id !== contacto.id)
+        throw new DatoInvalido('perfilUrl', `Ese perfil ya es de otro contacto: ${otro.datos().nombre}`);
+    }
     const { id: _id, vincular, desvincular, ...datos } = e;
     contacto.actualizar(datos, this.c.reloj);
     if (vincular) {

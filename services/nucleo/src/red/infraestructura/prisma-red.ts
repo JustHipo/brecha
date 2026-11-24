@@ -20,7 +20,7 @@ function aDatos(f: Fila): DatosContactoRed {
   return {
     id: f.id,
     nombre: f.nombre,
-    perfilUrl: f.perfilUrl,
+    ...(f.perfilUrl ? { perfilUrl: f.perfilUrl } : {}),
     ...(f.titular ? { titular: f.titular } : {}),
     ...(f.empresa ? { empresa: f.empresa } : {}),
     conexion: f.conexion as EstadoDeConexion,
@@ -51,6 +51,20 @@ export class PrismaRed implements RedRepositorio {
     return f ? ContactoDeRed.reconstituir(aDatos(f)) : null;
   }
 
+  async sinPerfil(nombre: string, empresa?: string): Promise<ContactoDeRed | null> {
+    const f = await this.prisma.contactoRed.findFirst({
+      where: {
+        perfilUrl: null,
+        nombre: { equals: nombre.trim(), mode: 'insensitive' },
+        ...(empresa?.trim()
+          ? { empresa: { equals: empresa.trim(), mode: 'insensitive' } }
+          : { empresa: null }),
+      },
+      orderBy: { creadoEn: 'asc' },
+    });
+    return f ? ContactoDeRed.reconstituir(aDatos(f)) : null;
+  }
+
   async todos(): Promise<ContactoDeRed[]> {
     const filas = await this.prisma.contactoRed.findMany({ orderBy: { actualizadoEn: 'desc' } });
     return filas.map((f) => ContactoDeRed.reconstituir(aDatos(f)));
@@ -60,7 +74,7 @@ export class PrismaRed implements RedRepositorio {
     const d = c.datos();
     const datos = {
       nombre: d.nombre,
-      perfilUrl: d.perfilUrl,
+      perfilUrl: d.perfilUrl ?? null,
       titular: d.titular ?? null,
       empresa: d.empresa ?? null,
       conexion: d.conexion,
