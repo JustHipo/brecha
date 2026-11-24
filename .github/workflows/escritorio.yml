@@ -81,7 +81,13 @@ jobs:
       - name: Prueba de humo (instala, abre, crea y mueve, llavero, huérfanos, salir)
         run: |
           instalador=$(ls apps/escritorio/empaquetado/app/Brecha-Setup-*.exe | head -1)
-          node apps/escritorio/scripts/prueba-de-humo.mjs --instalador "$(cygpath -w "$instalador")" --salida humo-windows
+          node apps/escritorio/scripts/prueba-de-humo.mjs --instalador "$(cygpath -w "$instalador")" --salida humo-windows || {
+            codigo=$?
+            echo "::error::la prueba de humo salió con $codigo"
+            cat humo-windows/pasos.txt || true
+            tail -n 40 humo-windows/*/logs/*.log || true
+            exit $codigo
+          }
 
       - name: Instalador como artefacto
         uses: actions/upload-artifact@v4
@@ -148,7 +154,7 @@ jobs:
         run: node apps/escritorio/scripts/empaquetar.mjs --sin-compilar
 
       - name: Prueba de humo (abre, crea y mueve, huérfanos, salir)
-        run: node apps/escritorio/scripts/prueba-de-humo.mjs --app apps/escritorio/empaquetado/app/mac-arm64/Brecha.app/Contents/MacOS/Brecha --salida humo-macos
+        run: node apps/escritorio/scripts/prueba-de-humo.mjs --app apps/escritorio/empaquetado/app/mac-arm64/Brecha.app/Contents/MacOS/Brecha --salida humo-macos || { tail -n 40 humo-macos/*/logs/*.log; exit 1; }
 
       - name: .dmg como artefacto
         uses: actions/upload-artifact@v4

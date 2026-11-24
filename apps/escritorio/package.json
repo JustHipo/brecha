@@ -30,6 +30,9 @@
     "appId": "cl.brecha.app",
     "productName": "Brecha",
     "copyright": "Brecha",
+    "extraMetadata": {
+      "name": "brecha"
+    },
     "directories": {
       "output": "empaquetado/app",
       "buildResources": "recursos-app"

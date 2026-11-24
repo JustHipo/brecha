@@ -10,7 +10,7 @@
 // Uso: node prueba-de-humo.mjs --app <Brecha.exe | Brecha.app/Contents/MacOS/Brecha> [--instalador <Setup.exe>]
 //      [--salida <carpeta para captura y registros>]
 import { execFileSync, spawn } from 'node:child_process';
-import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync } from 'node:fs';
+import { appendFileSync, cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import pg from 'pg';
@@ -22,16 +22,22 @@ const arg = (nombre) => {
 };
 const salida = resolve(arg('--salida') ?? mkdtempSync(join(tmpdir(), 'humo-')));
 mkdirSync(salida, { recursive: true });
-const datos = mkdtempSync(join(tmpdir(), 'Brecha Pérez ñ '));
+// Los datos van dentro de la salida (así el CI los sube aunque la prueba muera), en una carpeta con espacio y tildes.
+const datos = join(salida, 'Brecha Pérez ñ');
+mkdirSync(datos, { recursive: true });
 // BRECHA_PUERTOS=«pg,núcleo,ia» permite probar al lado de una Brecha instalada (como en la app).
 const [, pNucleo, pIa] = (process.env.BRECHA_PUERTOS ?? ',4300,4400').split(',');
 const NUCLEO = `http://127.0.0.1:${pNucleo}`;
 const IA = `http://127.0.0.1:${pIa}`;
 const pasos = [];
+const bitacora = join(salida, 'pasos.txt');
+const anotar = (linea) => appendFileSync(bitacora, `${new Date().toISOString()} ${linea}\n`);
 const paso = (texto) => {
   pasos.push(texto);
   console.log(`✔ ${texto}`);
+  anotar(`✔ ${texto}`);
 };
+process.on('exit', (codigo) => anotar(`fin del proceso con código ${codigo}`));
 const esperar = (ms) => new Promise((r) => setTimeout(r, ms));
 
 async function esperarHttp(url, segundos) {
@@ -139,6 +145,7 @@ try {
   if (r.status !== 201) throw new Error(`crear postulación respondió ${r.status}: ${await r.text()}`);
   const creada = await r.json();
   paso(`postulación creada en «por postular» (${creada.id})`);
+  anotar('moviendo la postulación a postulado');
   r = await fetch(`${NUCLEO}/api/v1/postulaciones/${creada.id}/transiciones`, {
     method: 'POST',
     headers: h,
@@ -151,6 +158,7 @@ try {
     }),
   });
   if (!r.ok) throw new Error(`mover la postulación respondió ${r.status}: ${await r.text()}`);
+  anotar(`transición respondió ${r.status}; leyendo el tablero`);
   const tablero = await (await fetch(`${NUCLEO}/api/v1/postulaciones/tablero`, { headers: h })).json();
   const columna = JSON.stringify(tablero.columnas.find((c) => c.estado === 'postulado'));
   if (!columna.includes(creada.id)) throw new Error('la postulación no quedó en la columna «postulado»');
@@ -219,9 +227,9 @@ try {
 } catch (e) {
   fallo = e;
 } finally {
-  if (existsSync(join(datos, 'logs'))) cpSync(join(datos, 'logs'), join(salida, 'logs'), { recursive: true });
+  anotar(fallo ? `✘ ${fallo.message}` : 'terminó bien');
 }
-console.log(`\n${pasos.length} pasos bien. Registros y captura en ${salida}`);
+console.log(`\n${pasos.length} pasos bien. Registros, datos y captura en ${salida}`);
 if (fallo) {
   console.error(`✘ ${fallo.message}`);
   process.exit(1);
