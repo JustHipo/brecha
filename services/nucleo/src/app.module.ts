@@ -37,6 +37,16 @@ import { CasosCsvInyectables } from './csv/infraestructura/casos-csv.provider';
 import { CsvController } from './csv/infraestructura/csv.controller';
 import { LectorCsvParse } from './csv/infraestructura/lector-csv';
 import { ImportarFichas } from './postulaciones/aplicacion/importar-fichas';
+import { CasosDeArriendos } from './arriendos/aplicacion/casos';
+import { ArriendosController } from './arriendos/infraestructura/arriendos.controller';
+import { GeocodificadorNominatim } from './arriendos/infraestructura/nominatim';
+import {
+  PrismaAjustesArriendos,
+  PrismaBandejaArriendos,
+  PrismaBusqueda,
+  PrismaCanales,
+  PrismaPropiedades,
+} from './arriendos/infraestructura/prisma-arriendos';
 
 @Injectable()
 class CicloDeVida implements OnApplicationBootstrap, OnApplicationShutdown {
@@ -68,6 +78,7 @@ export class AppModule {
         McpController,
         RedController,
         CsvController,
+        ArriendosController,
       ],
       providers: [
         { provide: CONFIG, useValue: config },
@@ -140,6 +151,28 @@ export class AppModule {
             );
           },
           inject: [PRISMA, RELOJ, IDS, FLUJO, CasosDeRedInyectables],
+        },
+        {
+          provide: CasosDeArriendos,
+          useFactory: (prisma: PrismaClient, reloj: Reloj, ids: GeneradorId, flujo: FlujoDeEventos) =>
+            new CasosDeArriendos({
+              propiedades: new PrismaPropiedades(prisma, flujo),
+              canales: new PrismaCanales(prisma),
+              busqueda: new PrismaBusqueda(prisma),
+              bandeja: new PrismaBandejaArriendos(prisma, flujo),
+              ajustes: new PrismaAjustesArriendos(prisma),
+              // En las pruebas no se sale a internet (BRECHA_GEOCODIFICADOR=apagado).
+              ...(process.env.BRECHA_GEOCODIFICADOR === 'apagado'
+                ? {}
+                : {
+                    geocodificador: new GeocodificadorNominatim(prisma, () =>
+                      new PrismaAjustesArriendos(prisma).geocodificar(),
+                    ),
+                  }),
+              reloj,
+              ids,
+            }),
+          inject: [PRISMA, RELOJ, IDS, FLUJO],
         },
         { provide: APP_GUARD, useClass: AccesoGuard },
         CicloDeVida,

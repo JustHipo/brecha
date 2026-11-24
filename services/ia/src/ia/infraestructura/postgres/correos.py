@@ -7,12 +7,13 @@ from dataclasses import asdict
 from datetime import UTC, datetime
 from typing import Any
 
-from sqlalchemy import ColumnElement, Engine, func, null, select, update
+from sqlalchemy import ColumnElement, Engine, func, null, or_, select, update
 from sqlalchemy.dialects.postgresql import insert
 
 from ia.aplicacion.puertos import (
     AvisoRedPorEnviar,
     ClasificadoPorEnviar,
+    CorreoDeArriendo,
     CorreoGuardado,
     CorreoPorClasificar,
     DecisionGuardada,
@@ -21,6 +22,7 @@ from ia.aplicacion.puertos import (
     PuntoDeLectura,
     Traza,
 )
+from ia.dominio.arriendo import PLATAFORMA_ARRIENDO
 from ia.dominio.asociacion import normalizar_empresa
 from ia.dominio.clasificacion import Clasificacion
 from ia.dominio.correo import EstadoDeCorreo
@@ -110,6 +112,8 @@ class RepositorioPostgresDeCorreos:
             filas = c.execute(
                 select(correo)
                 .where(correo.c.estado == EstadoDeCorreo.PENDIENTE.value)
+                # Los de arriendo los procesa su propio caso de uso (docs/diseno/arriendos.md §7).
+                .where(or_(correo.c.plataforma.is_(None), correo.c.plataforma != PLATAFORMA_ARRIENDO))
                 .order_by(correo.c.recibido_en)
                 .limit(limite)
             ).all()
@@ -247,6 +251,49 @@ class RepositorioPostgresDeCorreos:
                     resultado=resultado,
                     modelo=modelo,
                     confianza=clasif.confianza,
+                    creada_en=datetime.now(UTC),
+                )
+                .on_conflict_do_nothing(index_elements=["message_id"])
+            )
+            c.execute(
+                update(correo)
+                .where(correo.c.message_id == message_id)
+                .values(estado=EstadoDeCorreo.CLASIFICADO.value)
+            )
+
+    # ── Arriendos (docs/diseno/arriendos.md §7) ─────────────────────────────────
+
+    def pendientes_de_arriendo(self, limite: int) -> list[CorreoDeArriendo]:
+        with self.motor.connect() as c:
+            filas = c.execute(
+                select(correo)
+                .where(
+                    correo.c.estado == EstadoDeCorreo.PENDIENTE.value,
+                    correo.c.plataforma == PLATAFORMA_ARRIENDO,
+                )
+                .order_by(correo.c.recibido_en)
+                .limit(limite)
+            ).all()
+        return [
+            CorreoDeArriendo(
+                f.message_id, f.remitente, f.asunto or "", f.fragmento or "", f.recibido_en, f.intentos
+            )
+            for f in filas
+        ]
+
+    def marcar_arriendo(
+        self, message_id: str, resultado: dict[str, object], modelo: str, confianza: float
+    ) -> None:
+        """Clasificado y ya enviado al núcleo: no lo vuelve a tomar ni la cola de empleo ni la de envío."""
+        with self.motor.begin() as c:
+            c.execute(
+                insert(clasificacion)
+                .values(
+                    message_id=message_id,
+                    resultado=resultado,
+                    modelo=modelo,
+                    confianza=confianza,
+                    enviada_al_nucleo=True,
                     creada_en=datetime.now(UTC),
                 )
                 .on_conflict_do_nothing(index_elements=["message_id"])

@@ -26,6 +26,7 @@
               }
             ],
             "styles": [
+              "maplibre-gl/dist/maplibre-gl.css",
               "@fontsource-variable/inter/index.css",
               "@fontsource-variable/plus-jakarta-sans/index.css",
               "src/styles.css"

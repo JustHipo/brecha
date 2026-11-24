@@ -225,6 +225,10 @@ Se verificaron antes de D3. Quedan como referencia por si algún día se desplie
 | Get on Board | API pública gratis y sin llave: `https://www.getonbrd.com/api/v0/search/jobs`; 20 solicitudes cada 5 s; hay que citar y enlazar cada oferta | https://www.getonbrd.com/api-doc.html |
 | MongoDB local | Imagen `mongodb/mongodb-atlas-local`: Search y Vector Search en local, nodo único, pide 2 GB de RAM y 2 núcleos; healthcheck incluido | https://www.mongodb.com/docs/atlas/cli/current/atlas-cli-deploy-docker/ |
 
+### 6.4 Arriendos (24-nov-2026)
+
+Juan pidió un segundo foco para buscar arriendo, con un selector donde dice «Brecha». Plan, respuestas de Juan y decisiones A-D1 a A-D20 en `docs/diseno/arriendos.md`; decisión de arquitectura en el ADR 0020. Se numeran aparte (A-D) para no chocar con las D de otras ramas en curso.
+
 ## 7. Fases con checkpoints
 
 Cada fase termina con un checkpoint: la revisas, la pruebas y decides si seguimos.
@@ -343,6 +347,18 @@ Cada fase termina con un checkpoint: la revisas, la pruebas y decides si seguimo
 - Instalador de la app Electron para macOS (y Windows si F3 mostró que es viable, D17); al abrir por primera vez, conectar el correo y el proveedor de IA. Guía de privacidad: qué sale de su máquina y hacia dónde.
 - README final con diagrama, decisiones, cómo correrlo, capturas con datos de ejemplo y un GIF corto.
 - **Hecho cuando:** otra persona instala su Brecha siguiendo solo el README, y el repo se entiende en 2 minutos.
+
+### FA: Arriendos (segundo foco)
+**Estado**: 🔄 Implementado en la rama `arriendos` (24-nov-2026); falta que Juan lo pruebe en macOS y Windows y elija el color del foco · detalle en `docs/diseno/arriendos.md` §13
+
+| Fase | Qué | Pruebas |
+|---|---|---|
+| A1 | Selector de foco, color por foco, rutas, ⌘1/⌘2 y paleta | Vitest del foco, 3 e2e con axe |
+| A2 | Núcleo: propiedades, estados, canales, reglas con historial, calce, duplicados, Bandeja, REST, 19 herramientas MCP | 100 transiciones y reglas sin base, REST y MCP contra la base de pruebas |
+| A3 | Consola: tablero, lista, ficha, agregar, Bandeja, Canales, Tu búsqueda | 3 e2e con axe |
+| A4-A5 | Correos de arriendo, importar texto o WhatsApp, Preguntar | pytest con correos de ejemplo, chats de iPhone y Android, teléfonos enmascarados; e2e de importar |
+| A6 | Mapa en los dos focos | Vitest de comunas, e2e de los dos mapas, Nominatim con respuestas grabadas |
+| A7 | Notificaciones y barra de menú por foco, documentación | pruebas del escritorio |
 
 ## 8. Cómo se presenta el proyecto
 

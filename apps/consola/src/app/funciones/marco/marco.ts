@@ -2,17 +2,23 @@ import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@a
 import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
 import { HlmButton } from '@brecha/ui/button';
+import { HlmDropdownMenuImports } from '@brecha/ui/dropdown-menu';
+import { Foco, type FocoId } from '../../nucleo/foco/foco';
 import { Eventos } from '../../nucleo/eventos/eventos.service';
 import { Formato, type Idioma } from '../../nucleo/idioma/idioma';
 import { BandejaStore } from '../bandeja/bandeja.store';
 import { EstadoIaStore } from '../conexiones/estado-ia.store';
 import { RedStore } from '../red/red.store';
+import { ArriendosStore } from '../arriendos/arriendos.store';
 import { TableroStore } from '../tablero/tablero.store';
 import { Recorrido } from '../recorrido/recorrido';
 import { RecorridoStore } from '../recorrido/recorrido.store';
 import { PaletaDeComandos } from './paleta';
 
 const ICONOS = {
+  busqueda: 'M4 6h10M4 12h7M4 18h4M15 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM20 20l-2.6-2.6',
+  mapa: 'M9 4L3 6v14l6-2 6 2 6-2V4l-6 2-6-2zM9 4v14M15 6v14',
+  canales: 'M4 6h16M4 12h10M4 18h7M17 15l3 3-3 3',
   tablero: 'M4 4h6v16H4zM14 4h6v10h-6z',
   lista: 'M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01',
   bandeja: 'M4 13h4l2 3h4l2-3h4M4 13l2-8h12l2 8v6H4z',
@@ -24,6 +30,13 @@ const ICONOS = {
   ajustes:
     'M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z',
 };
+interface Seccion {
+  ruta: string;
+  etiqueta: string;
+  icono: string;
+  tutorial?: string;
+}
+
 const PUNTOS = [
   '#BFD5FF',
   '#E3D2FF',
@@ -44,6 +57,7 @@ const PUNTOS = [
     RouterLinkActive,
     TranslocoPipe,
     HlmButton,
+    HlmDropdownMenuImports,
     PaletaDeComandos,
     Recorrido,
   ],
@@ -54,15 +68,71 @@ const PUNTOS = [
       [attr.aria-label]="'nav.secciones' | transloco"
       class="barra-terracota flex w-[236px] flex-none flex-col px-2.5 py-3.5"
     >
-      <div class="flex items-center gap-2.5 px-2 pt-1 pb-4" data-tutorial="marca">
-        <span
-          class="grid size-7 place-items-center rounded-lg bg-white font-titulo text-sm font-extrabold text-[#B5532A]"
-          aria-hidden="true"
-          >B</span
+      <div class="px-1 pt-0.5 pb-3" data-tutorial="marca">
+        <button
+          type="button"
+          [hlmDropdownMenuTrigger]="menuFoco"
+          align="start"
+          class="flex w-full items-center gap-2.5 rounded-[10px] px-1.5 py-1.5 text-left text-white hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-white"
+          [attr.aria-label]="
+            'foco.cambiar' | transloco: { foco: ('foco.' + foco.actual() | transloco) }
+          "
+          data-selector-foco
         >
-        <span class="font-titulo text-base font-extrabold">{{ 'app.nombre' | transloco }}</span>
+          <span
+            class="grid size-7 flex-none place-items-center rounded-lg bg-white font-titulo text-sm font-extrabold text-[var(--barra-desde)]"
+            aria-hidden="true"
+            >B</span
+          >
+          <span class="flex min-w-0 flex-1 flex-col leading-tight">
+            <span class="font-titulo text-base font-extrabold">{{ 'app.nombre' | transloco }}</span>
+            <span class="text-xs font-semibold text-barra-tinta-suave">{{
+              'foco.' + foco.actual() | transloco
+            }}</span>
+          </span>
+          <svg
+            width="14"
+            height="14"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2.2"
+            aria-hidden="true"
+          >
+            <path d="M7 10l5 5 5-5"></path>
+          </svg>
+        </button>
       </div>
-      @for (n of nav; track n.ruta) {
+      <ng-template #menuFoco>
+        <div hlmDropdownMenu class="w-[260px]">
+          @for (f of focos; track f.id) {
+            <button
+              hlmDropdownMenuItem
+              (triggered)="foco.cambiar(f.id)"
+              [attr.aria-current]="foco.actual() === f.id ? 'true' : null"
+              [attr.data-foco-opcion]="f.id"
+            >
+              <span
+                class="size-2.5 flex-none rounded-[3px]"
+                [style.background]="f.color"
+                aria-hidden="true"
+              ></span>
+              <span class="flex-1" [class.font-semibold]="foco.actual() === f.id">{{
+                'foco.' + f.id | transloco
+              }}</span>
+              @if (pendientes()[f.id]) {
+                <span class="text-xs whitespace-nowrap text-tinta-suave tabular-nums">{{
+                  'foco.porRevisar' | transloco: { n: pendientes()[f.id] }
+                }}</span>
+              }
+              <kbd class="rounded-[5px] border border-linea px-[5px] text-[11px] text-tinta-suave"
+                >{{ teclaFoco }}{{ f.atajo }}</kbd
+              >
+            </button>
+          }
+        </div>
+      </ng-template>
+      @for (n of nav(); track n.ruta) {
         <a
           [routerLink]="n.ruta"
           [attr.data-tutorial]="n.tutorial"
@@ -85,7 +155,7 @@ const PUNTOS = [
           <span class="flex-1">{{ n.etiqueta | transloco }}</span>
           @if (n.ruta === '/bandeja' && bandeja.conteo()) {
             <span
-              class="min-w-5 rounded-full bg-white px-1.5 text-center text-xs font-bold text-[#873719] tabular-nums"
+              class="min-w-5 rounded-full bg-white px-1.5 text-center text-xs font-bold text-[var(--barra-hasta)] tabular-nums"
               aria-hidden="true"
               >{{ bandeja.conteo() }}</span
             >
@@ -93,9 +163,19 @@ const PUNTOS = [
               'nav.bandejaPendientes' | transloco: { n: bandeja.conteo() }
             }}</span>
           }
+          @if (n.ruta === '/arriendos/bandeja' && arriendos.bandeja().length) {
+            <span
+              class="min-w-5 rounded-full bg-white px-1.5 text-center text-xs font-bold text-[var(--barra-hasta)] tabular-nums"
+              aria-hidden="true"
+              >{{ arriendos.bandeja().length }}</span
+            >
+            <span class="solo-lector">{{
+              'nav.bandejaPendientes' | transloco: { n: arriendos.bandeja().length }
+            }}</span>
+          }
           @if (n.ruta === '/red' && red.porResponder()) {
             <span
-              class="min-w-5 rounded-full bg-white px-1.5 text-center text-xs font-bold text-[#873719] tabular-nums"
+              class="min-w-5 rounded-full bg-white px-1.5 text-center text-xs font-bold text-[var(--barra-hasta)] tabular-nums"
               aria-hidden="true"
               >{{ red.porResponder() }}</span
             >
@@ -105,7 +185,7 @@ const PUNTOS = [
           }
         </a>
       }
-      @if (store.porPlataforma().length) {
+      @if (foco.actual() === 'empleo' && store.porPlataforma().length) {
         <p class="mx-2.5 mt-[18px] mb-1.5 text-xs font-semibold text-barra-tinta-suave">
           {{ 'nav.plataformas' | transloco }}
         </p>
@@ -171,7 +251,9 @@ const PUNTOS = [
 
     <div class="flex min-w-0 flex-1 flex-col">
       <header class="flex h-14 flex-none items-center gap-3.5 border-b border-linea px-6">
-        <span class="text-tinta-suave">{{ 'nav.postulaciones' | transloco }}</span>
+        <span class="text-tinta-suave">{{
+          (foco.actual() === 'arriendos' ? 'nav.propiedades' : 'nav.postulaciones') | transloco
+        }}</span>
         <span class="ml-auto"></span>
         <span role="status" class="contents">
           <a
@@ -254,6 +336,7 @@ export class Marco {
   protected readonly bandeja = inject(BandejaStore);
   protected readonly estadoIa = inject(EstadoIaStore);
   protected readonly red = inject(RedStore);
+  protected readonly arriendos = inject(ArriendosStore);
   private readonly formato = inject(Formato);
   private readonly transloco = inject(TranslocoService);
   private readonly router = inject(Router);
@@ -263,10 +346,18 @@ export class Marco {
   protected readonly teclaBuscar = /Mac|iPhone|iPad/.test(globalThis.navigator?.userAgent ?? '')
     ? '⌘K'
     : 'Ctrl K';
+  /** Lo mismo para los atajos del foco: ⌘1 en macOS, Ctrl 1 en Windows. */
+  protected readonly teclaFoco = this.teclaBuscar.startsWith('⌘') ? '⌘' : 'Ctrl ';
 
-  protected readonly nav: { ruta: string; etiqueta: string; icono: string; tutorial?: string }[] = [
+  protected readonly foco = inject(Foco);
+  protected readonly focos: { id: FocoId; color: string; atajo: string }[] = [
+    { id: 'empleo', color: '#B5532A', atajo: '1' },
+    { id: 'arriendos', color: '#2F7D6D', atajo: '2' },
+  ];
+  private readonly navEmpleo: Seccion[] = [
     { ruta: '/tablero', etiqueta: 'nav.tablero', icono: ICONOS.tablero },
     { ruta: '/lista', etiqueta: 'nav.lista', icono: ICONOS.lista },
+    { ruta: '/mapa', etiqueta: 'nav.mapa', icono: ICONOS.mapa },
     { ruta: '/bandeja', etiqueta: 'nav.bandeja', icono: ICONOS.bandeja, tutorial: 'bandeja' },
     { ruta: '/red', etiqueta: 'nav.red', icono: ICONOS.red, tutorial: 'red' },
     { ruta: '/avisos', etiqueta: 'nav.avisos', icono: ICONOS.avisos },
@@ -274,6 +365,25 @@ export class Marco {
     { ruta: '/conexiones', etiqueta: 'nav.conexiones', icono: ICONOS.conexiones },
     { ruta: '/importar', etiqueta: 'nav.importar', icono: ICONOS.csv, tutorial: 'importar' },
   ];
+  private readonly navArriendos: Seccion[] = [
+    { ruta: '/arriendos/tablero', etiqueta: 'nav.tablero', icono: ICONOS.tablero },
+    { ruta: '/arriendos/lista', etiqueta: 'nav.lista', icono: ICONOS.lista },
+    { ruta: '/arriendos/mapa', etiqueta: 'nav.mapa', icono: ICONOS.mapa },
+    { ruta: '/arriendos/busqueda', etiqueta: 'nav.busqueda', icono: ICONOS.busqueda },
+    { ruta: '/arriendos/bandeja', etiqueta: 'nav.bandeja', icono: ICONOS.bandeja },
+    { ruta: '/arriendos/canales', etiqueta: 'nav.canales', icono: ICONOS.canales },
+    { ruta: '/arriendos/preguntar', etiqueta: 'nav.preguntar', icono: ICONOS.preguntar },
+    { ruta: '/arriendos/importar', etiqueta: 'nav.importarArriendos', icono: ICONOS.csv },
+    { ruta: '/conexiones', etiqueta: 'nav.conexiones', icono: ICONOS.conexiones },
+  ];
+  protected readonly nav = computed(() =>
+    this.foco.actual() === 'arriendos' ? this.navArriendos : this.navEmpleo,
+  );
+  /** Lo que cada foco tiene por revisar, para el selector. */
+  protected readonly pendientes = computed<Record<FocoId, number>>(() => ({
+    empleo: this.bandeja.conteo() + this.red.porResponder(),
+    arriendos: this.arriendos.porRevisar(),
+  }));
   protected readonly iconoAjustes = ICONOS.ajustes;
   protected readonly puntos = PUNTOS;
   protected readonly idiomas: Idioma[] = ['es', 'en'];
@@ -285,6 +395,7 @@ export class Marco {
     if (this.store.estado() === 'inicial') void this.store.cargar();
     if (this.bandeja.estado() === 'inicial') void this.bandeja.cargar();
     if (this.red.estado() === 'inicial') void this.red.cargar(true);
+    if (this.arriendos.estado() === 'inicial') void this.arriendos.cargar(true);
     this.estadoIa.iniciar();
     this.recorrido.iniciarSiEsPrimeraVez();
     this.transloco.langChanges$.subscribe((l) => this.idiomaActivo.set(l));
@@ -309,6 +420,15 @@ export class Marco {
     if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
       e.preventDefault();
       this.paletaAbierta.update((v) => !v);
+      return;
+    }
+    const f =
+      (e.metaKey || e.ctrlKey) && !e.shiftKey && !e.altKey
+        ? this.focos.find((x) => x.atajo === e.key)
+        : undefined;
+    if (f) {
+      e.preventDefault();
+      this.foco.cambiar(f.id);
     }
   }
 }

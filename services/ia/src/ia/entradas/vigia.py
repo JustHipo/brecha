@@ -6,6 +6,7 @@ import threading
 from collections.abc import Callable
 from datetime import UTC, datetime, timedelta
 
+from ia.aplicacion.casos.arriendos import ProcesarArriendos
 from ia.aplicacion.casos.clasificar_pendientes import ClasificarPendientes, ResumenDeClasificacion
 from ia.aplicacion.casos.registrar_red import RegistrarRed
 from ia.aplicacion.casos.registrar_senales import RegistrarSenales, ResumenDeRegistro
@@ -36,6 +37,8 @@ def una_vuelta(
         log.warning("faltan credenciales: %s", "; ".join(faltan))
         return faltan
     if sincronizar is not None:
+        # Al empezar, no solo al terminar: la primera vuelta puede leer miles de correos y tardar minutos.
+        log.info("vuelta: revisando el correo")
         r = sincronizar()
         if r.error:
             log.error("la lectura del correo falló: %s", r.error)
@@ -92,7 +95,7 @@ def main() -> None:
             llavero.obtener(TipoDeCredencial.CORREO_CLAVE) or "",
         )
         return SincronizarCorreo(
-            lector, repo, lambda: datetime.now(UTC), cfg.dias_primera_sincronizacion
+            lector, repo, lambda: datetime.now(UTC), cfg.dias_primera_sincronizacion, dominios_arriendo
         ).ejecutar()
 
     def clasificar() -> ResumenDeClasificacion:
@@ -131,6 +134,34 @@ def main() -> None:
                 r.nuevos,
                 r.ligados,
                 r.pasos,
+            )
+
+    def dominios_arriendo() -> frozenset[str]:
+        """Dominios de los canales que agregaste; si el núcleo no responde, solo los de partida."""
+        try:
+            return NucleoHttp(cfg.nucleo_url, leer_token(cfg.carpeta_instancia)).dominios_de_arriendo()
+        except Exception as e:
+            log.warning("canales de arriendo: %s (se usan los de partida)", e)
+            return frozenset()
+
+    def arriendos() -> None:
+        """Correos de arriendo: clasificar y mandar sus señales al núcleo (docs/diseno/arriendos.md §7)."""
+        llave = llavero.obtener(TipoDeCredencial.OPENAI)
+        if not llave:
+            return
+        nucleo = NucleoHttp(cfg.nucleo_url, leer_token(cfg.carpeta_instancia))
+        modelo = ModeloOpenAI(llave, cfg.openai_modelo)
+        precios = (cfg.openai_precio_entrada, cfg.openai_precio_salida)
+        r = ProcesarArriendos(modelo, repo, nucleo, trazas, lambda: datetime.now(UTC), precios).ejecutar()
+        if r.error:
+            log.error("arriendos: %s (los correos esperan a la próxima vuelta)", r.error)
+        elif r.clasificados:
+            log.info(
+                "arriendos: %s correos, %s de arriendo, %s señales (%s a la Bandeja)",
+                r.clasificados,
+                r.de_arriendo,
+                r.senales,
+                r.a_bandeja,
             )
 
     servicios = Servicios(cfg, llavero, motor)
@@ -176,6 +207,10 @@ def main() -> None:
             red()
         except Exception:
             log.exception("la vuelta de la red falló")
+        try:
+            arriendos()
+        except Exception:
+            log.exception("la vuelta de arriendos falló")
         try:
             avisos()
         except Exception:

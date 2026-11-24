@@ -576,6 +576,438 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/arriendos/propiedades": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Propiedades con su calce; lo que te toca responder primero */
+        get: operations["listarPropiedades"];
+        put?: never;
+        /** Crea una propiedad (o une la publicación a otra con unirA). La misma URL devuelve YA_EXISTE */
+        post: operations["crearPropiedad"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/arriendos/propiedades/duplicados": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Antes de crear: ¿ya la sigues? */
+        get: operations["buscarDuplicadosPropiedad"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/arriendos/propiedades/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["verPropiedad"];
+        put?: never;
+        post?: never;
+        delete: operations["borrarPropiedad"];
+        options?: never;
+        head?: never;
+        /** Cambia solo lo que mandas; null borra un dato */
+        patch: operations["editarPropiedad"];
+        trace?: never;
+    };
+    "/api/v1/arriendos/propiedades/{id}/estado": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["cambiarEstadoPropiedad"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/arriendos/propiedades/{id}/publicaciones": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["agregarPublicacion"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/arriendos/propiedades/{id}/unir": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Suma un duplicado a esta propiedad y lo borra */
+        post: operations["unirPropiedades"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/arriendos/propiedades/{id}/contactos": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Agrega o completa un contacto */
+        post: operations["registrarContactoPropiedad"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/arriendos/propiedades/{id}/contactos/{contactoId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: operations["quitarContactoPropiedad"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/arriendos/propiedades/{id}/interacciones": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Mensaje, llamada o nota con un contacto */
+        post: operations["registrarInteraccionArriendo"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/arriendos/propiedades/{id}/visitas": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["agendarVisita"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/arriendos/propiedades/{id}/visitas/{visitaId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch: operations["cambiarVisita"];
+        trace?: never;
+    };
+    "/api/v1/arriendos/propiedades/{id}/notas": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["agregarNotaPropiedad"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/arriendos/propiedades/{id}/discrepancias/{discrepanciaId}/resolver": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["resolverDiscrepanciaPropiedad"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/arriendos/propiedades/{id}/senales/{senalId}/aplicar": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["aplicarSenalPropiedad"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/arriendos/propiedades/{id}/ubicacion": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Mueve el pin a mano; queda fijo */
+        put: operations["fijarUbicacionPropiedad"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/arriendos/senales": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Evidencia de un arriendo: va a la propiedad (por id o URL) o a la Bandeja de Arriendos */
+        post: operations["registrarSenalArriendo"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/arriendos/bandeja": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["listarBandejaArriendos"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/arriendos/bandeja/{senalId}/asociar": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["asociarSenalArriendo"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/arriendos/bandeja/{senalId}/descartar": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["descartarSenalArriendo"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/arriendos/canales": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["listarCanales"];
+        put?: never;
+        /** Crea un canal o actualiza el que tiene ese id */
+        post: operations["registrarCanal"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/arriendos/canales/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch: operations["editarCanal"];
+        trace?: never;
+    };
+    "/api/v1/arriendos/busqueda": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Tus reglas duras y blandas y su historial */
+        get: operations["verBusquedaArriendo"];
+        /** Cambia reglas o tus datos, con motivo */
+        put: operations["cambiarBusquedaArriendo"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/arriendos/uf": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Valor de la UF para comparar precios en UF */
+        put: operations["fijarUf"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/arriendos/geocodificar": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Prende o apaga la ubicación de direcciones con Nominatim (OpenStreetMap) */
+        put: operations["fijarGeocodificar"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/arriendos/mapa/ubicar": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Ubica las propiedades sin punto, de a una por segundo */
+        post: operations["ubicarPendientes"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/arriendos/mapa": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Propiedades abiertas con y sin ubicación */
+        get: operations["mapaArriendos"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1394,6 +1826,509 @@ export interface components {
             /** @description Del archivo entero */
             advertencias: string[];
             filas: components["schemas"]["FilaImportadaDto"][];
+        };
+        /** @enum {string} */
+        EstadoPropiedad: "vista" | "contactada" | "visita_agendada" | "visitada" | "en_evaluacion" | "aprobada" | "arrendada" | "rechazada" | "descartada" | "no_disponible";
+        /** @enum {string} */
+        TipoDePropiedad: "departamento" | "casa" | "pieza" | "otro";
+        UbicacionDto: {
+            lat: number;
+            lon: number;
+            /** @enum {string} */
+            origen: "geocodificada" | "manual" | "comuna";
+        };
+        /** @enum {string} */
+        MonedaArriendo: "CLP" | "UF";
+        PrecioSalidaDto: {
+            monto: number;
+            moneda: components["schemas"]["MonedaArriendo"];
+        };
+        /** @enum {string} */
+        CriterioDeBusqueda: "presupuesto_total" | "gastos_comunes" | "comuna" | "tipo" | "dormitorios" | "banos" | "m2" | "mascota" | "estacionamiento" | "amoblado" | "renta_exigida" | "aval" | "disponible_desde";
+        BrechaDto: {
+            reglaId: string;
+            criterio: components["schemas"]["CriterioDeBusqueda"];
+            dura: boolean;
+            prioridad?: number;
+            texto: string;
+        };
+        SinDatoDto: {
+            reglaId: string;
+            criterio: components["schemas"]["CriterioDeBusqueda"];
+            texto: string;
+        };
+        CalceDto: {
+            /** @description 0 a 100 */
+            puntaje: number | null;
+            cumpleDuras: boolean;
+            brechas: components["schemas"]["BrechaDto"][];
+            sinDato: components["schemas"]["SinDatoDto"][];
+        };
+        PropiedadDto: {
+            id: string;
+            titulo: string;
+            tipo: components["schemas"]["TipoDePropiedad"];
+            estado: components["schemas"]["EstadoPropiedad"];
+            transicionesPosibles: components["schemas"]["EstadoPropiedad"][];
+            comuna: string | null;
+            direccion: string | null;
+            ubicacion: components["schemas"]["UbicacionDto"] | null;
+            precio: components["schemas"]["PrecioSalidaDto"] | null;
+            precioPesos: number | null;
+            gastosComunes: number | null;
+            dormitorios: number | null;
+            banos: number | null;
+            m2: number | null;
+            calce: components["schemas"]["CalceDto"];
+            /** @enum {string|null} */
+            pendiente: "responder" | "esperando" | null;
+            canales: string[];
+            cantidadContactos: number;
+            /** Format: date-time */
+            proximaVisita: string | null;
+            discrepanciasAbiertas: number;
+            senalesSinAplicar: number;
+            motivoCierre: string | null;
+            version: number;
+            /** Format: date-time */
+            actualizadaEn: string;
+        };
+        ResumenArriendosDto: {
+            total: number;
+            abiertas: number;
+            porEstado: {
+                [key: string]: number;
+            };
+            porResponder: number;
+            bandeja: number;
+            discrepancias: number;
+        };
+        ListaPropiedadesDto: {
+            items: components["schemas"]["PropiedadDto"][];
+            resumen: components["schemas"]["ResumenArriendosDto"];
+        };
+        PrecioDto: {
+            monto: number;
+            moneda: components["schemas"]["MonedaArriendo"];
+        };
+        RequisitosDto: {
+            /** @description Renta líquida mínima en veces el arriendo */
+            rentaVeces?: number | null;
+            aval?: boolean | null;
+            mesesGarantia?: number | null;
+            /** @description Comisión de corretaje en meses */
+            comisionMeses?: number | null;
+            documentos?: string[] | null;
+        };
+        PublicacionEntradaDto: {
+            /** @description Id del canal; sin él se reconoce por la URL */
+            canalId?: string;
+            url?: string;
+            precio?: components["schemas"]["PrecioDto"] | null;
+        };
+        /** @enum {string} */
+        RolDeContacto: "corredor" | "dueno" | "conserje" | "administracion" | "otro";
+        ContactoPropiedadEntradaDto: {
+            nombre: string;
+            rol?: components["schemas"]["RolDeContacto"];
+            telefono?: string;
+            correo?: string;
+            whatsapp?: string;
+            /** @description Formulario o link donde postulaste */
+            enlace?: string;
+            linkedin?: string;
+            /** @description Por dónde hablan (id de un canal) */
+            canalId?: string;
+        };
+        CrearPropiedadDto: {
+            tipo?: components["schemas"]["TipoDePropiedad"] | null;
+            titulo?: string | null;
+            direccion?: string | null;
+            comuna?: string | null;
+            precio?: components["schemas"]["PrecioDto"] | null;
+            gastosComunes?: number | null;
+            m2Utiles?: number | null;
+            m2Totales?: number | null;
+            dormitorios?: number | null;
+            banos?: number | null;
+            estacionamientos?: number | null;
+            bodega?: boolean | null;
+            amoblado?: boolean | null;
+            mascotas?: boolean | null;
+            /** @description AAAA-MM-DD */
+            disponibleDesde?: string | null;
+            descripcion?: string | null;
+            requisitos?: components["schemas"]["RequisitosDto"] | null;
+            estado?: components["schemas"]["EstadoPropiedad"];
+            publicacion?: components["schemas"]["PublicacionEntradaDto"];
+            contactos?: components["schemas"]["ContactoPropiedadEntradaDto"][];
+            nota?: string;
+            /** @description Une la publicación a esta propiedad en vez de crear otra */
+            unirA?: string;
+        };
+        RequisitosSalidaDto: {
+            rentaVeces?: number;
+            aval?: boolean;
+            mesesGarantia?: number;
+            comisionMeses?: number;
+            documentos?: string[];
+        };
+        PublicacionDto: {
+            id: string;
+            canalId: string;
+            url?: string;
+            precio?: components["schemas"]["PrecioSalidaDto"];
+            /** Format: date-time */
+            vistaEn: string;
+        };
+        /** @enum {string} */
+        TipoDeInteraccionArriendo: "mensaje_enviado" | "mensaje_recibido" | "llamada" | "nota";
+        InteraccionArriendoDto: {
+            id: string;
+            tipo: components["schemas"]["TipoDeInteraccionArriendo"];
+            resumen: string;
+            /** Format: date-time */
+            ocurridaEn: string;
+            canalId?: string;
+            origen: string;
+        };
+        ContactoPropiedadDto: {
+            id: string;
+            nombre: string;
+            rol: components["schemas"]["RolDeContacto"];
+            telefono?: string;
+            correo?: string;
+            whatsapp?: string;
+            enlace?: string;
+            linkedin?: string;
+            canalId?: string;
+            interacciones: components["schemas"]["InteraccionArriendoDto"][];
+        };
+        VisitaDto: {
+            id: string;
+            /** Format: date-time */
+            fecha: string;
+            /** @enum {string} */
+            estado: "agendada" | "hecha" | "cancelada";
+            notas?: string;
+        };
+        NotaArriendoDto: {
+            id: string;
+            texto: string;
+            /** Format: date-time */
+            creadaEn: string;
+        };
+        CambioPropiedadDto: {
+            de: string | null;
+            a: string;
+            motivo?: string;
+            origen: string;
+            /** Format: date-time */
+            ocurridoEn: string;
+        };
+        /** @enum {string} */
+        FuenteDeSenalArriendo: "correo" | "portal" | "mensajeria" | "manual" | "ia";
+        SenalDePropiedadDto: {
+            id: string;
+            fuente: components["schemas"]["FuenteDeSenalArriendo"];
+            canalId?: string;
+            resumen: string;
+            estadoSugerido?: components["schemas"]["EstadoPropiedad"];
+            confianza: number;
+            remitente?: string;
+            asunto?: string;
+            /** Format: date-time */
+            recibidaEn: string;
+            aplicada: boolean;
+        };
+        DiscrepanciaArriendoDto: {
+            id: string;
+            /** @enum {string} */
+            regla: "contra_senal" | "visita_sin_registro";
+            detalle: string;
+            /** @enum {string} */
+            estado: "abierta" | "resuelta";
+            /** Format: date-time */
+            detectadaEn: string;
+        };
+        PropiedadDetalleDto: {
+            id: string;
+            titulo: string;
+            tipo: components["schemas"]["TipoDePropiedad"];
+            estado: components["schemas"]["EstadoPropiedad"];
+            transicionesPosibles: components["schemas"]["EstadoPropiedad"][];
+            comuna: string | null;
+            direccion: string | null;
+            ubicacion: components["schemas"]["UbicacionDto"] | null;
+            precio: components["schemas"]["PrecioSalidaDto"] | null;
+            precioPesos: number | null;
+            gastosComunes: number | null;
+            dormitorios: number | null;
+            banos: number | null;
+            m2: number | null;
+            calce: components["schemas"]["CalceDto"];
+            /** @enum {string|null} */
+            pendiente: "responder" | "esperando" | null;
+            canales: string[];
+            cantidadContactos: number;
+            /** Format: date-time */
+            proximaVisita: string | null;
+            discrepanciasAbiertas: number;
+            senalesSinAplicar: number;
+            motivoCierre: string | null;
+            version: number;
+            /** Format: date-time */
+            actualizadaEn: string;
+            m2Utiles?: number;
+            m2Totales?: number;
+            estacionamientos?: number;
+            bodega?: boolean;
+            amoblado?: boolean;
+            mascotas?: boolean;
+            disponibleDesde?: string;
+            descripcion?: string;
+            requisitos: components["schemas"]["RequisitosSalidaDto"];
+            publicaciones: components["schemas"]["PublicacionDto"][];
+            contactos: components["schemas"]["ContactoPropiedadDto"][];
+            visitas: components["schemas"]["VisitaDto"][];
+            documentosEnviados: string[];
+            /** @description De la más nueva a la más antigua */
+            notas: components["schemas"]["NotaArriendoDto"][];
+            /** @description Del más nuevo al más antiguo */
+            cambios: components["schemas"]["CambioPropiedadDto"][];
+            /** @description De la más nueva a la más antigua */
+            senales: components["schemas"]["SenalDePropiedadDto"][];
+            discrepancias: components["schemas"]["DiscrepanciaArriendoDto"][];
+            /** Format: date-time */
+            creadaEn: string;
+        };
+        PropiedadCreadaDto: {
+            propiedad: components["schemas"]["PropiedadDetalleDto"];
+            /** @description Mismas dirección o pin cercano: ¿es la misma? */
+            posiblesDuplicados: components["schemas"]["PropiedadDto"][];
+            /** @description true si se unió a una existente (unirA) */
+            unida: boolean;
+        };
+        DuplicadosDto: {
+            seguro: components["schemas"]["PropiedadDto"] | null;
+            candidatos: components["schemas"]["PropiedadDto"][];
+        };
+        EditarPropiedadDto: {
+            tipo?: components["schemas"]["TipoDePropiedad"] | null;
+            titulo?: string | null;
+            direccion?: string | null;
+            comuna?: string | null;
+            precio?: components["schemas"]["PrecioDto"] | null;
+            gastosComunes?: number | null;
+            m2Utiles?: number | null;
+            m2Totales?: number | null;
+            dormitorios?: number | null;
+            banos?: number | null;
+            estacionamientos?: number | null;
+            bodega?: boolean | null;
+            amoblado?: boolean | null;
+            mascotas?: boolean | null;
+            /** @description AAAA-MM-DD */
+            disponibleDesde?: string | null;
+            descripcion?: string | null;
+            requisitos?: components["schemas"]["RequisitosDto"] | null;
+            /** @description Versión leída (control optimista) */
+            version?: number;
+        };
+        CambiarEstadoPropiedadDto: {
+            a: components["schemas"]["EstadoPropiedad"];
+            motivo?: string;
+            /** @description Fecha y hora ISO de la visita (para visita_agendada) */
+            fechaVisita?: string;
+            documentos?: string[];
+            version?: number;
+        };
+        UnirDto: {
+            /** @description La propiedad duplicada que se suma a esta y desaparece */
+            origenId: string;
+        };
+        ContactoRegistradoDto: {
+            contactoId: string;
+            propiedad: components["schemas"]["PropiedadDetalleDto"];
+        };
+        InteraccionArriendoEntradaDto: {
+            contactoId?: string;
+            contacto?: components["schemas"]["ContactoPropiedadEntradaDto"];
+            tipo: components["schemas"]["TipoDeInteraccionArriendo"];
+            resumen: string;
+            /** Format: date-time */
+            ocurridaEn?: string;
+            canalId?: string;
+            referenciaExterna?: string;
+        };
+        InteraccionRegistradaDto: {
+            registrada: boolean;
+            propiedad: components["schemas"]["PropiedadDetalleDto"];
+        };
+        VisitaEntradaDto: {
+            /** Format: date-time */
+            fecha: string;
+            notas?: string;
+        };
+        EstadoVisitaDto: {
+            /** @enum {string} */
+            estado: "agendada" | "hecha" | "cancelada";
+        };
+        TextoDto: {
+            texto: string;
+        };
+        UbicacionEntradaDto: {
+            lat: number;
+            lon: number;
+        };
+        SenalArriendoEntradaDto: {
+            propiedadId?: string;
+            /** @description URL de la publicación: ubica la propiedad si ya la sigues */
+            url?: string;
+            fuente: components["schemas"]["FuenteDeSenalArriendo"];
+            resumen: string;
+            estadoSugerido?: components["schemas"]["EstadoPropiedad"];
+            confianza?: number;
+            canalId?: string;
+            referenciaExterna?: string;
+            remitente?: string;
+            asunto?: string;
+            /** Format: date-time */
+            recibidaEn?: string;
+            direccion?: string;
+            comuna?: string;
+            contacto?: components["schemas"]["ContactoPropiedadEntradaDto"];
+        };
+        ResultadoSenalArriendoDto: {
+            /** @enum {string} */
+            destino: "propiedad" | "bandeja" | "repetida";
+            propiedadId?: string;
+            aplicada?: boolean;
+            senalId?: string;
+        };
+        ContactoDetectadoDto: {
+            nombre?: string;
+            telefono?: string;
+            correo?: string;
+        };
+        SenalArriendoPendienteDto: {
+            id: string;
+            /** @enum {string} */
+            estado: "pendiente" | "asociada" | "descartada";
+            fuente: components["schemas"]["FuenteDeSenalArriendo"];
+            canalId?: string;
+            resumen: string;
+            estadoSugerido?: components["schemas"]["EstadoPropiedad"];
+            confianza: number;
+            remitente?: string;
+            asunto?: string;
+            /** Format: date-time */
+            recibidaEn: string;
+            urlDetectada?: string;
+            direccionDetectada?: string;
+            comunaDetectada?: string;
+            contactoDetectado?: components["schemas"]["ContactoDetectadoDto"];
+            /** Format: date-time */
+            creadaEn: string;
+        };
+        AsociarSenalArriendoDto: {
+            propiedadId: string;
+        };
+        /** @enum {string} */
+        TipoDeCanalArriendo: "portal" | "mensajeria" | "correo" | "telefono" | "corredora" | "otro";
+        CanalArriendoDto: {
+            id: string;
+            nombre: string;
+            tipo: components["schemas"]["TipoDeCanalArriendo"];
+            dominios: string[];
+            activo: boolean;
+            predefinido: boolean;
+        };
+        CanalArriendoEntradaDto: {
+            /** @description minúsculas y guiones; si falta sale del nombre */
+            id?: string;
+            nombre: string;
+            tipo?: components["schemas"]["TipoDeCanalArriendo"];
+            dominios?: string[];
+        };
+        EditarCanalArriendoDto: {
+            nombre?: string;
+            tipo?: components["schemas"]["TipoDeCanalArriendo"];
+            dominios?: string[];
+            activo?: boolean;
+        };
+        ReglaDto: {
+            id: string;
+            criterio: components["schemas"]["CriterioDeBusqueda"];
+            valor?: number | boolean | string | string[];
+            dura: boolean;
+            prioridad?: number;
+            /** @description «Dura · Arriendo más gastos comunes hasta $650.000» */
+            descripcion: string;
+        };
+        PersonaSalidaDto: {
+            rentaLiquida?: number;
+            tieneAval?: boolean;
+            tieneMascota?: boolean;
+        };
+        CambioDeBusquedaDto: {
+            /** Format: date-time */
+            ocurridoEn: string;
+            origen: string;
+            motivo: string;
+            resumen: string[];
+        };
+        UfDto: {
+            valor: number;
+            fecha: string;
+        };
+        BusquedaDto: {
+            reglas: components["schemas"]["ReglaDto"][];
+            persona: components["schemas"]["PersonaSalidaDto"];
+            /** @description Del más nuevo al más antiguo (30) */
+            historial: components["schemas"]["CambioDeBusquedaDto"][];
+            criteriosSugeridos: components["schemas"]["CriterioDeBusqueda"][];
+            uf: components["schemas"]["UfDto"] | null;
+            /** @description Ubicar direcciones con Nominatim (OpenStreetMap) */
+            geocodificar: boolean;
+            /** Format: date-time */
+            actualizadaEn: string | null;
+        };
+        ReglaEntradaDto: {
+            criterio: components["schemas"]["CriterioDeBusqueda"];
+            /** @description Monto máximo, mínimo, lista de opciones, sí/no o fecha; nada en renta_exigida y aval */
+            valor?: number | boolean | string | string[];
+            /** @description true = dura (por defecto) */
+            dura?: boolean;
+            /** @description Solo blandas: 1 es la más importante */
+            prioridad?: number;
+        };
+        PersonaDto: {
+            rentaLiquida?: number | null;
+            tieneAval?: boolean | null;
+            tieneMascota?: boolean | null;
+        };
+        CambiarBusquedaDto: {
+            /** @description Reemplaza todas las reglas */
+            reglas?: components["schemas"]["ReglaEntradaDto"][];
+            persona?: components["schemas"]["PersonaDto"];
+            /** @description Por qué cambia (queda en el historial) */
+            motivo: string;
+        };
+        UfEntradaDto: {
+            valor: number;
+            /** @description AAAA-MM-DD */
+            fecha: string;
+        };
+        GeocodificarDto: {
+            activo: boolean;
+        };
+        UbicarPendientesDto: {
+            pendientes: number;
+        };
+        MapaArriendosDto: {
+            ubicadas: components["schemas"]["PropiedadDto"][];
+            sinUbicar: components["schemas"]["PropiedadDto"][];
         };
     };
     responses: never;
@@ -3063,6 +3998,710 @@ export interface operations {
                 };
                 content: {
                     "text/csv": components["schemas"]["ErrorDto"];
+                };
+            };
+        };
+    };
+    listarPropiedades: {
+        parameters: {
+            query?: {
+                estado?: components["schemas"]["EstadoPropiedad"];
+                texto?: string;
+                canal?: string;
+                abiertas?: boolean;
+                pendiente?: "responder" | "esperando";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ListaPropiedadesDto"];
+                };
+            };
+        };
+    };
+    crearPropiedad: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CrearPropiedadDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PropiedadCreadaDto"];
+                };
+            };
+        };
+    };
+    buscarDuplicadosPropiedad: {
+        parameters: {
+            query?: {
+                url?: string;
+                direccion?: string;
+                comuna?: string;
+                dormitorios?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DuplicadosDto"];
+                };
+            };
+        };
+    };
+    verPropiedad: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PropiedadDetalleDto"];
+                };
+            };
+        };
+    };
+    borrarPropiedad: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    editarPropiedad: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EditarPropiedadDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PropiedadDetalleDto"];
+                };
+            };
+        };
+    };
+    cambiarEstadoPropiedad: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CambiarEstadoPropiedadDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PropiedadDetalleDto"];
+                };
+            };
+        };
+    };
+    agregarPublicacion: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PublicacionEntradaDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PropiedadDetalleDto"];
+                };
+            };
+        };
+    };
+    unirPropiedades: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UnirDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PropiedadDetalleDto"];
+                };
+            };
+        };
+    };
+    registrarContactoPropiedad: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ContactoPropiedadEntradaDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContactoRegistradoDto"];
+                };
+            };
+        };
+    };
+    quitarContactoPropiedad: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                contactoId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PropiedadDetalleDto"];
+                };
+            };
+        };
+    };
+    registrarInteraccionArriendo: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["InteraccionArriendoEntradaDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InteraccionRegistradaDto"];
+                };
+            };
+        };
+    };
+    agendarVisita: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["VisitaEntradaDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PropiedadDetalleDto"];
+                };
+            };
+        };
+    };
+    cambiarVisita: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                visitaId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EstadoVisitaDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PropiedadDetalleDto"];
+                };
+            };
+        };
+    };
+    agregarNotaPropiedad: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TextoDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PropiedadDetalleDto"];
+                };
+            };
+        };
+    };
+    resolverDiscrepanciaPropiedad: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                discrepanciaId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PropiedadDetalleDto"];
+                };
+            };
+        };
+    };
+    aplicarSenalPropiedad: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                senalId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PropiedadDetalleDto"];
+                };
+            };
+        };
+    };
+    fijarUbicacionPropiedad: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UbicacionEntradaDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PropiedadDetalleDto"];
+                };
+            };
+        };
+    };
+    registrarSenalArriendo: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SenalArriendoEntradaDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResultadoSenalArriendoDto"];
+                };
+            };
+        };
+    };
+    listarBandejaArriendos: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SenalArriendoPendienteDto"][];
+                };
+            };
+        };
+    };
+    asociarSenalArriendo: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                senalId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AsociarSenalArriendoDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PropiedadDetalleDto"];
+                };
+            };
+        };
+    };
+    descartarSenalArriendo: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                senalId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    listarCanales: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CanalArriendoDto"][];
+                };
+            };
+        };
+    };
+    registrarCanal: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CanalArriendoEntradaDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CanalArriendoDto"];
+                };
+            };
+        };
+    };
+    editarCanal: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EditarCanalArriendoDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CanalArriendoDto"];
+                };
+            };
+        };
+    };
+    verBusquedaArriendo: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BusquedaDto"];
+                };
+            };
+        };
+    };
+    cambiarBusquedaArriendo: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CambiarBusquedaDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BusquedaDto"];
+                };
+            };
+        };
+    };
+    fijarUf: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UfEntradaDto"];
+            };
+        };
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    fijarGeocodificar: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["GeocodificarDto"];
+            };
+        };
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ubicarPendientes: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UbicarPendientesDto"];
+                };
+            };
+        };
+    };
+    mapaArriendos: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MapaArriendosDto"];
                 };
             };
         };

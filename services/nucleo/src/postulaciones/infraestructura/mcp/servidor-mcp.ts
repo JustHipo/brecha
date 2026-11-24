@@ -14,6 +14,11 @@ import { TIPOS_DE_INTERACCION } from '../../../red/dominio/contacto-de-red';
 import type { CasosDeUso } from '../casos';
 import type { CasosCsv } from '../../../csv/aplicacion/casos-csv';
 import { TIPOS_CSV } from '../../../csv/aplicacion/formato';
+import type { CasosDeArriendos } from '../../../arriendos/aplicacion/casos';
+import {
+  INSTRUCCIONES_ARRIENDOS,
+  registrarHerramientasDeArriendos,
+} from '../../../arriendos/infraestructura/mcp-arriendos';
 
 const LIMITE_EXPORTAR = 50_000;
 const estado = z.enum(ESTADOS);
@@ -63,7 +68,12 @@ async function correr(f: () => Promise<CallToolResult>): Promise<CallToolResult>
 }
 
 /** Adaptador de entrada 2: MCP (PLAN §12.2). Las escrituras quedan con origen `ia`. */
-export function crearServidorMcp(casos: CasosDeUso, red?: CasosDeRed, csv?: CasosCsv): McpServer {
+export function crearServidorMcp(
+  casos: CasosDeUso,
+  red?: CasosDeRed,
+  csv?: CasosCsv,
+  arriendos?: CasosDeArriendos,
+): McpServer {
   const s = new McpServer(
     { name: 'brecha', version: '1.0.0' },
     {
@@ -77,9 +87,11 @@ export function crearServidorMcp(casos: CasosDeUso, red?: CasosDeRed, csv?: Caso
         'Pasos pendientes: cuando un correo, un mensaje de LinkedIn o un portal le pida algo a la persona (un test, mandar el CV, un formulario, agendar), regístralo: ' +
         'con registrar_interaccion_red y su campo paso si vino por LinkedIn, o con registrar_paso si lo viste en un portal (también lo que ya hizo, con estado hecho). ' +
         'Antes de registrar, mira los pasos de la postulación (ver_postulacion o listar_pasos) para no duplicar. Para ubicar la postulación desde la página de un aviso usa listar_postulaciones con url. ' +
-        'Cuando la persona diga que completó algo, márcalo con resolver_paso. Los pasos se registran aunque la postulación esté cerrada.',
+        'Cuando la persona diga que completó algo, márcalo con resolver_paso. Los pasos se registran aunque la postulación esté cerrada.' +
+        (arriendos ? ` ${INSTRUCCIONES_ARRIENDOS}` : ''),
     },
   );
+  if (arriendos) registrarHerramientasDeArriendos(s, arriendos);
   const lectura = { readOnlyHint: true, openWorldHint: false };
 
   s.registerTool(

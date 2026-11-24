@@ -17,6 +17,11 @@ export interface Evento {
     origen?: string;
     resumen?: string;
     aplicada?: boolean;
+    // Arriendos (docs/diseno/arriendos.md): los eventos traen el nombre de la propiedad.
+    propiedadId?: string;
+    titulo?: string;
+    estadoSugerido?: string | null;
+    detalle?: string;
     /** Pasos pendientes (docs/diseno/pasos.md): un paso puede tocar varias postulaciones. */
     postulacionIds?: string[];
     descripcion?: string;
@@ -38,8 +43,52 @@ const ESTADOS: Record<string, string> = {
   descartado: 'descartada',
 };
 
+const ESTADOS_ARRIENDO: Record<string, string> = {
+  contactada: 'contactada',
+  visita_agendada: 'con visita agendada',
+  visitada: 'visitada',
+  en_evaluacion: 'en evaluación',
+  aprobada: 'aprobada',
+  arrendada: 'arrendada',
+  rechazada: 'rechazada',
+  descartada: 'descartada',
+  no_disponible: 'ya no está disponible',
+};
+
+/** Avisos del foco Arriendos: lo mismo que en empleo, con la ficha de la propiedad como destino. */
+function avisoDeArriendo(e: Evento): Aviso | null {
+  const nombre = e.datos.titulo ?? 'Tu propiedad';
+  const ruta = e.datos.propiedadId ? `/arriendos/propiedades/${e.datos.propiedadId}` : '/arriendos/tablero';
+  if (e.tipo === 'propiedad.estado_cambiado' && e.datos.origen === 'senal') {
+    return {
+      titulo: `${nombre}: ${ESTADOS_ARRIENDO[e.datos.a ?? ''] ?? e.datos.a}`,
+      cuerpo: 'Lo movió un correo que llegó.',
+      ruta,
+    };
+  }
+  if (e.tipo === 'propiedad.discrepancia') {
+    return {
+      titulo: `Revisa ${nombre}`,
+      cuerpo: e.datos.detalle ?? 'Un movimiento no calza con la evidencia.',
+      ruta,
+    };
+  }
+  if (e.tipo === 'propiedad.senal_registrada' && e.datos.resumen) {
+    return { titulo: `Novedad en ${nombre}`, cuerpo: e.datos.resumen, ruta };
+  }
+  if (e.tipo === 'arriendos.bandeja' && e.datos.resumen) {
+    return {
+      titulo: 'Arriendos: algo nuevo en la Bandeja',
+      cuerpo: e.datos.resumen,
+      ruta: '/arriendos/bandeja',
+    };
+  }
+  return null;
+}
+
 /** Qué merece un aviso del sistema (prioridad alta, PLAN F3): lo que cambió solo y lo que no calza. */
 export function avisoDe(e: Evento, nombre: string): Aviso | null {
+  if (e.tipo.startsWith('propiedad.') || e.tipo.startsWith('arriendos.')) return avisoDeArriendo(e);
   const id = postulacionDe(e);
   const ruta = id ? `/postulaciones/${id}` : '/tablero';
   if (e.tipo === 'paso.detectado' && e.datos.descripcion) {

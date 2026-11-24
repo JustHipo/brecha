@@ -263,3 +263,70 @@ model ContactoRed {
 
   @@map("contacto_red")
 }
+
+// ── Arriendos (docs/diseno/arriendos.md). Contexto aparte: no comparte tablas con empleo salvo outbox y ajuste. ──
+
+/// Una propiedad que sigues para arrendar. Lo que se lee junto (publicaciones, contactos, visitas, señales) va en `datos`.
+model Propiedad {
+  id            String   @id @db.Uuid
+  estado        String
+  titulo        String
+  comuna        String?
+  /// URLs normalizadas de sus publicaciones: la llave de los duplicados seguros.
+  urls          String[]
+  datos         Json
+  version       Int      @default(0)
+  creadaEn      DateTime @map("creada_en") @db.Timestamptz(3)
+  actualizadaEn DateTime @map("actualizada_en") @db.Timestamptz(3)
+
+  @@index([estado])
+  @@index([urls], type: Gin)
+  @@map("propiedad")
+}
+
+/// Portales, mensajería, correo, teléfono y corredoras: el catálogo que Juan o su IA amplían.
+model CanalArriendo {
+  id          String   @id
+  nombre      String
+  tipo        String
+  dominios    String[]
+  activo      Boolean  @default(true)
+  predefinido Boolean  @default(false)
+  creadoEn    DateTime @map("creado_en") @db.Timestamptz(3)
+
+  @@map("canal_arriendo")
+}
+
+/// La búsqueda de arriendo (una sola fila, id = 1): reglas, datos de la persona e historial.
+model BusquedaArriendo {
+  id            Int      @id
+  datos         Json
+  actualizadaEn DateTime @map("actualizada_en") @db.Timestamptz(3)
+
+  @@map("busqueda_arriendo")
+}
+
+/// Señales de arriendo que llegaron sin propiedad: la Bandeja de Arriendos.
+model SenalArriendoPendiente {
+  id                String    @id @db.Uuid
+  estado            String
+  datos             Json
+  referenciaExterna String?   @unique @map("referencia_externa")
+  recibidaEn        DateTime  @map("recibida_en") @db.Timestamptz(3)
+  propiedadId       String?   @map("propiedad_id") @db.Uuid
+  creadaEn          DateTime  @map("creada_en") @db.Timestamptz(3)
+  resueltaEn        DateTime? @map("resuelta_en") @db.Timestamptz(3)
+
+  @@index([estado, recibidaEn])
+  @@map("senal_arriendo_pendiente")
+}
+
+/// Direcciones ya buscadas en el geocodificador (Nominatim): una consulta por dirección, nunca dos.
+model Geocodificacion {
+  consulta String   @id
+  lat      Float?
+  lon      Float?
+  creadaEn DateTime @map("creada_en") @db.Timestamptz(3)
+
+  @@map("geocodificacion")
+}
