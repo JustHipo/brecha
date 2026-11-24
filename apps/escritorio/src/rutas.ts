@@ -1,6 +1,7 @@
 import { join, resolve } from 'node:path';
+import { exe } from './plataforma';
 
-/** Dónde está cada pieza: dentro del .app (empaquetada) o en el repo (desarrollo, `pnpm --filter escritorio dev`). */
+/** Dónde está cada pieza: dentro de la app (empaquetada) o en el repo (desarrollo, `pnpm --filter escritorio dev`). */
 export interface Rutas {
   postgres: string;
   nucleo: string;
@@ -8,13 +9,18 @@ export interface Rutas {
   ia: string;
 }
 
-export function rutas(empaquetada: boolean, recursos: string): Rutas {
+export function rutas(
+  empaquetada: boolean,
+  recursos: string,
+  plataforma: NodeJS.Platform = process.platform,
+): Rutas {
+  const ia = exe('brecha-ia', plataforma);
   if (empaquetada) {
     return {
       postgres: join(recursos, 'postgres'),
       nucleo: join(recursos, 'nucleo'),
       consola: join(recursos, 'consola'),
-      ia: join(recursos, 'ia', 'brecha-ia'),
+      ia: join(recursos, 'ia', ia),
     };
   }
   const repo = resolve(__dirname, '..', '..', '..');
@@ -22,12 +28,13 @@ export function rutas(empaquetada: boolean, recursos: string): Rutas {
     postgres: join(repo, 'apps', 'escritorio', 'recursos', 'postgres'),
     nucleo: join(repo, 'services', 'nucleo'),
     consola: join(repo, 'apps', 'consola', 'dist', 'consola', 'browser'),
-    ia: join(repo, 'services', 'ia', 'dist', 'brecha-ia', 'brecha-ia'),
+    ia: join(repo, 'services', 'ia', 'dist', 'brecha-ia', ia),
   };
 }
 
 /**
- * Puertos fijos: la consola, el MCP de tu IA y el vigía los conocen. PostgreSQL usa 5434 para no chocar con Docker.
+ * Puertos fijos: la consola, el MCP de tu IA y el vigía los conocen. PostgreSQL usa 5434 para no chocar con Docker
+ * (si no está disponible, el supervisor elige otro: ver puertoDePostgres).
  * BRECHA_PUERTOS=«pg,núcleo,ia» los cambia (solo para probar la app al lado del entorno de desarrollo).
  */
 export function puertos(env: NodeJS.ProcessEnv = process.env): {

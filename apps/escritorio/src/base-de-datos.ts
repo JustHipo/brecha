@@ -4,7 +4,7 @@ import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync
 import { join } from 'node:path';
 import { promisify } from 'node:util';
 import { Client } from 'pg';
-import { PUERTOS } from './rutas';
+import { exe } from './plataforma';
 
 const ejecutar = promisify(execFile);
 
@@ -25,12 +25,13 @@ export function claves(instancia: string): Claves {
   return c;
 }
 
-export const urlNucleo = (c: Claves) =>
-  `postgresql://nucleo:${c.nucleo}@127.0.0.1:${PUERTOS.postgres}/brecha?schema=nucleo`;
-export const urlIa = (c: Claves) => `postgresql+psycopg://ia:${c.ia}@127.0.0.1:${PUERTOS.postgres}/brecha`;
+export const urlNucleo = (c: Claves, puerto: number) =>
+  `postgresql://nucleo:${c.nucleo}@127.0.0.1:${puerto}/brecha?schema=nucleo`;
+export const urlIa = (c: Claves, puerto: number) =>
+  `postgresql+psycopg://ia:${c.ia}@127.0.0.1:${puerto}/brecha`;
 
-const conexion = (usuario: string, clave: string, base = 'brecha') =>
-  new Client({ host: '127.0.0.1', port: PUERTOS.postgres, user: usuario, password: clave, database: base });
+const conexion = (puerto: number, usuario: string, clave: string, base = 'brecha') =>
+  new Client({ host: '127.0.0.1', port: puerto, user: usuario, password: clave, database: base });
 
 /** `initdb` la primera vez, con autenticación scram y la clave del superusuario en un archivo temporal. */
 export async function crearCluster(
@@ -44,7 +45,7 @@ export async function crearCluster(
   const archivo = join(instancia, '.initdb-clave');
   writeFileSync(archivo, c.brecha, { mode: 0o600 });
   try {
-    await ejecutar(join(postgres, 'bin', 'initdb'), [
+    await ejecutar(join(postgres, 'bin', exe('initdb')), [
       '-D',
       datos,
       '-U',
@@ -64,13 +65,41 @@ export async function crearCluster(
   return true;
 }
 
+/**
+ * Detiene un PostgreSQL con `pg_ctl stop -m fast` (cierre limpio). En Windows es la única forma: Node mata en seco
+ * con cualquier señal. Sirve también para uno huérfano de la vez anterior: `pg_ctl` lo encuentra por postmaster.pid.
+ */
+export async function detenerPostgres(postgres: string, datos: string, esperaSeg = 20): Promise<boolean> {
+  try {
+    await ejecutar(
+      join(postgres, 'bin', exe('pg_ctl')),
+      ['stop', '-D', datos, '-m', 'fast', '-w', '-t', String(esperaSeg)],
+      { windowsHide: true },
+    );
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/** ¿Hay un PostgreSQL corriendo sobre esa carpeta? (`pg_ctl status` sale con 0 si sí). */
+export async function postgresCorriendo(postgres: string, datos: string): Promise<boolean> {
+  if (!existsSync(join(datos, 'postmaster.pid'))) return false;
+  try {
+    await ejecutar(join(postgres, 'bin', exe('pg_ctl')), ['status', '-D', datos], { windowsHide: true });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 /** Solo TCP en 127.0.0.1: sin socket Unix (su ruta no puede pasar de 103 caracteres en macOS). */
-export function argumentosDePostgres(datos: string): string[] {
+export function argumentosDePostgres(datos: string, puerto: number): string[] {
   return [
     '-D',
     datos,
     '-p',
-    String(PUERTOS.postgres),
+    String(puerto),
     '-c',
     'unix_socket_directories=',
     '-c',
@@ -80,9 +109,9 @@ export function argumentosDePostgres(datos: string): string[] {
   ];
 }
 
-export async function esperarPostgres(c: Claves, intentos = 60): Promise<void> {
+export async function esperarPostgres(c: Claves, puerto: number, intentos = 60): Promise<void> {
   for (let i = 0; i < intentos; i++) {
-    const cliente = conexion('brecha', c.brecha, 'postgres');
+    const cliente = conexion(puerto, 'brecha', c.brecha, 'postgres');
     try {
       await cliente.connect();
       await cliente.end();
@@ -98,8 +127,8 @@ export async function esperarPostgres(c: Claves, intentos = 60): Promise<void> {
  * Lo mismo que `infra/postgres/init/01-esquemas.sh` en desarrollo: la base `brecha`, un usuario y un esquema
  * por servicio y pgvector en el esquema `ia`. Idempotente: también corrige claves si cambiaron.
  */
-export async function prepararBase(c: Claves): Promise<void> {
-  const admin = conexion('brecha', c.brecha, 'postgres');
+export async function prepararBase(c: Claves, puerto: number): Promise<void> {
+  const admin = conexion(puerto, 'brecha', c.brecha, 'postgres');
   await admin.connect();
   try {
     const existe = await admin.query("SELECT 1 FROM pg_database WHERE datname = 'brecha'");
@@ -107,7 +136,7 @@ export async function prepararBase(c: Claves): Promise<void> {
   } finally {
     await admin.end();
   }
-  const db = conexion('brecha', c.brecha);
+  const db = conexion(puerto, 'brecha', c.brecha);
   await db.connect();
   try {
     for (const rol of ['nucleo', 'ia'] as const) {
@@ -131,8 +160,8 @@ export async function prepararBase(c: Claves): Promise<void> {
  * Aplica las migraciones del núcleo (prisma/migrations) con la misma tabla `_prisma_migrations` que Prisma,
  * para no llevar el CLI de Prisma dentro de la app. Cada migración corre en una transacción.
  */
-export async function migrarNucleo(c: Claves, carpeta: string): Promise<string[]> {
-  const db = conexion('nucleo', c.nucleo);
+export async function migrarNucleo(c: Claves, puerto: number, carpeta: string): Promise<string[]> {
+  const db = conexion(puerto, 'nucleo', c.nucleo);
   await db.connect();
   const aplicadas: string[] = [];
   try {

@@ -37,6 +37,7 @@
     "files": [
       "dist/**/*.js",
       "recursos-app/barraTemplate*.png",
+      "recursos-app/bandeja*.png",
       "package.json"
     ],
     "extraResources": [

@@ -3,6 +3,7 @@ import { join } from 'node:path';
 import { app, BrowserWindow, Menu, nativeImage, Notification, session, shell, Tray } from 'electron';
 import { ejecutarHook, hooksPara, leerHooks } from './hooks';
 import { OyenteDeEventos } from './notificaciones';
+import { abiertaAlIniciarSesion, ARGUMENTO_OCULTA } from './plataforma';
 import { Registro } from './registro';
 import { PUERTOS, rutas } from './rutas';
 import { Servicios } from './servicios';
@@ -22,11 +23,15 @@ const NOMBRES: Record<string, string> = {
   vigia: 'Vigía del correo',
 };
 
+const WINDOWS = process.platform === 'win32';
+
 app.setName('Brecha');
+// Windows muestra los avisos del sistema solo con un identificador de la app (el mismo appId del instalador).
+if (WINDOWS) app.setAppUserModelId('cl.brecha.app');
 // BRECHA_DATOS: otra carpeta de datos y registros (solo para probar la app al lado de la instalada).
 if (process.env.BRECHA_DATOS) {
   app.setPath('userData', process.env.BRECHA_DATOS);
-  app.setAppLogsPath(`${process.env.BRECHA_DATOS}/logs`);
+  app.setAppLogsPath(join(process.env.BRECHA_DATOS, 'logs'));
 }
 if (!app.requestSingleInstanceLock()) app.quit();
 
@@ -113,8 +118,13 @@ function actualizarMenu(): void {
   const todoBien =
     servicios.procesos.length === 4 && servicios.procesos.every((p) => p.estado === 'corriendo');
   const pendientes = pendientesBandeja + porResponder;
-  tray.setTitle(pendientes ? ` ${pendientes}` : '');
-  tray.setToolTip(todoBien ? 'Brecha: todo funcionando' : 'Brecha: revisando servicios');
+  // En Windows no hay texto al lado del icono: el número va en el texto que aparece al pasar el mouse.
+  if (!WINDOWS) tray.setTitle(pendientes ? ` ${pendientes}` : '');
+  tray.setToolTip(
+    `${todoBien ? 'Brecha: todo funcionando' : 'Brecha: revisando servicios'}${
+      WINDOWS && pendientes ? ` · ${pendientes} pendientes` : ''
+    }`,
+  );
   tray.setContextMenu(
     Menu.buildFromTemplate([
       { label: 'Abrir Brecha', click: () => abrir() },
@@ -133,8 +143,8 @@ function actualizarMenu(): void {
       {
         label: 'Abrir al iniciar sesión',
         type: 'checkbox',
-        checked: app.getLoginItemSettings().openAtLogin,
-        click: (item) => app.setLoginItemSettings({ openAtLogin: item.checked }),
+        checked: app.getLoginItemSettings(inicioDeSesion()).openAtLogin,
+        click: (item) => app.setLoginItemSettings({ ...inicioDeSesion(), openAtLogin: item.checked }),
       },
       { label: 'Ver registros', click: () => void shell.openPath(app.getPath('logs')) },
       {
@@ -160,11 +170,17 @@ async function salir(): Promise<void> {
   app.exit(0);
 }
 
+/** En Windows, el inicio con la sesión lleva `--oculta` para arrancar callada (allá no existe wasOpenedAtLogin). */
+function inicioDeSesion(): { args?: string[] } {
+  return WINDOWS ? { args: [ARGUMENTO_OCULTA] } : {};
+}
+
+/** macOS: icono plantilla (negro, el sistema lo adapta). Windows: icono a color, porque el negro no se ve en la barra oscura. */
 function icono(): Electron.NativeImage {
-  const ruta = join(__dirname, '..', 'recursos-app', 'barraTemplate.png');
+  const ruta = join(__dirname, '..', 'recursos-app', WINDOWS ? 'bandeja.png' : 'barraTemplate.png');
   if (!existsSync(ruta)) return nativeImage.createEmpty();
   const img = nativeImage.createFromPath(ruta);
-  img.setTemplateImage(true);
+  if (!WINDOWS) img.setTemplateImage(true);
   return img;
 }
 
@@ -197,11 +213,13 @@ void app.whenReady().then(async () => {
     listo({ requestHeaders: d.requestHeaders });
   });
   tray = new Tray(icono());
-  if (tray.getTitle() === '' && icono().isEmpty()) tray.setTitle('Brecha');
+  if (!WINDOWS && tray.getTitle() === '' && icono().isEmpty()) tray.setTitle('Brecha');
+  // En Windows el clic abre Brecha y el clic derecho muestra el menú (lo de siempre allá).
+  if (WINDOWS) tray.on('click', () => abrir());
   actualizarMenu();
   // La primera vez queda configurada para abrir al iniciar sesión (corre en segundo plano, D19).
   if (!existsSync(join(app.getPath('userData'), 'postgres'))) {
-    app.setLoginItemSettings({ openAtLogin: true });
+    app.setLoginItemSettings({ ...inicioDeSesion(), openAtLogin: true });
   }
   await servicios.iniciar();
   oyente = new OyenteDeEventos(
@@ -221,5 +239,5 @@ void app.whenReady().then(async () => {
   void contarBandeja();
   setInterval(() => void contarBandeja(), 5 * 60_000);
   // Al iniciar sesión arranca callada en la barra de menú; abierta a mano, muestra la ventana.
-  if (!app.getLoginItemSettings().wasOpenedAtLogin) abrir();
+  if (!abiertaAlIniciarSesion(process.argv, app.getLoginItemSettings().wasOpenedAtLogin)) abrir();
 });

@@ -3,7 +3,7 @@
 //   node apps/escritorio/scripts/importar-desde-docker.mjs [--forzar]
 // Copia solo datos (esquemas nucleo e ia); las tablas ya existen por las migraciones de la app.
 import { execFileSync } from 'node:child_process';
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
 import pg from 'pg';
@@ -11,7 +11,13 @@ import pg from 'pg';
 const instancia = process.env.BRECHA_DATOS
   ? join(process.env.BRECHA_DATOS, 'instancia')
   : join(homedir(), 'Library', 'Application Support', 'Brecha', 'instancia');
-const puerto = Number((process.env.BRECHA_PUERTOS ?? '5434').split(',')[0]);
+// El puerto de PostgreSQL puede no ser 5434 si estaba ocupado: el supervisor lo deja en puertos.json.
+const puertos = join(instancia, 'puertos.json');
+const puerto = process.env.BRECHA_PUERTOS
+  ? Number(process.env.BRECHA_PUERTOS.split(',')[0])
+  : existsSync(puertos)
+    ? JSON.parse(readFileSync(puertos, 'utf8')).postgres
+    : 5434;
 const contenedor = process.env.BRECHA_CONTENEDOR ?? 'brecha-postgres-1';
 const claves = JSON.parse(readFileSync(join(instancia, 'postgres-claves.json'), 'utf8'));
 

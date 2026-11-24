@@ -5,19 +5,28 @@ import {
   argumentosDePostgres,
   claves,
   crearCluster,
+  detenerPostgres,
   esperarPostgres,
   migrarNucleo,
+  postgresCorriendo,
   prepararBase,
   urlIa,
   urlNucleo,
 } from './base-de-datos';
+import {
+  entradaDelLlavero,
+  exe,
+  puertoDePostgres,
+  esperarPuertoDisponible,
+  RegistroDePids,
+} from './plataforma';
 import { ProcesoSupervisado } from './proceso';
 import type { Registro } from './registro';
 import { PUERTOS, type Rutas } from './rutas';
 
 export interface Carpetas {
-  datos: string; // ~/Library/Application Support/Brecha
-  logs: string; // ~/Library/Logs/Brecha
+  datos: string; // macOS: ~/Library/Application Support/Brecha · Windows: %APPDATA%\Brecha
+  logs: string; // macOS: ~/Library/Logs/Brecha · Windows: %APPDATA%\Brecha\logs
 }
 
 /**
@@ -28,6 +37,9 @@ export class Servicios {
   readonly procesos: ProcesoSupervisado[] = [];
   error: string | null = null;
   readonly instancia: string;
+  /** Puerto de PostgreSQL de esta instancia (5434 o el libre que se eligió, ver puertoDePostgres). */
+  puertoPostgres: number = PUERTOS.postgres;
+  private pids: RegistroDePids | null = null;
 
   constructor(
     private readonly r: Rutas,
@@ -58,25 +70,57 @@ export class Servicios {
     mkdirSync(this.instancia, { recursive: true, mode: 0o700 });
     const datos = join(this.c.datos, 'postgres');
     const k = claves(this.instancia);
-    if (!existsSync(join(this.r.postgres, 'bin', 'postgres'))) {
+    const binPostgres = join(this.r.postgres, 'bin', exe('postgres'));
+    if (!existsSync(binPostgres)) {
       throw new Error(`No está PostgreSQL en ${this.r.postgres}`);
     }
+    // Lo que quedó vivo de la vez anterior (en Windows los hijos no mueren con la app): primero PostgreSQL con
+    // un cierre limpio, después el resto si siguen con los puertos tomados.
+    if (await postgresCorriendo(this.r.postgres, datos)) {
+      this.registro.escribir('app', 'PostgreSQL de la vez anterior seguía corriendo: se detiene');
+      await detenerPostgres(this.r.postgres, datos);
+    }
+    this.pids = new RegistroDePids(this.instancia);
+    const huerfanos = await this.pids.detenerHuerfanos();
+    if (huerfanos.length)
+      this.registro.escribir('app', `procesos de la vez anterior detenidos: ${huerfanos.join(', ')}`);
+    for (const [nombre, puerto] of [
+      ['el núcleo', PUERTOS.nucleo],
+      ['el servicio con IA', PUERTOS.ia],
+    ] as const) {
+      if (!(await esperarPuertoDisponible(puerto))) {
+        throw new Error(
+          `El puerto ${puerto} (${nombre}) lo está usando otra aplicación: ciérrala y reinicia Brecha`,
+        );
+      }
+    }
+    this.puertoPostgres = await puertoDePostgres(this.instancia, PUERTOS.postgres);
+    if (this.puertoPostgres !== PUERTOS.postgres) {
+      this.registro.escribir(
+        'app',
+        `el puerto ${PUERTOS.postgres} no está disponible: PostgreSQL usa el ${this.puertoPostgres}`,
+      );
+    }
+    const puerto = this.puertoPostgres;
     if (await crearCluster(this.r.postgres, datos, this.instancia, k)) {
       this.registro.escribir('app', 'base de datos nueva creada');
     }
     const pg = this.agregar({
       nombre: 'postgres',
-      comando: join(this.r.postgres, 'bin', 'postgres'),
-      args: argumentosDePostgres(datos),
+      comando: binPostgres,
+      args: argumentosDePostgres(datos, puerto),
       env: { ...process.env, LC_ALL: 'C' },
       senalDeParada: 'SIGINT',
+      detenerCon: async () => {
+        if (!(await detenerPostgres(this.r.postgres, datos))) throw new Error('pg_ctl stop falló');
+      },
       listoTras: 60_000,
     });
     pg.iniciar();
-    await esperarPostgres(k);
+    await esperarPostgres(k, puerto);
     pg.marcarListo();
-    await prepararBase(k);
-    const aplicadas = await migrarNucleo(k, join(this.r.nucleo, 'prisma', 'migrations'));
+    await prepararBase(k, puerto);
+    const aplicadas = await migrarNucleo(k, puerto, join(this.r.nucleo, 'prisma', 'migrations'));
     if (aplicadas.length) this.registro.escribir('app', `migraciones del núcleo: ${aplicadas.join(', ')}`);
 
     const comun = {
@@ -97,7 +141,7 @@ export class Servicios {
         ...comun,
         ELECTRON_RUN_AS_NODE: '1',
         NODE_ENV: 'production',
-        DATABASE_URL: urlNucleo(k),
+        DATABASE_URL: urlNucleo(k, puerto),
         NUCLEO_PUERTO: String(PUERTOS.nucleo),
         CONSOLA_DIR: this.r.consola,
         IA_URL: `http://127.0.0.1:${PUERTOS.ia}`,
@@ -111,7 +155,7 @@ export class Servicios {
     const envIa = {
       ...comun,
       ...certificados(this.r.ia),
-      IA_DATABASE_URL: urlIa(k),
+      IA_DATABASE_URL: urlIa(k, puerto),
       IA_PUERTO: String(PUERTOS.ia),
     };
     const iaApi = this.agregar({
@@ -144,11 +188,12 @@ export class Servicios {
         this.r.ia,
         ['migrar'],
         {
+          windowsHide: true,
           env: {
             ...comun,
             ...certificados(this.r.ia),
-            IA_DATABASE_URL: urlIa(k),
-            IA_DATABASE_URL_MIGRAR: urlIa(k),
+            IA_DATABASE_URL: urlIa(k, this.puertoPostgres),
+            IA_DATABASE_URL_MIGRAR: urlIa(k, this.puertoPostgres),
           },
         },
         (e, salida, errores) => {
@@ -163,7 +208,12 @@ export class Servicios {
   private agregar(d: ConstructorParameters<typeof ProcesoSupervisado>[0]): ProcesoSupervisado {
     const previo = this.get(d.nombre);
     if (previo) this.procesos.splice(this.procesos.indexOf(previo), 1);
-    const p = new ProcesoSupervisado(d, this.registro, this.alCambiar);
+    const pids = this.pids;
+    const p = new ProcesoSupervisado(
+      { ...d, alLanzar: (pid) => pids?.anotar(d.nombre, pid, d.comando) },
+      this.registro,
+      this.alCambiar,
+    );
     this.procesos.push(p);
     return p;
   }
@@ -201,8 +251,12 @@ export function certificados(ia: string): NodeJS.ProcessEnv {
  * Entrada propia en el llavero por cada versión del servicio con IA: la crea ese binario, así que es su dueño
  * y macOS no le pide permiso para leerla. Sin firma de Apple (D39), un binario recompilado es «otra app» para
  * el llavero: con una entrada nueva, Ajustes pide las credenciales una vez en vez de mostrar una ventana de permiso.
+ * En Windows la entrada es fija (ver entradaDelLlavero).
  */
-export function servicioDelLlavero(ia: string): string {
-  if (!existsSync(ia)) return 'brecha-app';
-  return `brecha-app-${createHash('sha256').update(readFileSync(ia)).digest('hex').slice(0, 12)}`;
+export function servicioDelLlavero(ia: string, plataforma: NodeJS.Platform = process.platform): string {
+  if (plataforma === 'win32' || !existsSync(ia)) return entradaDelLlavero(null, plataforma);
+  return entradaDelLlavero(
+    createHash('sha256').update(readFileSync(ia)).digest('hex').slice(0, 12),
+    plataforma,
+  );
 }

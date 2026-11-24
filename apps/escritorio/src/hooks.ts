@@ -1,6 +1,7 @@
 import { spawn } from 'node:child_process';
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { comandoDeShell } from './plataforma';
 import type { Registro } from './registro';
 
 /**
@@ -61,9 +62,12 @@ export async function ejecutarHook(h: Hook, evento: unknown, registro: Registro)
   }
   if (!h.comando) return;
   await new Promise<void>((listo) => {
-    const hijo = spawn('/bin/sh', ['-c', h.comando!], {
+    const shell = comandoDeShell(h.comando!);
+    const hijo = spawn(shell.programa, shell.args, {
       stdio: ['pipe', 'pipe', 'pipe'],
       timeout: TIEMPO_MAXIMO_MS,
+      windowsHide: true,
+      ...shell.opciones,
     });
     hijo.stdout.on('data', (b: Buffer) => registro.escribir('hooks', b.toString()));
     hijo.stderr.on('data', (b: Buffer) => registro.escribir('hooks', b.toString()));

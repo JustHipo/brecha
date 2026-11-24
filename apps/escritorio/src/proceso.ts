@@ -11,8 +11,12 @@ export interface DefinicionDeProceso {
   cwd?: string;
   /** Cuánto esperar antes de darlo por arriba si no hay otra señal (ms). */
   listoTras?: number;
-  /** Señal para pararlo bien (PostgreSQL prefiere SIGINT: apagado rápido y limpio). */
+  /** Señal para pararlo bien (en Windows Node mata en seco con cualquier señal). */
   senalDeParada?: NodeJS.Signals;
+  /** Cómo pararlo bien si no basta una señal (PostgreSQL: `pg_ctl stop -m fast`, también en Windows). */
+  detenerCon?: () => Promise<unknown>;
+  /** Avisa el PID de cada lanzamiento (undefined al terminar), para detener huérfanos la próxima vez. */
+  alLanzar?: (pid: number | undefined) => void;
 }
 
 const ESPERAS = [1_000, 2_000, 5_000, 10_000, 30_000, 60_000];
@@ -47,8 +51,10 @@ export class ProcesoSupervisado {
       env: this.d.env,
       ...(this.d.cwd ? { cwd: this.d.cwd } : {}),
       stdio: ['ignore', 'pipe', 'pipe'],
+      windowsHide: true, // en Windows, sin una ventana de consola por cada proceso
     });
     this.hijo = hijo;
+    this.d.alLanzar?.(hijo.pid);
     const anotar = (b: Buffer) => this.registro.escribir(this.d.nombre, b.toString());
     hijo.stdout?.on('data', anotar);
     hijo.stderr?.on('data', anotar);
@@ -66,6 +72,7 @@ export class ProcesoSupervisado {
       clearTimeout(arriba);
       if (this.hijo !== hijo) return;
       this.hijo = null;
+      this.d.alLanzar?.(undefined);
       if (this.parando) {
         this.cambiar('detenido');
         return;
@@ -100,7 +107,11 @@ export class ProcesoSupervisado {
         clearTimeout(matar);
         listo();
       });
-      hijo.kill(this.d.senalDeParada ?? 'SIGTERM');
+      if (this.d.detenerCon) {
+        void this.d.detenerCon().catch(() => hijo.kill(this.d.senalDeParada ?? 'SIGTERM'));
+      } else {
+        hijo.kill(this.d.senalDeParada ?? 'SIGTERM');
+      }
     });
   }
 
