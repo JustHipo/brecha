@@ -110,6 +110,20 @@ DOMINIOS_GENERICOS: tuple[str, ...] = (
     "protonmail.com",
 )
 
+
+def dominio_compartido(dominio: str | None) -> bool:
+    """Un dominio que usan muchas empresas o personas: no identifica a una postulación.
+
+    Correo personal (gmail…), portales (linkedin.com…) y sistemas de selección (greenhouse.io…),
+    también sus subdominios (jobs-noreply@e.linkedin.com, no-reply@us.greenhouse-mail.io).
+    """
+    d = (dominio or "").lower().strip()
+    if not d:
+        return True
+    compartidos = (*DOMINIOS_GENERICOS, *DOMINIOS_DE_PLATAFORMAS, *DOMINIOS_DE_SELECCION)
+    return any(d == x or d.endswith("." + x) for x in compartidos)
+
+
 # Asuntos de avisos masivos (alertas de empleo, boletines): no son evidencia de una postulación.
 ASUNTOS_DE_PUBLICIDAD: tuple[str, ...] = (
     "empleos recomendados",

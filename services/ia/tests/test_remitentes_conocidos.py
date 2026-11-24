@@ -13,6 +13,7 @@ from ia.dominio.asociacion import PostulacionConocida
 from ia.dominio.correo import EstadoDeCorreo
 from ia.dominio.filtro import filtrar
 from ia.dominio.pasos import candidatas, decidir
+from ia.dominio.reglas import dominio_compartido
 from tests.fabrica import correo
 
 INVITACION = correo(
@@ -78,6 +79,35 @@ def test_el_dominio_lleva_a_su_postulacion_y_con_varias_elige_el_modelo() -> Non
     )
     assert {c.id for c in varias} == {"fs", "fs2"} and not any(c.segura for c in varias)
     assert decidir(varias, ["fs2"]).postulacion_ids == ("fs2",)
+
+
+def test_un_dominio_compartido_no_lleva_a_ninguna_postulacion() -> None:
+    for d in (
+        "gmail.com",
+        "linkedin.com",
+        "e.linkedin.com",
+        "greenhouse-mail.io",
+        "us.greenhouse-mail.io",
+        "trabajando.cl",
+        "tenpo.teamtailor-mail.com",
+        "",
+        None,
+    ):
+        assert dominio_compartido(d), d
+    for d in ("fullstacklabs.co", "linkedin.com.fullstack.dev", "tenpo.cl"):
+        assert not dominio_compartido(d), d
+    # Aunque un repositorio devolviera postulaciones de un dominio compartido, no cuentan como regla segura.
+    lista = candidatas(
+        empresa=None,
+        cargo=None,
+        plataforma="linkedin",
+        dominio_remitente="e.linkedin.com",
+        textos=("Your application was viewed by Otra Empresa",),
+        conocidas=[FULLSTACK],
+        del_dominio=("fs",),
+    )
+    assert not any(c.segura for c in lista)
+    assert decidir(lista, []).postulacion_ids == ()
 
 
 class Lector:

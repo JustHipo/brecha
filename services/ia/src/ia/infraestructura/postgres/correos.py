@@ -27,7 +27,7 @@ from ia.dominio.asociacion import normalizar_empresa
 from ia.dominio.clasificacion import Clasificacion
 from ia.dominio.correo import EstadoDeCorreo
 from ia.dominio.linkedin import AvisoDeLinkedin
-from ia.dominio.reglas import DOMINIOS_GENERICOS
+from ia.dominio.reglas import dominio_compartido
 from ia.infraestructura.postgres.tablas import aviso, aviso_red, clasificacion, correo, estado_vigia, traza
 
 
@@ -164,7 +164,8 @@ class RepositorioPostgresDeCorreos:
         return func.lower(func.split_part(correo.c.remitente, "@", 2))
 
     def dominios_conocidos(self) -> frozenset[str]:
-        """Dominios que ya mandaron un correo de una postulación (no los de correo personal)."""
+        """Dominios que ya mandaron un correo de una postulación (no los compartidos: correo personal,
+        portales ni sistemas de selección, que escriben por muchas empresas)."""
         with self.motor.connect() as c:
             filas = c.execute(
                 select(self._dominio().label("d"))
@@ -172,7 +173,7 @@ class RepositorioPostgresDeCorreos:
                 .where(clasificacion.c.resultado["es_postulacion"].astext == "true")
                 .distinct()
             ).all()
-        return frozenset(f.d for f in filas if f.d and f.d not in DOMINIOS_GENERICOS)
+        return frozenset(f.d for f in filas if f.d and not dominio_compartido(f.d))
 
     def empresas_conocidas(self) -> frozenset[str]:
         """Las empresas de tus postulaciones (todas entran al inventario de avisos, D45), normalizadas."""
@@ -183,9 +184,10 @@ class RepositorioPostgresDeCorreos:
         return frozenset(e for f in filas if (e := normalizar_empresa(f.empresa)))
 
     def postulaciones_del_dominio(self, dominio: str) -> tuple[str, ...]:
-        """Las postulaciones a las que ya fueron correos de ese dominio (no los de correo personal)."""
+        """Las postulaciones a las que ya fueron correos de ese dominio (no de los compartidos: un correo de
+        LinkedIn o de Greenhouse no dice de qué empresa es)."""
         d = dominio.lower()
-        if d in DOMINIOS_GENERICOS:
+        if dominio_compartido(d):
             return ()
         with self.motor.connect() as c:
             filas = c.execute(

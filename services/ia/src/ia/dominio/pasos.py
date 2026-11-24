@@ -15,7 +15,7 @@ from ia.dominio.asociacion import (
     parecido,
     parecido_cargo,
 )
-from ia.dominio.reglas import DOMINIOS_DE_SELECCION
+from ia.dominio.reglas import DOMINIOS_DE_SELECCION, dominio_compartido
 
 MAXIMO_CANDIDATAS = 8
 EMPRESA_COINCIDE = 0.8
@@ -97,6 +97,9 @@ def candidatas(
             por_id[p.id] = Candidata(p, "mismo hilo", 1.0, segura=True)
     # El dominio del remitente ya escribió por una postulación: si es una sola, va ahí (regla segura);
     # si fueron varias (la misma empresa por varios cargos), son candidatas y el modelo elige.
+    # Un dominio compartido (correo personal, portal o sistema de selección) no dice de qué empresa es.
+    if dominio_compartido(dominio_remitente):
+        del_dominio = ()
     unica = len(set(del_dominio)) == 1
     for p in conocidas:
         if p.id in del_dominio and p.id not in por_id:

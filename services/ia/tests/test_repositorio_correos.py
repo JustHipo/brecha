@@ -127,14 +127,21 @@ def test_remitentes_conocidos_y_releer(repo: RepositorioPostgresDeCorreos) -> No
 
     repo.guardar(guardado("<s@fs>", "svalencia@fullstacklabs.co", EstadoDeCorreo.PENDIENTE))
     repo.guardar(guardado("<p@g>", "persona@gmail.com", EstadoDeCorreo.PENDIENTE))
+    # Portales y sistemas de selección escriben por muchas empresas: no son «dominio conocido».
+    repo.guardar(guardado("<l@li>", "jobs-noreply@e.linkedin.com", EstadoDeCorreo.PENDIENTE))
+    repo.guardar(guardado("<g@gh>", "no-reply@us.greenhouse-mail.io", EstadoDeCorreo.PENDIENTE))
     k = Clasificacion(True, "otra", "FullStack", None, "entrevista", "r", 0.9)
-    repo.marcar_clasificado("<s@fs>", k, "m")
-    repo.marcar_clasificado("<p@g>", k, "m")
+    for mid in ("<s@fs>", "<p@g>", "<l@li>", "<g@gh>"):
+        repo.marcar_clasificado(mid, k, "m")
     repo.marcar_enviado("<s@fs>", ("fs",))
     repo.marcar_enviado("<p@g>", ("otra",))
+    repo.marcar_enviado("<l@li>", ("otra",))
+    repo.marcar_enviado("<g@gh>", ("otra",))
     assert repo.dominios_conocidos() == frozenset({"fullstacklabs.co"})
     assert repo.postulaciones_del_dominio("FullStackLabs.co") == ("fs",)
     assert repo.postulaciones_del_dominio("gmail.com") == ()
+    assert repo.postulaciones_del_dominio("e.linkedin.com") == ()
+    assert repo.postulaciones_del_dominio("us.greenhouse-mail.io") == ()
 
     from ia.dominio.aviso import Aviso
     from ia.infraestructura.postgres.avisos import RepositorioPostgresDeAvisos
