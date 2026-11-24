@@ -190,9 +190,9 @@
   }
 }
 
-/* Color de la barra por foco (docs/diseno/arriendos.md, P2). Verde provisorio para Arriendos: lo elige Juan. */
+/* Color de la barra por foco (docs/diseno/arriendos.md, P2). Arriendos: azul petróleo, elegido por Juan el 24-nov-2026. */
 :root[data-foco='arriendos'] {
-  --barra-desde: #2f7d6d;
-  --barra-hasta: #1d5247;
-  --barra-tinta-suave: #cdeee5;
+  --barra-desde: #2b6a8f;
+  --barra-hasta: #1b445e;
+  --barra-tinta-suave: #cfe6f3;
 }
