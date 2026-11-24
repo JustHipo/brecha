@@ -328,17 +328,82 @@ test('Ajustes sin la API de IA: lo dice, no deja guardar y es accesible', async 
   await page.goto('/ajustes');
   await expect(page.getByRole('heading', { level: 1, name: 'Ajustes' })).toBeVisible();
   await expect(page.getByRole('alert')).toContainText('El servicio con IA no responde');
-  await page.getByLabel('Tu correo de Gmail').fill('juan@gmail.com');
-  await page.getByLabel('Contraseña de aplicación').fill('abcd efgh ijkl mnop');
-  await expect(page.getByRole('button', { name: 'Guardar' }).first()).toBeDisabled();
-  await expect(
-    page.getByRole('link', { name: /myaccount\.google\.com\/apppasswords/ }),
-  ).toHaveAttribute('href', 'https://myaccount.google.com/apppasswords');
+  await expect(page.getByRole('button', { name: 'Conectar con Gmail' })).toBeDisabled();
   await expect(page.locator('[data-vigia]')).toContainText('sin dato');
   await sinViolaciones(page);
 
   await page.getByLabel('Idioma de la consola').selectOption('en');
   await expect(page.getByRole('heading', { level: 1, name: 'Settings' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Connect Gmail' })).toBeVisible();
   await page.getByLabel('Console language').selectOption('es');
   await expect(page.getByRole('heading', { level: 1, name: 'Ajustes' })).toBeVisible();
+});
+
+test('Conectar con Gmail: la guía de 4 pasos, un rechazo y la cuenta conectada', async ({
+  page,
+}) => {
+  // El servicio con IA simulado: la primera contraseña no pasa la prueba con Gmail, la segunda sí.
+  let conectado = false;
+  const enviadas: string[] = [];
+  await page.route('**/api/ia/credenciales', (r) =>
+    r.fulfill({
+      json: {
+        correo: { configurado: conectado, usuario: conectado ? 'ta•••@gmail.com' : null },
+        openai: { configurado: false },
+      },
+    }),
+  );
+  await page.route('**/api/ia/credenciales/correo', async (r) => {
+    const cuerpo = r.request().postDataJSON() as { usuario: string; clave: string };
+    enviadas.push(cuerpo.clave);
+    if (enviadas.length === 1) {
+      return r.fulfill({
+        status: 400,
+        json: {
+          codigo: 'CREDENCIAL_INVALIDA',
+          mensaje: 'Gmail no aceptó el correo y la contraseña de aplicación (LoginError)',
+          campo: 'clave',
+        },
+      });
+    }
+    conectado = true;
+    return r.fulfill({ json: { configurado: true, usuario: 'ta•••@gmail.com' } });
+  });
+
+  await page.goto('/ajustes');
+  await page.getByRole('button', { name: 'Conectar con Gmail' }).click();
+  const guia = page.locator('[data-guia-gmail]');
+  await expect(
+    guia.getByRole('heading', { name: 'Activa la verificación en dos pasos' }),
+  ).toBeFocused();
+  await expect(
+    guia.getByRole('link', { name: /Abrir la verificación en dos pasos/ }),
+  ).toHaveAttribute('href', 'https://myaccount.google.com/signinoptions/twosv');
+  await sinViolaciones(page);
+  await guia.getByRole('button', { name: 'Ya lo hice, siguiente' }).click();
+  await expect(
+    guia.getByRole('link', { name: /myaccount\.google\.com\/apppasswords/ }),
+  ).toHaveAttribute('href', 'https://myaccount.google.com/apppasswords');
+  await guia.getByRole('button', { name: 'Ya lo hice, siguiente' }).click();
+  await expect(guia.getByText('Escribe «Brecha» como nombre de la app')).toBeVisible();
+  await guia.getByRole('button', { name: 'Ya lo hice, siguiente' }).click();
+  await expect(guia.getByText('Paso 4 de 4', { exact: true })).toBeVisible();
+  await sinViolaciones(page);
+
+  await guia.getByLabel('Tu correo de Gmail').fill('tamara@gmail.com');
+  await guia.getByLabel('Contraseña de aplicación').fill('abcd efgh ijkl mnop');
+  await guia.getByRole('button', { name: 'Probar y guardar' }).click();
+  await expect(guia.locator('[data-resultado="gmail"]')).toContainText('Gmail no aceptó');
+  await expect(guia.locator('[data-ayuda-gmail]')).toContainText('16 letras completas');
+  await expect(guia.getByLabel('Contraseña de aplicación')).toHaveValue('');
+  await sinViolaciones(page);
+
+  await guia.getByLabel('Contraseña de aplicación').fill('qrst uvwx yzab cdef');
+  await guia.getByRole('button', { name: 'Probar y guardar' }).click();
+  await expect(page.locator('[data-guia-gmail]')).toHaveCount(0);
+  await expect(page.locator('[data-usuario-correo]')).toContainText('ta•••@gmail.com');
+  await expect(page.getByRole('button', { name: 'Conectar otra cuenta de Gmail' })).toBeVisible();
+  expect(enviadas).toEqual(['abcd efgh ijkl mnop', 'qrst uvwx yzab cdef']);
+  // Nada de la contraseña queda en la página.
+  expect(await page.content()).not.toContain('qrst uvwx');
 });

@@ -620,13 +620,52 @@
     "correo": {
       "titulo": "Correo (Gmail)",
       "conectado": "Conectado como {{usuario}}",
-      "explicacion": "Gmail no deja entrar con tu contraseña normal desde otras aplicaciones: crea una contraseña de aplicación (hace falta la verificación en dos pasos) y pégala aquí. Se prueba antes de guardarla y nunca vuelve a mostrarse.",
-      "crearClave": "Crear una contraseña de aplicación en myaccount.google.com/apppasswords",
+      "explicacion": "Brecha lee tu Gmail en solo lectura para encontrar las respuestas a tus postulaciones. Gmail no deja entrar con tu contraseña normal desde otras aplicaciones: se usa una contraseña de aplicación, que es solo para Brecha y puedes borrar cuando quieras.",
       "usuario": "Tu correo de Gmail",
       "clave": "Contraseña de aplicación",
       "claveAyuda": "16 letras; los espacios dan lo mismo.",
       "borrarTitulo": "¿Borrar la credencial del correo?",
       "borrarTexto": "El vigía deja de revisar tu correo hasta que guardes otra."
+    },
+    "gmail": {
+      "conectar": "Conectar con Gmail",
+      "cambiarCuenta": "Conectar otra cuenta de Gmail",
+      "queHace": "Te guío en 4 pasos para crear una contraseña de aplicación de Google (unos 3 minutos).",
+      "pasos": "Pasos para conectar Gmail",
+      "pasoDe": "Paso {{n}} de {{total}}",
+      "siguiente": "Ya lo hice, siguiente",
+      "atras": "Atrás",
+      "cancelar": "Cancelar",
+      "probarYGuardar": "Probar y guardar",
+      "paso1": {
+        "titulo": "Activa la verificación en dos pasos",
+        "texto": "Google solo deja crear contraseñas de aplicación si tu cuenta tiene la verificación en dos pasos. Ábrela con la cuenta que quieres conectar y actívala (con tu teléfono). Si ya la tienes, sigue.",
+        "abrir": "Abrir la verificación en dos pasos"
+      },
+      "paso2": {
+        "titulo": "Abre las contraseñas de aplicación",
+        "texto": "Entra con la misma cuenta de Gmail que quieres conectar. Si tienes varias cuentas abiertas, revisa arriba a la derecha que sea la correcta.",
+        "abrir": "Abrir myaccount.google.com/apppasswords",
+        "noAparece": "¿Google dice que la opción no está disponible? Vuelve al paso 1: falta la verificación en dos pasos. En cuentas de trabajo o de estudios puede estar bloqueada por quien administra la cuenta."
+      },
+      "paso3": {
+        "titulo": "Crea una contraseña para Brecha",
+        "texto": "En esa página:",
+        "nombre": "Escribe «Brecha» como nombre de la app y presiona Crear.",
+        "copiar": "Google te muestra 16 letras en un recuadro: cópialas.",
+        "unaVez": "Solo se ven esa vez. Si la pierdes, bórrala allá y crea otra."
+      },
+      "paso4": {
+        "titulo": "Pega la contraseña aquí",
+        "texto": "Escribe tu Gmail y pega las 16 letras. Brecha las prueba con Gmail antes de guardarlas en el llavero de tu sistema; nunca se vuelven a mostrar ni quedan en archivos o registros."
+      },
+      "siFalla": {
+        "titulo": "Si no funciona:",
+        "copiar": "Revisa que copiaste las 16 letras completas (los espacios dan lo mismo).",
+        "cuenta": "El correo debe ser el de la cuenta donde creaste la contraseña.",
+        "dosPasos": "Si desactivaste la verificación en dos pasos, Google borra las contraseñas de aplicación: créala de nuevo.",
+        "trabajo": "Si es una cuenta de trabajo o de estudios, puede que no permita contraseñas de aplicación."
+      }
     },
     "openai": {
       "titulo": "OpenAI",

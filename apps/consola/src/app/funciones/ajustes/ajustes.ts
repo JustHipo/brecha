@@ -10,20 +10,18 @@ import { DialogoConfirmar } from '../bandeja/dialogos';
 import { EstadoIaStore } from '../conexiones/estado-ia.store';
 import { Dialogos } from '../postulacion/dialogos/dialogos.service';
 import { AjustesStore, type Operacion, type Resultado } from './ajustes.store';
+import { GuiaGmail } from './guia-gmail';
 
 const TARJETA =
   'flex flex-col gap-3 rounded-[12px] border border-linea bg-fondo px-5 py-4 shadow-tarjeta';
 
-/** La contraseña de aplicación de Google: 16 letras, con o sin espacios. */
-const CLAVE_DE_APLICACION = /^\s*(?:[a-zA-Z]\s*){16}$/;
-
 /**
- * Ajustes (ui.md §5): credenciales de Gmail y OpenAI, idioma y la frecuencia del vigía.
- * Las credenciales se prueban antes de guardarse y nunca vuelven a mostrarse.
+ * Ajustes (ui.md §5): credenciales de Gmail (con la guía «Conectar con Gmail») y OpenAI, idioma y la
+ * frecuencia del vigía. Las credenciales se prueban antes de guardarse y nunca vuelven a mostrarse.
  */
 @Component({
   selector: 'b-ajustes',
-  imports: [NgTemplateOutlet, ReactiveFormsModule, TranslocoPipe, HlmButton, HlmInput],
+  imports: [NgTemplateOutlet, ReactiveFormsModule, TranslocoPipe, HlmButton, HlmInput, GuiaGmail],
   providers: [AjustesStore],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: { class: 'flex flex-col gap-4 px-6 pt-[22px] pb-10' },
@@ -61,52 +59,30 @@ const CLAVE_DE_APLICACION = /^\s*(?:[a-zA-Z]\s*){16}$/;
           </p>
         }
       }
-      <p class="m-0 text-[12.5px] text-[#4A4440]">
-        {{ 'ajustes.correo.explicacion' | transloco }}
-        <a
-          href="https://myaccount.google.com/apppasswords"
-          target="_blank"
-          rel="noopener noreferrer"
-          class="font-semibold text-acento underline-offset-2 hover:underline"
-          >{{ 'ajustes.correo.crearClave' | transloco
-          }}<span class="solo-lector"> ({{ 'avisos.nuevaVentana' | transloco }})</span></a
-        >
-      </p>
-      <form
-        class="flex flex-col gap-3"
-        [formGroup]="correo"
-        (ngSubmit)="guardarCorreo()"
-        novalidate
-        autocomplete="off"
-      >
-        <div class="grid grid-cols-2 gap-3">
-          <label class="flex flex-col gap-1">
-            <span class="font-semibold">{{ 'ajustes.correo.usuario' | transloco }}</span>
-            <input
-              hlmInput
-              type="email"
-              formControlName="usuario"
-              autocomplete="off"
-              placeholder="tu.nombre@gmail.com"
-            />
-          </label>
-          <label class="flex flex-col gap-1">
-            <span class="font-semibold">{{ 'ajustes.correo.clave' | transloco }}</span>
-            <input
-              hlmInput
-              type="password"
-              formControlName="clave"
-              autocomplete="new-password"
-              spellcheck="false"
-              aria-describedby="aj-correo-ayuda"
-            />
-            <span id="aj-correo-ayuda" class="text-[12px] text-tinta-suave">{{
-              'ajustes.correo.claveAyuda' | transloco
-            }}</span>
-          </label>
-        </div>
-        <ng-container *ngTemplateOutlet="acciones; context: { tipo: 'correo', form: correo }" />
-      </form>
+      <p class="m-0 text-[12.5px] text-[#4A4440]">{{ 'ajustes.correo.explicacion' | transloco }}</p>
+      <b-guia-gmail />
+      <div class="flex flex-wrap items-center gap-2.5">
+        @if (configurado('correo')) {
+          <button
+            hlmBtn
+            variant="outline"
+            type="button"
+            [disabled]="op('correo') !== 'quieta' || store.apagada()"
+            (click)="borrar('correo')"
+          >
+            {{ (op('correo') === 'borrando' ? 'ajustes.borrando' : 'ajustes.borrar') | transloco }}
+          </button>
+        }
+        <span role="status" class="text-[12.5px]" data-resultado="correo">
+          @if (res('correo'); as r) {
+            @if (r.tipo === 'guardada') {
+              <span class="font-semibold text-[#1D6638]">{{ 'ajustes.guardada' | transloco }}</span>
+            } @else if (r.tipo === 'borrada') {
+              <span class="font-semibold text-[#1D6638]">{{ 'ajustes.borrada' | transloco }}</span>
+            }
+          }
+        </span>
+      </div>
     </section>
 
     <section [class]="tarjeta" class="max-w-3xl" aria-labelledby="aj-openai">
@@ -244,16 +220,6 @@ export class AjustesPagina {
   protected readonly idiomas = IDIOMAS;
   protected readonly idioma = signal(this.transloco.getActiveLang());
 
-  protected readonly correo = new FormGroup({
-    usuario: new FormControl('', {
-      nonNullable: true,
-      validators: [Validators.required, Validators.email],
-    }),
-    clave: new FormControl('', {
-      nonNullable: true,
-      validators: [Validators.required, Validators.pattern(CLAVE_DE_APLICACION)],
-    }),
-  });
   protected readonly openai = new FormGroup({
     llave: new FormControl('', {
       nonNullable: true,
@@ -281,14 +247,6 @@ export class AjustesPagina {
 
   protected cambiarIdioma(i: Idioma): void {
     this.formato.cambiarIdioma(i);
-  }
-
-  protected async guardarCorreo(): Promise<void> {
-    if (this.correo.invalid) return;
-    const v = this.correo.getRawValue();
-    // El secreto no se queda en pantalla, salga bien o mal.
-    this.correo.controls.clave.reset('');
-    if (await this.store.guardarCorreo(v.usuario, v.clave)) this.correo.reset();
   }
 
   protected async guardarOpenai(): Promise<void> {

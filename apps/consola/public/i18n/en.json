@@ -620,13 +620,52 @@
     "correo": {
       "titulo": "Email (Gmail)",
       "conectado": "Connected as {{usuario}}",
-      "explicacion": "Gmail does not let other apps sign in with your normal password: create an app password (2-Step Verification is required) and paste it here. It is tested before saving and never shown again.",
-      "crearClave": "Create an app password at myaccount.google.com/apppasswords",
+      "explicacion": "Brecha reads your Gmail read-only to find replies to your applications. Gmail does not let other apps sign in with your normal password: Brecha uses an app password, only for Brecha, that you can delete any time.",
       "usuario": "Your Gmail address",
       "clave": "App password",
       "claveAyuda": "16 letters; spaces do not matter.",
       "borrarTitulo": "Delete the email credential?",
       "borrarTexto": "The watcher stops checking your email until you save another one."
+    },
+    "gmail": {
+      "conectar": "Connect Gmail",
+      "cambiarCuenta": "Connect another Gmail account",
+      "queHace": "I'll guide you through 4 steps to create a Google app password (about 3 minutes).",
+      "pasos": "Steps to connect Gmail",
+      "pasoDe": "Step {{n}} of {{total}}",
+      "siguiente": "Done, next",
+      "atras": "Back",
+      "cancelar": "Cancel",
+      "probarYGuardar": "Test and save",
+      "paso1": {
+        "titulo": "Turn on 2-Step Verification",
+        "texto": "Google only lets you create app passwords if your account has 2-Step Verification. Open it with the account you want to connect and turn it on (with your phone). If you already have it, continue.",
+        "abrir": "Open 2-Step Verification"
+      },
+      "paso2": {
+        "titulo": "Open app passwords",
+        "texto": "Sign in with the same Gmail account you want to connect. If you have several accounts open, check the top right corner shows the right one.",
+        "abrir": "Open myaccount.google.com/apppasswords",
+        "noAparece": "Does Google say the setting is not available? Go back to step 1: 2-Step Verification is missing. Work or school accounts may have it blocked by their administrator."
+      },
+      "paso3": {
+        "titulo": "Create a password for Brecha",
+        "texto": "On that page:",
+        "nombre": "Type «Brecha» as the app name and press Create.",
+        "copiar": "Google shows you 16 letters in a box: copy them.",
+        "unaVez": "They are shown only once. If you lose them, delete it there and create another."
+      },
+      "paso4": {
+        "titulo": "Paste the password here",
+        "texto": "Type your Gmail address and paste the 16 letters. Brecha tests them with Gmail before saving them in your system keychain; they are never shown again or written to files or logs."
+      },
+      "siFalla": {
+        "titulo": "If it does not work:",
+        "copiar": "Check you copied all 16 letters (spaces do not matter).",
+        "cuenta": "The address must be the one of the account where you created the password.",
+        "dosPasos": "If you turned off 2-Step Verification, Google deletes app passwords: create a new one.",
+        "trabajo": "Work or school accounts may not allow app passwords."
+      }
     },
     "openai": {
       "titulo": "OpenAI",
