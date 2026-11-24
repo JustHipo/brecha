@@ -8,7 +8,7 @@ export interface Aviso {
   ruta: string; // ruta de la consola a abrir al hacer clic
 }
 
-interface Evento {
+export interface Evento {
   tipo: string;
   datos: {
     postulacionId?: string;
@@ -60,7 +60,7 @@ export class OyenteDeEventos {
   constructor(
     private readonly instancia: string,
     private readonly avisar: (a: Aviso) => void,
-    private readonly alEvento: () => void,
+    private readonly alEvento: (e: Evento) => void,
   ) {}
 
   private token(): string | null {
@@ -120,7 +120,7 @@ export class OyenteDeEventos {
             if (!datos) continue;
             const e = JSON.parse(datos) as Evento;
             if (!e.tipo || e.tipo === 'latido') continue;
-            this.alEvento();
+            this.alEvento(e);
             const nombre = await this.nombre(e.datos?.postulacionId, token);
             const aviso = avisoDe(e, nombre);
             if (aviso) this.avisar(aviso);

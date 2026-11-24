@@ -1,6 +1,7 @@
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { app, BrowserWindow, Menu, nativeImage, Notification, session, shell, Tray } from 'electron';
+import { ejecutarHook, hooksPara, leerHooks } from './hooks';
 import { OyenteDeEventos } from './notificaciones';
 import { Registro } from './registro';
 import { PUERTOS, rutas } from './rutas';
@@ -200,7 +201,11 @@ void app.whenReady().then(async () => {
       n.on('click', () => abrir(a.ruta));
       n.show();
     },
-    () => void contarBandeja(),
+    (e) => {
+      void contarBandeja();
+      for (const h of hooksPara(leerHooks(servicios.instancia, registro), e.tipo))
+        void ejecutarHook(h, e, registro);
+    },
   );
   oyente.iniciar();
   void contarBandeja();
