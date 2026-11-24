@@ -54,7 +54,8 @@ export function montarConsolaYProxyDeIa(
           .send('La consola no está disponible todavía. Vuelve a intentarlo en un momento.');
         return;
       }
-      res.sendFile(indice);
+      // Relativo a `root`: con la ruta absoluta, `send` rechaza (404) si alguna carpeta empieza con punto.
+      res.sendFile('index.html', { root: dir });
     });
   }
 }
