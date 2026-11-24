@@ -136,6 +136,21 @@ def test_remitentes_conocidos_y_releer(repo: RepositorioPostgresDeCorreos) -> No
     assert repo.postulaciones_del_dominio("FullStackLabs.co") == ("fs",)
     assert repo.postulaciones_del_dominio("gmail.com") == ()
 
+    from ia.dominio.aviso import Aviso
+    from ia.infraestructura.postgres.avisos import RepositorioPostgresDeAvisos
+
+    with repo.motor.begin() as c:
+        c.execute(text("TRUNCATE ia.aviso CASCADE"))
+    avisos = RepositorioPostgresDeAvisos(repo.motor)
+    id_fs, _ = avisos.guardar(
+        Aviso("https://ejemplo.test/fs", "AI Engineer", "FullStack Labs", "otra", "remoto", "manual", "x")
+    )
+    avisos.guardar(
+        Aviso("https://ejemplo.test/otro", "QA", "Sin Postular SpA", "otra", "remoto", "manual", "x")
+    )
+    avisos.vincular(id_fs, "fs")
+    assert repo.empresas_conocidas() == frozenset({"fullstack"})  # sin «Labs», como en la asociación
+
     repo.guardar(
         CorreoGuardado(
             "<j@fs>",

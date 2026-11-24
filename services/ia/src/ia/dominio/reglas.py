@@ -80,7 +80,11 @@ PALABRAS_DEBILES: tuple[str, ...] = (
     "applied to",
     "reclutador",
     "recruiter",
-    # Invitaciones de calendario (una llamada o entrevista agendada por Google Calendar, Outlook o Calendly).
+)
+
+# Invitaciones de calendario (Google Calendar, Outlook, Calendly, Zoom). No todas son de postulaciones:
+# pasan solo si el remitente o el texto confirman una empresa de tus postulaciones (ver filtro.py).
+INVITACIONES_DE_CALENDARIO: tuple[str, ...] = (
     "invitation:",
     "invitación:",
     "updated invitation",

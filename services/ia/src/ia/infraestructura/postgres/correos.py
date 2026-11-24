@@ -21,11 +21,12 @@ from ia.aplicacion.puertos import (
     PuntoDeLectura,
     Traza,
 )
+from ia.dominio.asociacion import normalizar_empresa
 from ia.dominio.clasificacion import Clasificacion
 from ia.dominio.correo import EstadoDeCorreo
 from ia.dominio.linkedin import AvisoDeLinkedin
 from ia.dominio.reglas import DOMINIOS_GENERICOS
-from ia.infraestructura.postgres.tablas import aviso_red, clasificacion, correo, estado_vigia, traza
+from ia.infraestructura.postgres.tablas import aviso, aviso_red, clasificacion, correo, estado_vigia, traza
 
 
 def decision_desde_dict(d: Any) -> DecisionGuardada | None:
@@ -168,6 +169,14 @@ class RepositorioPostgresDeCorreos:
                 .distinct()
             ).all()
         return frozenset(f.d for f in filas if f.d and f.d not in DOMINIOS_GENERICOS)
+
+    def empresas_conocidas(self) -> frozenset[str]:
+        """Las empresas de tus postulaciones (todas entran al inventario de avisos, D45), normalizadas."""
+        with self.motor.connect() as c:
+            filas = c.execute(
+                select(aviso.c.empresa).where(aviso.c.postulacion_id.is_not(None)).distinct()
+            ).all()
+        return frozenset(e for f in filas if (e := normalizar_empresa(f.empresa)))
 
     def postulaciones_del_dominio(self, dominio: str) -> tuple[str, ...]:
         """Las postulaciones a las que ya fueron correos de ese dominio (no los de correo personal)."""

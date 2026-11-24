@@ -33,9 +33,24 @@ def test_un_dominio_que_ya_escribio_por_una_postulacion_pasa_aunque_no_traiga_pa
     assert not filtrar(masivo, frozenset({"fullstacklabs.co"})).pasa
 
 
-def test_una_invitacion_de_calendario_en_un_correo_personal_pasa() -> None:
-    f = filtrar(INVITACION)
-    assert f.pasa and "invitation:" in f.motivo
+def test_una_invitacion_pasa_solo_si_el_remitente_o_el_texto_confirman_una_empresa_tuya() -> None:
+    # No todas las reuniones son de postulaciones: sin empresa confirmada no sale de la máquina.
+    assert not filtrar(INVITACION).pasa
+    assert filtrar(INVITACION).motivo == "invitación de calendario sin relación con tus postulaciones"
+    f = filtrar(INVITACION, empresas_conocidas=frozenset({"fullstack"}))
+    assert f.pasa and f.motivo == "invitación de calendario de fullstack"  # por el dominio fullstacklabs.co
+    dentista = correo(
+        remitente="agenda@clinica-sonrisa.cl",
+        asunto="Invitation: Control dental @ Fri Nov 27",
+        texto="Join with Google Meet",
+    )
+    assert not filtrar(dentista, empresas_conocidas=frozenset({"fullstack", "lanek"})).pasa
+    desde_gmail = correo(
+        remitente="jose.correa@gmail.com",
+        asunto="Invitation: Llamada con Lanek @ Thu Nov 26",
+        texto="Conversemos sobre el cargo. Join with Google Meet",
+    )
+    assert filtrar(desde_gmail, empresas_conocidas=frozenset({"lanek"})).pasa  # la empresa está en el asunto
 
 
 def test_el_dominio_lleva_a_su_postulacion_y_con_varias_elige_el_modelo() -> None:
@@ -78,6 +93,9 @@ class Repo:
 
     def dominios_conocidos(self) -> frozenset[str]:
         return frozenset({"fullstacklabs.co"})
+
+    def empresas_conocidas(self) -> frozenset[str]:
+        return frozenset()
 
     def estado_de(self, message_id: str) -> str | None:
         return self.estados.get(message_id)

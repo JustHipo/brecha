@@ -55,11 +55,11 @@ class SincronizarCorreo:
             desde_uid = punto.ultimo_uid if punto.uidvalidity == validez else None
             desde_fecha = (cuando - timedelta(days=self.dias_primera_vez)).date()
             ultimo = desde_uid
-            dominios = dominios_de(self.repo)
+            conocidos = conocidos_de(self.repo)
             for c in self.lector.nuevos(desde_uid, desde_fecha):
                 r.leidos += 1
                 ultimo = max(ultimo or 0, c.uid)
-                destino, plataforma = ingresar(self.repo, c, dominios)
+                destino, plataforma = ingresar(self.repo, c, conocidos)
                 if destino == "repetido":
                     r.repetidos += 1
                 elif destino in {"filtrado", "red"}:
@@ -76,13 +76,22 @@ class SincronizarCorreo:
         return r
 
 
-def dominios_de(repo: RepositorioDeCorreos) -> frozenset[str]:
-    """Dominios que ya escribieron por una postulación: sus correos pasan el filtro sin palabras."""
-    return repo.dominios_conocidos() if isinstance(repo, CorreosConocidos) else frozenset()
+@dataclass(frozen=True)
+class Conocidos:
+    """Lo que el filtro sabe de tus postulaciones sin salir de la máquina."""
+
+    dominios: frozenset[str] = frozenset()  # ya escribieron por una postulación: pasan sin palabras
+    empresas: frozenset[str] = frozenset()  # normalizadas: confirman una invitación de calendario
+
+
+def conocidos_de(repo: RepositorioDeCorreos) -> Conocidos:
+    if not isinstance(repo, CorreosConocidos):
+        return Conocidos()
+    return Conocidos(repo.dominios_conocidos(), repo.empresas_conocidas())
 
 
 def ingresar(
-    repo: RepositorioDeCorreos, c: CorreoLeido, dominios: frozenset[str] = frozenset()
+    repo: RepositorioDeCorreos, c: CorreoLeido, conocidos: Conocidos = Conocidos()
 ) -> tuple[str, str | None]:
     """Un correo leído entra a la base: repetido, filtrado (sin asunto ni fragmento) o por clasificar.
 
@@ -105,7 +114,7 @@ def ingresar(
             )
         )
         return "red", "linkedin"
-    f = filtrar(c, dominios)
+    f = filtrar(c, conocidos.dominios, conocidos.empresas)
     if not f.pasa:
         repo.guardar(
             CorreoGuardado(
@@ -166,12 +175,12 @@ class ReleerFiltrados:
         r = ResumenDeRelectura()
         if not isinstance(self.repo, CorreosConocidos):
             return r
-        dominios = self.repo.dominios_conocidos()
+        conocidos = conocidos_de(self.repo)
         for c in self.lector.nuevos(None, (self.ahora() - timedelta(days=dias)).date()):
             r.leidos += 1
             if self.repo.estado_de(c.message_id) != EstadoDeCorreo.FILTRADO.value or leer_aviso(c):
                 continue
-            f = filtrar(c, dominios)
+            f = filtrar(c, conocidos.dominios, conocidos.empresas)
             if f.pasa and self.repo.reabrir(por_clasificar(c, f.plataforma, f.motivo)):
                 r.reabiertos += 1
                 r.detalle.append(f"{c.remitente} · {c.asunto[:80]} ({f.motivo})")

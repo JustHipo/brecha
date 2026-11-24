@@ -4,6 +4,7 @@ import unicodedata
 from dataclasses import dataclass
 
 from ia.dominio import reglas
+from ia.dominio.asociacion import empresa_del_dominio, normalizar_cargo, normalizar_empresa, parecido
 from ia.dominio.correo import CorreoLeido
 
 
@@ -33,12 +34,31 @@ def plataforma_por_dominio(dominio: str) -> str | None:
     return None
 
 
-def filtrar(correo: CorreoLeido, dominios_conocidos: frozenset[str] = frozenset()) -> ResultadoFiltro:
+def empresa_confirmada(correo: CorreoLeido, empresas: frozenset[str]) -> str | None:
+    """La empresa de una postulación que confirma el remitente (su dominio) o el asunto y el texto."""
+    del_dominio = empresa_del_dominio(correo.dominio)
+    de = normalizar_empresa(del_dominio) if del_dominio else ""
+    texto = f" {normalizar_cargo(f'{correo.asunto} {correo.texto[: reglas.CARACTERES_PARA_PALABRAS]}')} "
+    for e in sorted(empresas):
+        if len(e) < 3:
+            continue
+        if (de and parecido(de, e) >= 0.8) or f" {e} " in texto:
+            return e
+    return None
+
+
+def filtrar(
+    correo: CorreoLeido,
+    dominios_conocidos: frozenset[str] = frozenset(),
+    empresas_conocidas: frozenset[str] = frozenset(),
+) -> ResultadoFiltro:
     """Decide si el correo es sobre una postulación. Nunca pasa la publicidad.
 
     - Desde una plataforma o un sistema de selección: pasa con cualquier palabra (los sistemas, siempre).
     - Desde un dominio que ya escribió por una postulación (`dominios_conocidos`): pasa si no es masivo,
       aunque no traiga palabras (una invitación de calendario de la misma persona que te invitó).
+    - Una invitación de calendario pasa solo si el dominio o el texto confirman una empresa de tus
+      postulaciones (`empresas_conocidas`, normalizadas): no todas las reuniones son de postulaciones.
     - Desde otro remitente: pasa con una palabra fuerte, o con una débil si no es masivo.
     """
     publicidad = _contiene(correo.asunto, reglas.ASUNTOS_DE_PUBLICIDAD)
@@ -62,6 +82,13 @@ def filtrar(correo: CorreoLeido, dominios_conocidos: frozenset[str] = frozenset(
         return ResultadoFiltro(True, None, f"palabra fuerte: {fuerte}")
     if correo.dominio in dominios_conocidos and not correo.masivo:
         return ResultadoFiltro(True, None, "remitente que ya escribió por una postulación")
+    invitacion = _contiene(comienzo, reglas.INVITACIONES_DE_CALENDARIO)
+    if invitacion:
+        empresa = empresa_confirmada(correo, empresas_conocidas)
+        if empresa:
+            return ResultadoFiltro(True, None, f"invitación de calendario de {empresa}")
+        if not debil:
+            return ResultadoFiltro(False, None, "invitación de calendario sin relación con tus postulaciones")
     if debil and not correo.masivo:
         return ResultadoFiltro(True, None, f"palabra en correo personal: {debil}")
     if debil:
