@@ -74,3 +74,44 @@ def test_estado_para_conexiones(repo: RepositorioPostgresDeCorreos) -> None:
     assert (
         (e.en_cola, e.llamadas_mes) == (1, 1) and e.gasto_mes_usd == 0.0012 and e.ultima_revision is not None
     )
+
+
+def test_hilo_enlaces_y_decision_ida_y_vuelta(repo: RepositorioPostgresDeCorreos) -> None:
+    from ia.aplicacion.puertos import DecisionGuardada, PasoParaNucleo
+    from ia.dominio.clasificacion import Clasificacion, PasoDetectado
+
+    repo.guardar(
+        CorreoGuardado(
+            "<a@x>",
+            1,
+            "info@chiletrabajos.cl",
+            datetime(2026, 11, 23, tzinfo=UTC),
+            EstadoDeCorreo.PENDIENTE,
+            "chiletrabajos",
+            "m",
+            "Continua tu Postulacion #3916453",
+            "Completa el test en [enlace 1]",
+            en_respuesta_a="<previo@x>",
+            referencias=("<raiz@x>", "<previo@x>"),
+            enlaces=("https://www.chiletrabajos.cl/test?token=x",),
+        )
+    )
+    [c] = repo.pendientes(10)
+    assert c.en_respuesta_a == "<previo@x>" and c.referencias == ("<raiz@x>", "<previo@x>")
+    assert c.enlaces == ("https://www.chiletrabajos.cl/test?token=x",)
+    k = Clasificacion(
+        True, "chiletrabajos", None, None, "en_proceso", "Test", 0.95, (), PasoDetectado("Completar el test")
+    )
+    d = DecisionGuardada(
+        ("p1", "p2"),
+        ("p1", "p2"),
+        "regla segura",
+        PasoParaNucleo("Completar el test", plazo="2026-11-30", enlace="https://x.test"),
+        (("s-real", 0.95),),
+    )
+    repo.marcar_clasificado("<a@x>", k, "gpt-prueba", d)
+    [e] = repo.por_enviar(10)
+    assert e.clasificacion == k and e.decision == d
+    repo.marcar_enviado("<a@x>", ("p1", "p2"))
+    assert repo.del_hilo(("<a@x>", "<otro@x>")) == ("p1", "p2")
+    assert repo.del_hilo(()) == ()

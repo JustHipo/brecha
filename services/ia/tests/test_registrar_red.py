@@ -6,7 +6,7 @@ from sqlalchemy import text
 
 from ia.aplicacion.casos.registrar_red import RegistrarRed
 from ia.aplicacion.casos.sincronizar_correo import ingresar
-from ia.aplicacion.puertos import AvisoRedPorEnviar, NucleoNoDisponible
+from ia.aplicacion.puertos import AvisoRedPorEnviar, ContactoRegistrado, NucleoNoDisponible, PasoParaNucleo
 from ia.dominio.asociacion import PostulacionConocida
 from ia.dominio.correo import CorreoLeido
 from ia.dominio.linkedin import AvisoDeLinkedin
@@ -31,6 +31,7 @@ class NucleoFalso:
         self.contactos: dict[str, str] = {}
         self.interacciones: list[tuple[str, str, str]] = []
         self.ligados: list[tuple[str, str]] = []
+        self.pasos: list[tuple[list[str], str, str | None, str | None]] = []
 
     def postulaciones(self) -> list[PostulacionConocida]:
         if self.cae:
@@ -42,8 +43,9 @@ class NucleoFalso:
 
     def registrar_contacto_red(
         self, nombre: str, perfil_url: str, titular: str | None, empresa: str | None
-    ) -> str:
-        return self.contactos.setdefault(perfil_url, f"c{len(self.contactos) + 1}")
+    ) -> ContactoRegistrado:
+        id = self.contactos.setdefault(perfil_url, f"c{len(self.contactos) + 1}")
+        return ContactoRegistrado(id, tuple(p for c, p in self.ligados if c == id))
 
     def registrar_interaccion_red(
         self, contacto_id: str, tipo: str, resumen: str, ocurrida_en: datetime, referencia: str
@@ -55,6 +57,20 @@ class NucleoFalso:
 
     def vincular_contacto_red(self, contacto_id: str, postulacion_id: str) -> None:
         self.ligados.append((contacto_id, postulacion_id))
+
+    def registrar_paso(
+        self,
+        postulacion_ids: list[str],
+        paso: PasoParaNucleo,
+        fuente: str,
+        referencia: str | None,
+        pedido_en: datetime | None,
+        contacto_red_id: str | None = None,
+    ) -> bool:
+        if any(r == referencia for _, _, r, _ in self.pasos):
+            return False
+        self.pasos.append((postulacion_ids, paso.descripcion, referencia, contacto_red_id))
+        return True
 
 
 class ColaFalsa:
@@ -83,7 +99,20 @@ def test_registra_en_la_red_y_liga_por_empresa() -> None:
     assert (r.registrados, r.nuevos, r.ligados) == (2, 2, 1)
     assert nucleo.ligados == [("c1", "p1")]
     assert cola.marcados == [("<m1>", 0, "c1", "p1"), ("<m1>", 1, "c2", None)]
+    # Un mensaje nuevo de una persona ligada deja el paso de leerlo (el correo no trae el texto).
+    assert r.pasos == 1
+    assert nucleo.pasos == [(["p1"], "Leer el mensaje de Ana Ficticia en LinkedIn", "<m1>#0#leer", "c1")]
     assert RegistrarRed(nucleo, cola).ejecutar().registrados == 0
+
+
+def test_tambien_liga_a_una_postulacion_cerrada() -> None:
+    class ConCerrada(NucleoFalso):
+        def postulaciones(self) -> list[PostulacionConocida]:
+            return [PostulacionConocida("p9", "Norte Datos", "Backend", "linkedin", False)]
+
+    nucleo = ConCerrada()
+    r = RegistrarRed(nucleo, ColaFalsa([ANA])).ejecutar()
+    assert r.ligados == 1 and nucleo.ligados == [("c1", "p9")] and r.pasos == 1
 
 
 def test_nucleo_caido_no_marca_nada() -> None:

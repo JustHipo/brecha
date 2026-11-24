@@ -5,8 +5,9 @@ Sin el cuerpo completo: solo el fragmento de lo que pasó el filtro.
 
 from dataclasses import asdict
 from datetime import UTC, datetime
+from typing import Any
 
-from sqlalchemy import Engine, func, select, update
+from sqlalchemy import Engine, func, null, select, update
 from sqlalchemy.dialects.postgresql import insert
 
 from ia.aplicacion.puertos import (
@@ -14,7 +15,9 @@ from ia.aplicacion.puertos import (
     ClasificadoPorEnviar,
     CorreoGuardado,
     CorreoPorClasificar,
+    DecisionGuardada,
     EstadoDelServicio,
+    PasoParaNucleo,
     PuntoDeLectura,
     Traza,
 )
@@ -22,6 +25,19 @@ from ia.dominio.clasificacion import Clasificacion
 from ia.dominio.correo import EstadoDeCorreo
 from ia.dominio.linkedin import AvisoDeLinkedin
 from ia.infraestructura.postgres.tablas import aviso_red, clasificacion, correo, estado_vigia, traza
+
+
+def decision_desde_dict(d: Any) -> DecisionGuardada | None:
+    if not isinstance(d, dict):
+        return None
+    paso = d.get("paso")
+    return DecisionGuardada(
+        postulacion_ids=tuple(d.get("postulacion_ids") or ()),
+        candidatas=tuple(d.get("candidatas") or ()),
+        motivo=str(d.get("motivo") or ""),
+        paso=PasoParaNucleo(**paso) if isinstance(paso, dict) else None,
+        pasos_cumplidos=tuple((str(i), float(c)) for i, c in d.get("pasos_cumplidos") or ()),
+    )
 
 
 class RepositorioPostgresDeCorreos:
@@ -55,6 +71,9 @@ class RepositorioPostgresDeCorreos:
                     asunto=g.asunto,
                     fragmento=g.fragmento,
                     creado_en=datetime.now(UTC),
+                    en_respuesta_a=g.en_respuesta_a[:998] if g.en_respuesta_a else None,
+                    referencias=list(g.referencias)[-20:] if g.referencias else null(),
+                    enlaces=list(g.enlaces) if g.enlaces else null(),
                 )
                 .on_conflict_do_nothing(index_elements=["message_id"])
             )
@@ -94,18 +113,71 @@ class RepositorioPostgresDeCorreos:
             ).all()
         return [
             CorreoPorClasificar(
-                f.message_id, f.remitente, f.asunto or "", f.fragmento or "", f.plataforma, f.intentos
+                f.message_id,
+                f.remitente,
+                f.asunto or "",
+                f.fragmento or "",
+                f.plataforma,
+                f.intentos,
+                f.en_respuesta_a,
+                tuple(f.referencias or ()),
+                tuple(f.enlaces or ()),
             )
             for f in filas
         ]
 
-    def marcar_clasificado(self, message_id: str, clasif: Clasificacion, modelo: str) -> None:
+    def clasificados_desde(self, desde: datetime) -> list[CorreoPorClasificar]:
+        """Correos de postulaciones ya clasificados desde `desde`, del más antiguo al más nuevo."""
+        with self.motor.connect() as c:
+            filas = c.execute(
+                select(correo)
+                .join(clasificacion, clasificacion.c.message_id == correo.c.message_id)
+                .where(correo.c.recibido_en >= desde)
+                .where(clasificacion.c.resultado["es_postulacion"].astext == "true")
+                .order_by(correo.c.recibido_en)
+            ).all()
+        return [
+            CorreoPorClasificar(
+                f.message_id,
+                f.remitente,
+                f.asunto or "",
+                f.fragmento or "",
+                f.plataforma,
+                f.intentos,
+                f.en_respuesta_a,
+                tuple(f.referencias or ()),
+                tuple(f.enlaces or ()),
+                f.recibido_en,
+            )
+            for f in filas
+        ]
+
+    def del_hilo(self, message_ids: tuple[str, ...]) -> tuple[str, ...]:
+        """Las postulaciones de los correos de este hilo que ya se asociaron (regla segura, pasos.md §5.1)."""
+        if not message_ids:
+            return ()
+        with self.motor.connect() as c:
+            filas = c.execute(
+                select(clasificacion.c.postulacion_ids).where(clasificacion.c.message_id.in_(message_ids))
+            ).all()
+        return tuple(dict.fromkeys(i for f in filas for i in (f.postulacion_ids or ())))
+
+    def marcar_clasificado(
+        self,
+        message_id: str,
+        clasif: Clasificacion,
+        modelo: str,
+        decision: DecisionGuardada | None = None,
+    ) -> None:
+        resultado: dict[str, Any] = asdict(clasif)
+        if decision is not None:
+            resultado["decision"] = asdict(decision)
         with self.motor.begin() as c:
             c.execute(
                 insert(clasificacion)
                 .values(
                     message_id=message_id,
-                    resultado=asdict(clasif),
+                    resultado=resultado,
                     modelo=modelo,
                     confianza=clasif.confianza,
                     creada_en=datetime.now(UTC),
@@ -157,17 +229,26 @@ class RepositorioPostgresDeCorreos:
             ).all()
         return [
             ClasificadoPorEnviar(
-                f.message_id, Clasificacion(**f.resultado), f.remitente, f.asunto or "", f.recibido_en
+                f.message_id,
+                Clasificacion.desde_dict(f.resultado),
+                f.remitente,
+                f.asunto or "",
+                f.recibido_en,
+                decision_desde_dict(f.resultado.get("decision")),
             )
             for f in filas
         ]
 
-    def marcar_enviado(self, message_id: str, postulacion_id: str | None) -> None:
+    def marcar_enviado(self, message_id: str, postulacion_ids: tuple[str, ...]) -> None:
         with self.motor.begin() as c:
             c.execute(
                 update(clasificacion)
                 .where(clasificacion.c.message_id == message_id)
-                .values(enviada_al_nucleo=True, postulacion_id=postulacion_id)
+                .values(
+                    enviada_al_nucleo=True,
+                    postulacion_id=postulacion_ids[0] if postulacion_ids else None,
+                    postulacion_ids=list(postulacion_ids),
+                )
             )
 
     # ── Estado para Conexiones (F2-08) ───────────────────────────────────────────
