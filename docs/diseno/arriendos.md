@@ -1,6 +1,6 @@
 # Plan: cambio de foco y Arriendos
 
-Escrito el 24-nov-2026. **Versión 2 (24-nov-2026, 11:30):** Juan respondió las 11 preguntas del artifact «Plan de Arriendos en Brecha» (sección 2). Cambia el alcance: mapa en los dos focos, canales y portales que se agregan solos, reglas de búsqueda que Claude guarda y respeta, importar desde WhatsApp, todo junto y en paralelo con F3. **Estado: por aprobar la versión 2.** Al aprobarse, las decisiones pasan a `docs/PLAN.md` como D-A1 en adelante y se parte (sección 11).
+Escrito el 24-nov-2026. **Versión 2 (24-nov-2026, 11:30):** Juan respondió las 11 preguntas del artifact «Plan de Arriendos en Brecha» (sección 2). Cambia el alcance: mapa en los dos focos, canales y portales que se agregan solos, reglas de búsqueda que Claude guarda y respeta, importar desde WhatsApp, todo junto y en paralelo con F3. **Estado: implementado (24-nov-2026, rama `arriendos`).** Juan aprobó la versión 2 y pidió hacerlo de corrido; lo hecho, lo que cambió respecto del plan y lo que falta verificar está en la sección 13. Decisiones referenciadas desde `docs/PLAN.md` §6.4 y el ADR 0020.
 
 ## 1. La tarea en simple
 
@@ -186,3 +186,23 @@ Juan pidió hacerlas de corrido (A-D20). Cada fase termina con `pnpm turbo run l
 ## 12. Lo que sale para otros
 
 Nada para terceros. Para el proyecto: ADR 0020, decisiones D-A1 en adelante en `docs/PLAN.md`, README y nota de estado en la bandeja del AIOS al terminar.
+
+## 13. Implementación (24-nov-2026)
+
+Rama `arriendos` desde `brecha-junta`, fases A1 a A7 con pruebas en cada una (commits `feat(consola): selector de foco…` a `feat(escritorio): …`).
+
+**Hecho como estaba planeado:** selector y color por foco; dominio con sus 10 estados, contactos con conversaciones por canal, visitas, documentos, señales y discrepancias (`contra_senal` y `visita_sin_registro`); canales editables; reglas duras y blandas con prioridad e historial; calce y brechas en palabras; duplicados por URL y por dirección o pin; REST, contrato y 19 herramientas MCP con el protocolo para la IA; correos de arriendo con filtro y clasificación propios; importar texto y chats de WhatsApp con teléfonos enmascarados; Preguntar; mapa en los dos focos; notificaciones y barra de menú.
+
+**Cambió respecto del plan:**
+| Qué | Por qué |
+|---|---|
+| Las alertas de portales van a la **Bandeja de Arriendos**, una señal por aviso, en vez de crear propiedades solas | Una alerta trae 10 a 30 avisos: crearlos todos llenaría el tablero. Desde la Bandeja creas o asocias las que te interesan |
+| Preguntar no usa embeddings: manda al modelo un resumen de tus propiedades y solo acepta citas a propiedades que existen | Son pocas propiedades por persona; no hace falta un índice vectorial |
+| Para correr las e2e en paralelo con otros worktrees, sus puertos se pueden cambiar con `E2E_NUCLEO`, `E2E_CONSOLA` y `E2E_IA` | Lección del 24-nov-2026 (dos worktrees chocaban en los puertos fijos) |
+| Comunas: tabla local de 345 comunas con su centro, sacada una vez de OpenStreetMap (Overpass) en `apps/consola/public/geo/comunas-cl.json` | Empleo nunca sale a internet a ubicarse |
+
+**Verificado ejecutando:** lint, tipos, pruebas y build de los cuatro paquetes; 411 pruebas del núcleo; pruebas del servicio con IA; 10 e2e nuevas con axe (selector, flujo, importar con el servicio con IA simulado, mapas); esquemas de OpenAI convertidos al formato estricto sin llamar a la API.
+
+**No verificado:** llamadas reales a OpenAI con los prompts nuevos (sin correos reales de arriendo todavía, P8); el fondo de OpenFreeMap y Nominatim desde la app (las pruebas usan fondo liso y respuestas grabadas); Windows; la app empaquetada con estos cambios.
+
+**Pendiente de Juan:** elegir el color de Arriendos (hoy un verde provisorio, `styles.css`).

@@ -7,6 +7,32 @@ import { ProcesoPorArranque, ProcesoSupervisado } from './proceso';
 import { Registro } from './registro';
 import { puertos, rutas } from './rutas';
 
+describe('avisos de Arriendos', () => {
+  it('abren la ficha de la propiedad y usan su nombre', () => {
+    expect(
+      avisoDe(
+        {
+          tipo: 'propiedad.estado_cambiado',
+          datos: { propiedadId: 'a1', titulo: 'Depto 2D en Ñuñoa', a: 'no_disponible', origen: 'senal' },
+        },
+        'Brecha',
+      ),
+    ).toEqual({
+      titulo: 'Depto 2D en Ñuñoa: ya no está disponible',
+      cuerpo: 'Lo movió un correo que llegó.',
+      ruta: '/arriendos/propiedades/a1',
+    });
+    expect(
+      avisoDe({ tipo: 'propiedad.estado_cambiado', datos: { a: 'contactada', origen: 'consola' } }, 'Brecha'),
+    ).toBeNull();
+    expect(
+      avisoDe({ tipo: 'arriendos.bandeja', datos: { resumen: 'Aviso de una alerta: Depto 1D' } }, 'Brecha')
+        ?.ruta,
+    ).toBe('/arriendos/bandeja');
+    expect(avisoDe({ tipo: 'propiedad.actualizada', datos: { propiedadId: 'a1' } }, 'Brecha')).toBeNull();
+  });
+});
+
 describe('avisos del sistema', () => {
   it('avisa lo que cambió solo, las discrepancias y las novedades sin aplicar', () => {
     const cambio = avisoDe(

@@ -43,6 +43,7 @@ let oyente: OyenteDeEventos;
 let saliendo = false;
 let pendientesBandeja = 0;
 let porResponder = 0;
+let arriendosPorRevisar = 0;
 
 function tokenConsola(): string | null {
   const ruta = join(servicios.instancia, 'token-consola');
@@ -100,6 +101,13 @@ async function contarBandeja(): Promise<void> {
     });
     if (red.ok)
       porResponder = ((await red.json()) as { resumen: { porResponder: number } }).resumen.porResponder;
+    const arriendos = await fetch(`${URL_CONSOLA}/api/v1/arriendos/propiedades?abiertas=true`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (arriendos.ok) {
+      const { resumen } = (await arriendos.json()) as { resumen: { porResponder: number; bandeja: number } };
+      arriendosPorRevisar = resumen.porResponder + resumen.bandeja;
+    }
   } catch {
     // el núcleo todavía no responde
   }
@@ -118,7 +126,7 @@ function actualizarMenu(): void {
   });
   const todoBien =
     servicios.procesos.length === 4 && servicios.procesos.every((p) => p.estado === 'corriendo');
-  const pendientes = pendientesBandeja + porResponder;
+  const pendientes = pendientesBandeja + porResponder + arriendosPorRevisar;
   // En Windows no hay texto al lado del icono: el número va en el texto que aparece al pasar el mouse.
   if (!WINDOWS) tray.setTitle(pendientes ? ` ${pendientes}` : '');
   tray.setToolTip(
@@ -136,6 +144,10 @@ function actualizarMenu(): void {
       {
         label: porResponder ? `Red: ${porResponder} por responder` : 'Tu red de LinkedIn',
         click: () => abrir('/red'),
+      },
+      {
+        label: arriendosPorRevisar ? `Arriendos: ${arriendosPorRevisar} por revisar` : 'Arriendos',
+        click: () => abrir('/arriendos/tablero'),
       },
       { type: 'separator' },
       ...(servicios.error ? [{ label: `✕ ${servicios.error}`, enabled: false }] : []),

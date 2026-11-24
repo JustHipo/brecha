@@ -102,6 +102,21 @@ Herramientas: `listar_postulaciones` (con filtro por `etiquetas`), `listar_etiqu
 
 Con la app instalada, el token está en `~/Library/Application Support/Brecha/instancia/token-mcp`.
 
+## Arriendos (segundo foco)
+
+Donde dice **Brecha**, arriba a la izquierda, un selector cambia entre **Empleo** y **Arriendos** (también con ⌘1 y ⌘2). Arriendos funciona como empleo, pero para buscar dónde vivir:
+
+- **Tablero por estado:** vista, contactada, visita agendada, visitada, en evaluación, aprobada y arrendada (más rechazada, descartada y no disponible).
+- **Tu búsqueda:** reglas duras (descartan) y blandas con prioridad (P1 pesa más que P2): presupuesto con gastos comunes, comunas, dormitorios, mascota, estacionamiento, renta exigida, aval… Brecha calcula el **calce** de cada propiedad y te dice la brecha en palabras («se pasa $40.000 del presupuesto»). Cada cambio queda en un historial con su motivo.
+- **Canales:** Portal Inmobiliario, Yapo, Toctoc, Goplaceit, iCasas, Facebook Marketplace, WhatsApp, correo y teléfono vienen de partida; agregas los que falten (con sus dominios, Brecha reconoce sus URLs y correos).
+- **Con quién hablas:** cada propiedad guarda sus contactos (teléfono, WhatsApp, correo, enlace de postulación, LinkedIn) y la conversación con cada uno; Brecha te dice a quién le toca responder.
+- **Sin duplicados:** la misma URL es la misma propiedad; la misma dirección o un pin a menos de 30 m te la ofrece para unir.
+- **Correo:** el vigía reconoce los correos de arriendo (alertas de portales, respuestas de corredores), los clasifica y los lleva a la propiedad o a la Bandeja de Arriendos.
+- **Importar:** pega un aviso o sube un chat exportado de WhatsApp («Exportar chat» → «Sin archivos»); la IA propone las propiedades y tú eliges. Los teléfonos nunca se mandan a la IA.
+- **Mapa** (también en Empleo, por comuna): MapLibre con el fondo de OpenFreeMap; las direcciones se ubican con Nominatim de OpenStreetMap (una por segundo, guardadas). Se apaga en Tu búsqueda.
+
+**Por MCP:** `ver_busqueda`, `editar_busqueda`, `listar_propiedades`, `ver_propiedad`, `buscar_duplicado_propiedad`, `crear_propiedad`, `editar_propiedad`, `cambiar_estado_propiedad`, `agregar_publicacion`, `unir_propiedades`, `registrar_contacto_propiedad`, `registrar_interaccion_arriendo`, `agendar_visita`, `agregar_nota_propiedad`, `registrar_senal_arriendo`, `listar_bandeja_arriendos`, `asociar_senal_arriendo`, `listar_canales` y `registrar_canal`. Las instrucciones del servidor le piden a tu IA leer tus reglas antes de buscar, revisar duplicados antes de crear y **preguntarte antes de cambiar una regla**. Decisiones en [`docs/diseno/arriendos.md`](docs/diseno/arriendos.md) y el ADR 0020.
+
 ## Pruebas
 
 ```bash
