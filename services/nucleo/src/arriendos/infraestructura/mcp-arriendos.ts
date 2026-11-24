@@ -3,7 +3,6 @@ import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
 import { z } from 'zod';
 import { ErrorDeDominio } from '../../compartido/dominio/error-de-dominio';
 import type { CasosDeArriendos, VistaPropiedad } from '../aplicacion/casos';
-import { CRITERIOS } from '../dominio/busqueda';
 import { TIPOS_DE_CANAL } from '../dominio/canal';
 import { ESTADOS } from '../dominio/estado';
 import {
@@ -18,10 +17,10 @@ import {
  * Protocolo para la IA (docs/diseno/arriendos.md §5.4, P4 de Juan). Va en las instrucciones del servidor MCP.
  */
 export const INSTRUCCIONES_ARRIENDOS =
-  'Brecha también sigue la búsqueda de arriendo (foco Arriendos). Antes de buscar o agregar propiedades, lee las reglas con ver_busqueda y respétalas: ' +
-  'las duras descartan, las blandas ordenan por prioridad (P1 pesa más). Antes de crear, usa buscar_duplicado_propiedad (misma URL o dirección): ' +
+  'Brecha también sigue la búsqueda de arriendo (foco Arriendos). Antes de buscar o agregar propiedades, lee su perfil con ver_perfil (foco arriendos). ' +
+  'Antes de crear, usa buscar_duplicado_propiedad (misma URL o dirección): ' +
   'si ya existe, agrega la publicación nueva con agregar_publicacion o une con unir_propiedades. Si la persona te pide algo que choca con una regla ' +
-  '(por ejemplo casas cuando la regla dice departamento), pregúntale antes si cambia la regla; si dice que sí, usa editar_busqueda con el motivo. ' +
+  '(por ejemplo casas cuando la regla dice departamento), pregúntale antes si cambia el perfil; si dice que sí, usa editar_perfil con el motivo. ' +
   'Registra con quién y por dónde hablan (registrar_contacto_propiedad, registrar_interaccion_arriendo con el canal: portal, WhatsApp, correo, teléfono). ' +
   'Si un portal o canal no existe, créalo con registrar_canal. Brecha no automatiza portales ni WhatsApp: lo revisas desde el navegador de la persona o ella te lo cuenta.';
 
@@ -64,18 +63,6 @@ const datos = {
     .nullable()
     .optional(),
 };
-const regla = z.object({
-  criterio: z.enum(CRITERIOS),
-  valor: z
-    .union([z.number(), z.boolean(), z.string(), z.array(z.string())])
-    .optional()
-    .describe(
-      'Monto máximo en pesos, mínimo, lista (comunas, tipos), sí/no o fecha; nada en renta_exigida y aval',
-    ),
-  dura: z.boolean().optional().describe('true por defecto'),
-  prioridad: z.number().int().min(1).optional().describe('Solo blandas: 1 es la más importante'),
-});
-
 function ok(texto: string, d?: unknown): CallToolResult {
   return {
     content: [{ type: 'text', text: d === undefined ? texto : `${texto}\n\n${JSON.stringify(d, null, 2)}` }],
@@ -107,56 +94,6 @@ const lectura = { readOnlyHint: true, openWorldHint: false };
 
 /** Las herramientas MCP de Arriendos. Lo que hacen queda con origen `ia`. */
 export function registrarHerramientasDeArriendos(s: McpServer, c: CasosDeArriendos): void {
-  s.registerTool(
-    'ver_busqueda',
-    {
-      title: 'Ver las reglas de búsqueda de arriendo',
-      description:
-        'Reglas duras y blandas (con prioridad), datos de la persona (renta, aval, mascota) e historial de cambios. Léelas antes de buscar.',
-      inputSchema: {},
-      annotations: lectura,
-    },
-    () =>
-      correr(async () => {
-        const b = await c.verBusqueda();
-        return ok(
-          `Reglas:\n${b.reglas.map((r) => `- ${r.descripcion} (id ${r.id})`).join('\n') || '(sin reglas)'}`,
-          {
-            persona: b.persona,
-            uf: b.uf,
-            ultimosCambios: b.historial.slice(0, 5),
-            criteriosSugeridos: b.criteriosSugeridos,
-          },
-        );
-      }),
-  );
-
-  s.registerTool(
-    'editar_busqueda',
-    {
-      title: 'Cambiar las reglas de búsqueda de arriendo',
-      description:
-        'Reemplaza la lista de reglas (manda todas las que deben quedar) y/o los datos de la persona. Siempre con motivo. ' +
-        'Pregúntale a la persona antes de cambiar una regla que ella puso.',
-      inputSchema: {
-        reglas: z.array(regla).optional(),
-        persona: z
-          .object({
-            rentaLiquida: z.number().nullable().optional(),
-            tieneAval: z.boolean().nullable().optional(),
-            tieneMascota: z.boolean().nullable().optional(),
-          })
-          .optional(),
-        motivo: z.string().describe('Por qué cambia; queda en el historial'),
-      },
-    },
-    (a) =>
-      correr(async () => {
-        const b = await c.cambiarBusqueda(a, 'ia');
-        return ok(`Búsqueda actualizada:\n${b.reglas.map((r) => `- ${r.descripcion}`).join('\n')}`);
-      }),
-  );
-
   s.registerTool(
     'listar_propiedades',
     {

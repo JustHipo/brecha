@@ -254,8 +254,10 @@ describe('arriendos por MCP', () => {
     const { instructions } = c.getInstructions()
       ? { instructions: c.getInstructions() }
       : { instructions: '' };
-    expect(instructions).toMatch(/ver_busqueda/);
-    expect(texto(await c.callTool({ name: 'ver_busqueda', arguments: {} }))).toMatch(/Renta exigida/);
+    expect(instructions).toMatch(/ver_perfil \(foco arriendos\)/);
+    expect(texto(await c.callTool({ name: 'ver_perfil', arguments: { foco: 'arriendos' } }))).toMatch(
+      /Renta exigida/,
+    );
 
     const creada = texto(
       await c.callTool({
@@ -275,16 +277,24 @@ describe('arriendos por MCP', () => {
     expect(repetida.isError).toBe(true);
     expect(texto(repetida)).toMatch(/YA_EXISTE/);
 
-    await c.callTool({
-      name: 'editar_busqueda',
+    const editada = await c.callTool({
+      name: 'editar_perfil',
       arguments: {
-        reglas: [
-          { criterio: 'tipo', valor: ['casa'], dura: false, prioridad: 1 },
+        foco: 'arriendos',
+        agregar: [
+          { criterio: 'tipo', valor: ['casa'], dura: false, prioridad: 1, etiquetas: ['tipo'] },
           { criterio: 'tipo', valor: ['departamento'], dura: false, prioridad: 2 },
         ],
+        datos: { rentaLiquida: 1800000 },
         motivo: 'Juan pidió casas: casa pasa a P1',
       },
     });
+    expect(texto(editada)).toMatch(/P1 · Tipo: casa #tipo/);
+    const ajeno = await c.callTool({
+      name: 'editar_perfil',
+      arguments: { foco: 'arriendos', datos: { rentaPretendida: 1 }, motivo: 'x' },
+    });
+    expect(ajeno.isError).toBe(true);
     const b = await auth(http.get('/api/v1/arriendos/busqueda')).expect(200);
     expect(b.body.historial[0]).toMatchObject({ origen: 'ia', motivo: 'Juan pidió casas: casa pasa a P1' });
 

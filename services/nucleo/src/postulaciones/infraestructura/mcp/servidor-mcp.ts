@@ -19,6 +19,9 @@ import {
   INSTRUCCIONES_ARRIENDOS,
   registrarHerramientasDeArriendos,
 } from '../../../arriendos/infraestructura/mcp-arriendos';
+import type { CasosDePerfil } from '../../aplicacion/casos-de-perfil';
+import type { RevisionDePerfil } from '../../dominio/perfil-empleo';
+import { INSTRUCCIONES_PERFIL, registrarHerramientasDePerfil } from './mcp-perfil';
 
 const LIMITE_EXPORTAR = 50_000;
 const estado = z.enum(ESTADOS);
@@ -43,10 +46,13 @@ function linea(
         prioridad: string;
         id: string;
         etiquetas?: string[];
+        perfil?: RevisionDePerfil | null;
       },
 ) {
   const etiquetas = p.etiquetas?.length ? ` · #${p.etiquetas.join(' #')}` : '';
-  return `${p.empresa} · ${p.titulo} · ${p.estado} · prioridad ${p.prioridad}${etiquetas} · id ${p.id}`;
+  const dura = p.perfil?.choques.find((c) => c.dura);
+  const choque = dura ? ` · choca con tu perfil: ${dura.texto}` : '';
+  return `${p.empresa} · ${p.titulo} · ${p.estado} · prioridad ${p.prioridad}${etiquetas}${choque} · id ${p.id}`;
 }
 
 /** Corre un caso de uso y convierte los errores al mismo `codigo` que REST (ADR 0012). */
@@ -73,6 +79,7 @@ export function crearServidorMcp(
   red?: CasosDeRed,
   csv?: CasosCsv,
   arriendos?: CasosDeArriendos,
+  perfil?: CasosDePerfil,
 ): McpServer {
   const s = new McpServer(
     { name: 'brecha', version: '1.0.0' },
@@ -88,10 +95,12 @@ export function crearServidorMcp(
         'con registrar_interaccion_red y su campo paso si vino por LinkedIn, o con registrar_paso si lo viste en un portal (también lo que ya hizo, con estado hecho). ' +
         'Antes de registrar, mira los pasos de la postulación (ver_postulacion o listar_pasos) para no duplicar. Para ubicar la postulación desde la página de un aviso usa listar_postulaciones con url. ' +
         'Cuando la persona diga que completó algo, márcalo con resolver_paso. Los pasos se registran aunque la postulación esté cerrada.' +
+        (perfil ? ` ${INSTRUCCIONES_PERFIL}` : '') +
         (arriendos ? ` ${INSTRUCCIONES_ARRIENDOS}` : ''),
     },
   );
   if (arriendos) registrarHerramientasDeArriendos(s, arriendos);
+  if (perfil) registrarHerramientasDePerfil(s, perfil, arriendos);
   const lectura = { readOnlyHint: true, openWorldHint: false };
 
   s.registerTool(
@@ -99,7 +108,8 @@ export function crearServidorMcp(
     {
       title: 'Listar postulaciones',
       description:
-        'Lista postulaciones con filtros opcionales. Devuelve id, empresa, título, estado, prioridad, etiquetas y versión.',
+        'Lista postulaciones con filtros opcionales. Devuelve id, empresa, título, estado, prioridad, etiquetas, versión ' +
+        'y los choques con el perfil de búsqueda (perfil.cumpleDuras falso = choca con una regla dura; no cambies su estado por eso).',
       inputSchema: {
         estados: z.array(estado).optional(),
         plataformas: z.array(z.enum(PLATAFORMAS)).optional(),
@@ -165,7 +175,10 @@ export function crearServidorMcp(
     'crear_postulacion',
     {
       title: 'Crear postulación',
-      description: 'Crea una postulación desde un aviso. YA_EXISTE si ya sigues ese aviso.',
+      description:
+        'Crea una postulación desde un aviso. YA_EXISTE si ya sigues ese aviso. Si vienes de buscar ofertas, ' +
+        'antes leíste el perfil (ver_perfil, foco empleo): no crees una que choca con una regla dura sin decírselo a la persona. ' +
+        'Trae modalidad, ubicación y sueldo publicado si el aviso los dice: con eso se revisa el perfil. La respuesta trae los choques.',
       inputSchema: {
         titulo: z.string(),
         empresa: z.string(),
