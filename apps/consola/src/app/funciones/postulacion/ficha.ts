@@ -27,7 +27,13 @@ import { HlmTextarea } from '@brecha/ui/textarea';
 import { Api, type ContactoRed, type ContactoRedEntrada } from '../../nucleo/api/api.service';
 import { Avisos } from '../../nucleo/avisos';
 import { Formato } from '../../nucleo/idioma/idioma';
-import { Avatar, EtiquetaPlataforma, PuntoPrioridad } from '../../compartido/piezas';
+import {
+  Avatar,
+  EtiquetaPlataforma,
+  herramientasPedidas,
+  ListaStack,
+  PuntoPrioridad,
+} from '../../compartido/piezas';
 import { CitaAviso, InsigniaCalce } from '../avisos/piezas';
 import {
   DialogoElegirContacto,
@@ -82,6 +88,7 @@ interface Etapa {
     Avatar,
     EtiquetaPlataforma,
     PuntoPrioridad,
+    ListaStack,
     InsigniaCalce,
     CitaAviso,
     PendienteRed,
@@ -334,9 +341,19 @@ interface Etapa {
                           : ('ficha.sinDato' | transloco)
                       }}
                     </dd>
+                    @if (!store.avisoIa() && d.aviso.sueldoPublicado) {
+                      <dt class="text-tinta-suave">{{ 'ficha.sueldoPublicado' | transloco }}</dt>
+                      <dd class="m-0">{{ d.aviso.sueldoPublicado }}</dd>
+                    }
                     @if (store.avisoIa(); as a) {
                       <dt class="text-tinta-suave">{{ 'ficha.sueldoPublicado' | transloco }}</dt>
-                      <dd class="m-0">{{ a.sueldo || ('ficha.sueldoNoPublicado' | transloco) }}</dd>
+                      <dd class="m-0">
+                        {{
+                          a.sueldo ||
+                            d.aviso.sueldoPublicado ||
+                            ('ficha.sueldoNoPublicado' | transloco)
+                        }}
+                      </dd>
                       <dt class="text-tinta-suave">{{ 'ficha.calce' | transloco }}</dt>
                       <dd class="m-0"><b-calce [calce]="a.calce" [analizado]="a.analizado" /></dd>
                     }
@@ -385,6 +402,87 @@ interface Etapa {
                     }
                   }
                 }
+              </section>
+
+              <section
+                aria-labelledby="ficha-stack"
+                class="flex flex-col gap-3 rounded-[14px] border border-linea bg-fondo px-4 py-3.5 shadow-tarjeta"
+                data-stack
+              >
+                <h2 id="ficha-stack" class="m-0 font-sans text-sm font-bold">
+                  {{ 'stack.titulo' | transloco }}
+                </h2>
+                @if (herramientas().length) {
+                  <b-stack [herramientas]="herramientas()" />
+                  @if (explicacionStack(); as clave) {
+                    <p class="m-0 text-[12.5px] text-tinta-suave">{{ clave | transloco }}</p>
+                  }
+                } @else {
+                  <p class="m-0 text-[12.5px] text-tinta-suave">
+                    {{ 'stack.sinStack' | transloco }}
+                  </p>
+                }
+                @if (d.aviso.requisitos) {
+                  <p class="m-0 text-[12.5px] whitespace-pre-line">
+                    <span class="font-semibold">{{ 'stack.requisitos' | transloco }}:</span>
+                    {{ d.aviso.requisitos }}
+                  </p>
+                }
+
+                <div class="flex flex-col gap-1.5 border-t border-linea pt-2.5" data-etiquetas>
+                  <span class="text-[12.5px] font-semibold text-tinta-suave">{{
+                    'etiquetas.titulo' | transloco
+                  }}</span>
+                  <div class="flex flex-wrap items-center gap-1.5">
+                    @for (e of d.etiquetas; track e) {
+                      <span
+                        class="inline-flex items-center gap-1 rounded-full border border-linea bg-superficie py-[1px] pr-1 pl-2 text-[12.5px]"
+                        >#{{ e }}
+                        <button
+                          type="button"
+                          class="grid size-5 place-items-center rounded-full text-tinta-suave hover:bg-linea"
+                          [attr.aria-label]="'etiquetas.quitar' | transloco: { etiqueta: e }"
+                          (click)="quitarEtiqueta(e)"
+                        >
+                          ✕
+                        </button></span
+                      >
+                    }
+                    <input
+                      hlmInput
+                      class="h-7 w-40 text-[12.5px]"
+                      data-nueva-etiqueta
+                      [attr.aria-label]="'etiquetas.agregar' | transloco"
+                      [placeholder]="'etiquetas.agregar' | transloco"
+                      (keydown.enter)="
+                        agregarEtiqueta($any($event.target)); $event.preventDefault()
+                      "
+                    />
+                  </div>
+                </div>
+
+                <label class="flex items-center gap-2 text-[12.5px]">
+                  <span class="font-semibold text-tinta-suave">{{
+                    'ficha.prioridad' | transloco
+                  }}</span>
+                  <select
+                    data-prioridad
+                    class="h-8 rounded-md border border-linea bg-fondo px-2"
+                    (change)="fijarPrioridad($any($event.target).value)"
+                  >
+                    <option value="" [selected]="!d.prioridadFijada">
+                      {{
+                        'ficha.prioridadAutomatica'
+                          | transloco: { p: ('prioridad.' + d.prioridad | transloco) }
+                      }}
+                    </option>
+                    @for (p of ['alta', 'media', 'baja']; track p) {
+                      <option [value]="p" [selected]="d.prioridadFijada === p">
+                        {{ 'prioridad.' + p | transloco }}
+                      </option>
+                    }
+                  </select>
+                </label>
               </section>
 
               <section
@@ -463,16 +561,22 @@ interface Etapa {
                       </span>
                       <b-pendiente-red [contacto]="c" />
                       <b-conexion-red [conexion]="c.conexion" />
-                      <a
-                        [href]="c.perfilUrl"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        class="text-[12.5px] font-semibold text-acento underline-offset-2 hover:underline"
-                        >{{ 'red.verPerfil' | transloco
-                        }}<span class="solo-lector">
-                          ({{ c.nombre }}, {{ 'avisos.nuevaVentana' | transloco }})</span
-                        ></a
-                      >
+                      @if (c.perfilUrl) {
+                        <a
+                          [href]="c.perfilUrl"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          class="text-[12.5px] font-semibold text-acento underline-offset-2 hover:underline"
+                          >{{ 'red.verPerfil' | transloco
+                          }}<span class="solo-lector">
+                            ({{ c.nombre }}, {{ 'avisos.nuevaVentana' | transloco }})</span
+                          ></a
+                        >
+                      } @else {
+                        <span class="text-[12.5px] text-tinta-suave">{{
+                          'red.sinPerfil' | transloco
+                        }}</span>
+                      }
                     </li>
                   }
                   @for (c of d.contactos; track c.id) {
@@ -826,6 +930,52 @@ export class FichaPagina {
 
   constructor() {
     effect(() => void this.store.cargar(this.id()));
+  }
+
+  /** Herramientas del aviso con lo que te falta (csv.md §7); sin análisis, el stack del núcleo sin colores. */
+  protected readonly herramientas = computed(() => {
+    const a = this.store.avisoIa();
+    return herramientasPedidas(
+      a,
+      this.store.detalle()?.aviso.stack ?? [],
+      a?.calce !== null && a !== null,
+    );
+  });
+
+  /** Por qué no hay colores todavía, si no los hay. */
+  protected readonly explicacionStack = computed(() => {
+    if (!this.herramientas().length || this.herramientas().some((h) => h.estado !== 'sin_dato'))
+      return null;
+    const a = this.store.avisoIa();
+    if (this.store.estadoAvisoIa() === 'apagada') return 'stack.iaApagada';
+    if (a?.analizado && a.calce === null) return 'stack.sinPerfil';
+    return 'stack.porAnalizar';
+  });
+
+  private async editarEtiquetas(etiquetas: string[]): Promise<void> {
+    await this.intentar(() =>
+      this.store.ejecutar((p) => this.api.editar(p.id, { version: p.version, etiquetas })),
+    );
+  }
+
+  protected async agregarEtiqueta(campo: HTMLInputElement): Promise<void> {
+    const nueva = campo.value.trim();
+    const d = this.store.detalle();
+    if (!nueva || !d) return;
+    campo.value = '';
+    await this.editarEtiquetas([...d.etiquetas, nueva]);
+  }
+
+  protected async quitarEtiqueta(e: string): Promise<void> {
+    const d = this.store.detalle();
+    if (d) await this.editarEtiquetas(d.etiquetas.filter((x) => x !== e));
+  }
+
+  protected async fijarPrioridad(valor: string): Promise<void> {
+    const prioridad = valor === 'alta' || valor === 'media' || valor === 'baja' ? valor : null;
+    await this.intentar(() =>
+      this.store.ejecutar((p) => this.api.editar(p.id, { version: p.version, prioridad })),
+    );
   }
 
   protected readonly puedeAgendar = computed(() =>

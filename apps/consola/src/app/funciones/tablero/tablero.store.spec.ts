@@ -4,7 +4,7 @@ import { NEVER, of, throwError } from 'rxjs';
 import { Api } from '../../nucleo/api/api.service';
 import { ErrorDeApi } from '../../nucleo/errores/error-de-api';
 import { Eventos } from '../../nucleo/eventos/eventos.service';
-import { TableroStore } from './tablero.store';
+import { SIN_FILTROS, TableroStore } from './tablero.store';
 
 function tarjeta(extra: Partial<Resumen> = {}): Resumen {
   return {
@@ -119,10 +119,21 @@ describe('TableroStore', () => {
   });
 
   it('filtra por plataforma, prioridad y texto en el cliente', () => {
-    store.filtros.set({ plataformas: ['getonboard'], prioridades: [], q: '' });
+    store.filtros.set({ ...SIN_FILTROS, plataformas: ['getonboard'] });
     expect(store.columna('sin_decidir')?.items).toHaveLength(0);
-    store.filtros.set({ plataformas: [], prioridades: ['media'], q: 'ficti' });
+    store.filtros.set({ ...SIN_FILTROS, prioridades: ['media'], q: 'ficti' });
     expect(store.columna('sin_decidir')?.items).toHaveLength(1);
+    expect(store.hayFiltros()).toBe(true);
+  });
+
+  it('filtra por etiqueta y lista las etiquetas en uso', async () => {
+    api.tablero.mockReturnValue(of(tablero(tarjeta({ etiquetas: ['investigacion', 'p1'] }))));
+    await store.cargar();
+    expect(store.etiquetasEnUso()).toEqual(['investigacion', 'p1']);
+    store.filtros.set({ ...SIN_FILTROS, etiquetas: ['investigacion'] });
+    expect(store.columna('sin_decidir')?.items).toHaveLength(1);
+    store.filtros.set({ ...SIN_FILTROS, etiquetas: ['remoto'] });
+    expect(store.columna('sin_decidir')?.items).toHaveLength(0);
     expect(store.hayFiltros()).toBe(true);
   });
 

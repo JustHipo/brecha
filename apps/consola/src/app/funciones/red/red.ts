@@ -168,16 +168,22 @@ import { FILTROS, RedStore } from './red.store';
                 >
               }
               <span class="flex-1"></span>
-              <a
-                [href]="c.perfilUrl"
-                target="_blank"
-                rel="noopener noreferrer"
-                class="text-[12.5px] font-semibold text-acento underline-offset-2 hover:underline"
-                >{{ 'red.verPerfil' | transloco
-                }}<span class="solo-lector">
-                  ({{ c.nombre }}, {{ 'avisos.nuevaVentana' | transloco }})</span
-                ></a
-              >
+              @if (c.perfilUrl) {
+                <a
+                  [href]="c.perfilUrl"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="text-[12.5px] font-semibold text-acento underline-offset-2 hover:underline"
+                  >{{ 'red.verPerfil' | transloco
+                  }}<span class="solo-lector">
+                    ({{ c.nombre }}, {{ 'avisos.nuevaVentana' | transloco }})</span
+                  ></a
+                >
+              } @else {
+                <span class="text-[12.5px] text-tinta-suave">{{
+                  'red.sinPerfil' | transloco
+                }}</span>
+              }
             </div>
           </li>
         } @empty {

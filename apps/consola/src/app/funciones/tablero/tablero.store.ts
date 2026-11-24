@@ -25,8 +25,12 @@ export const CERRADOS: EstadoPostulacion[] = ['aceptada', 'rechazado', 'descarta
 export interface Filtros {
   plataformas: string[];
   prioridades: string[];
+  /** Etiquetas que la tarjeta debe tener (todas), ya normalizadas. */
+  etiquetas: string[];
   q: string;
 }
+
+export const SIN_FILTROS: Filtros = { plataformas: [], prioridades: [], etiquetas: [], q: '' };
 
 export type ResultadoMovimiento =
   { ok: true; detalle: Detalle; discrepanciaNueva: boolean } | { ok: false; error: ErrorDeApi };
@@ -43,6 +47,8 @@ const CAMPOS_RESUMEN: (keyof Resumen)[] = [
   'diasAlCierre',
   'estado',
   'prioridad',
+  'prioridadFijada',
+  'etiquetas',
   'fechaPostulacion',
   'senalesNuevas',
   'discrepanciasAbiertas',
@@ -76,7 +82,7 @@ export class TableroStore {
   readonly estado = signal<'inicial' | 'cargando' | 'listo' | 'error'>('inicial');
   readonly error = signal<ErrorDeApi | null>(null);
   readonly columnas = signal<ColumnaTablero[]>([]);
-  readonly filtros = signal<Filtros>({ plataformas: [], prioridades: [], q: '' });
+  readonly filtros = signal<Filtros>(SIN_FILTROS);
 
   readonly todas = computed(() => this.columnas().flatMap((c) => c.items));
   readonly total = computed(() => this.todas().length);
@@ -91,9 +97,20 @@ export class TableroStore {
     for (const t of this.todas()) m.set(t.plataforma, (m.get(t.plataforma) ?? 0) + 1);
     return [...m.entries()].sort((a, b) => b[1] - a[1]);
   });
+  /** Etiquetas de las tarjetas, de la más usada a la menos. */
+  readonly etiquetasEnUso = computed(() => {
+    const m = new Map<string, number>();
+    for (const t of this.todas()) for (const e of t.etiquetas) m.set(e, (m.get(e) ?? 0) + 1);
+    return [...m.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])).map(([e]) => e);
+  });
   readonly hayFiltros = computed(() => {
     const f = this.filtros();
-    return f.plataformas.length > 0 || f.prioridades.length > 0 || f.q.trim() !== '';
+    return (
+      f.plataformas.length > 0 ||
+      f.prioridades.length > 0 ||
+      f.etiquetas.length > 0 ||
+      f.q.trim() !== ''
+    );
   });
 
   /** Columnas con los filtros aplicados en el cliente (son pocas tarjetas). */
@@ -103,6 +120,7 @@ export class TableroStore {
     const pasa = (t: Resumen) =>
       (!f.plataformas.length || f.plataformas.includes(t.plataforma)) &&
       (!f.prioridades.length || f.prioridades.includes(t.prioridad)) &&
+      f.etiquetas.every((e) => t.etiquetas.includes(e)) &&
       (!q || `${t.empresa} ${t.titulo}`.toLowerCase().includes(q));
     return this.columnas().map((c) => ({ ...c, items: c.items.filter(pasa) }));
   });
