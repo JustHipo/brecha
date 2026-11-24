@@ -32,7 +32,12 @@ import { TableroStore } from '../tablero/tablero.store';
       </h2>
       <p class="m-0 text-tinta-suave">{{ 'csv.orden' | transloco }}</p>
       <div class="flex flex-wrap items-center gap-2">
-        <label hlmBtn class="cursor-pointer" [class.opacity-60]="importando()">
+        <label
+          hlmBtn
+          class="cursor-pointer"
+          data-tutorial="importar-archivo"
+          [class.opacity-60]="importando()"
+        >
           {{ (importando() ? 'csv.importando' : 'csv.elegirArchivo') | transloco }}
           <input
             type="file"

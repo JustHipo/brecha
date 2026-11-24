@@ -55,6 +55,7 @@ const PUNTOS = [
       @for (n of nav; track n.ruta) {
         <a
           [routerLink]="n.ruta"
+          [attr.data-tutorial]="n.ruta === '/importar' ? 'importar' : null"
           routerLinkActive="bg-white/[0.17] font-semibold"
           class="flex items-center gap-2.5 rounded-lg px-2.5 py-[7px] font-medium text-white no-underline hover:bg-white/10"
         >
