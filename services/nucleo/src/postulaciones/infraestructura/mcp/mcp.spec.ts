@@ -56,6 +56,8 @@ describe('servidor MCP por HTTP (F1-10c)', () => {
         'crear_postulacion',
         'editar_postulacion',
         'exportar',
+        'exportar_csv',
+        'importar_csv',
         'editar_contacto_red',
         'listar_bandeja',
         'listar_etiquetas',
@@ -208,5 +210,19 @@ describe('servidor MCP por HTTP (F1-10c)', () => {
       }),
     );
     expect(editada).toMatchObject({ prioridad: 'alta', prioridadFijada: 'alta', etiquetas: ['practica'] });
+  });
+
+  it('importar_csv informa filas y advertencias; exportar_csv devuelve el mismo formato', async () => {
+    const c = await cliente(t.token('mcp'));
+    const csv =
+      'titulo,empresa,url,estado\nPráctica,Ficticia,https://ejemplo.test/mcp,\nMala,Ficticia,https://ejemplo.test/mala,postulado\n';
+    const r = await c.callTool({ name: 'importar_csv', arguments: { csv } });
+    const texto = (r as Texto).content[0]!.text;
+    expect(texto).toMatch(/1 creadas, 0 ya estaban, 0 actualizadas, 1 con error/);
+    expect(texto).toMatch(/línea 3 · error en fecha_postulacion/);
+    const exp = await c.callTool({ name: 'exportar_csv', arguments: { tipo: 'postulaciones' } });
+    const salida = (exp as Texto).content[0]!.text;
+    expect(salida).toContain('https://ejemplo.test/mcp');
+    expect(salida.split('\n')[0]).toMatch(/^\uFEFF?titulo,empresa,url,plataforma/);
   });
 });

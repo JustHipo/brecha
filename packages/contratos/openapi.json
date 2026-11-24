@@ -2071,6 +2071,153 @@
           "red"
         ]
       }
+    },
+    "/api/v1/csv/importar": {
+      "post": {
+        "operationId": "importarCsv",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ImportarCsvDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultadoCsvDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "VALIDACION (archivo ilegible o encabezado sin las columnas obligatorias)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Importa postulaciones o contactos; idempotente; informa cada fila sin cortar",
+        "tags": [
+          "csv"
+        ]
+      }
+    },
+    "/api/v1/csv/exportar/{tipo}": {
+      "get": {
+        "operationId": "exportarCsv",
+        "parameters": [
+          {
+            "name": "tipo",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "enum": [
+                "postulaciones",
+                "contactos"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Archivo CSV (UTF-8 con BOM)",
+            "content": {
+              "text/csv": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "VALIDACION",
+            "content": {
+              "text/csv": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Todas las postulaciones o contactos, en el formato de importar",
+        "tags": [
+          "csv"
+        ]
+      }
+    },
+    "/api/v1/csv/plantillas/{tipo}": {
+      "get": {
+        "operationId": "plantillaCsv",
+        "parameters": [
+          {
+            "name": "tipo",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "enum": [
+                "postulaciones",
+                "contactos"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Archivo CSV (UTF-8 con BOM)",
+            "content": {
+              "text/csv": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "VALIDACION",
+            "content": {
+              "text/csv": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Encabezado y dos filas de ejemplo inventadas",
+        "tags": [
+          "csv"
+        ]
+      }
     }
   },
   "info": {
@@ -4000,7 +4147,8 @@
             "type": "string"
           },
           "perfilUrl": {
-            "type": "string"
+            "type": "string",
+            "nullable": true
           },
           "titular": {
             "type": "string",
@@ -4137,7 +4285,7 @@
           "perfilUrl": {
             "type": "string",
             "maxLength": 500,
-            "description": "linkedin.com/in/…"
+            "description": "linkedin.com/in/…; sin perfil, el contacto se reconoce por nombre y empresa"
           },
           "titular": {
             "type": "string",
@@ -4153,8 +4301,7 @@
           }
         },
         "required": [
-          "nombre",
-          "perfilUrl"
+          "nombre"
         ]
       },
       "ContactoRedRegistradoDto": {
@@ -4167,7 +4314,8 @@
             "type": "string"
           },
           "perfilUrl": {
-            "type": "string"
+            "type": "string",
+            "nullable": true
           },
           "titular": {
             "type": "string",
@@ -4237,6 +4385,10 @@
           "nuevo": {
             "type": "boolean"
           },
+          "cambiado": {
+            "type": "boolean",
+            "description": "false si ya estaba igual"
+          },
           "agregada": {
             "type": "boolean"
           }
@@ -4269,7 +4421,8 @@
             "type": "string"
           },
           "perfilUrl": {
-            "type": "string"
+            "type": "string",
+            "nullable": true
           },
           "titular": {
             "type": "string",
@@ -4362,6 +4515,11 @@
             "type": "string",
             "maxLength": 200
           },
+          "perfilUrl": {
+            "type": "string",
+            "maxLength": 500,
+            "description": "Completa el perfil de LinkedIn de un contacto que no lo tenía"
+          },
           "titular": {
             "type": "string",
             "maxLength": 300,
@@ -4418,6 +4576,138 @@
         "required": [
           "tipo",
           "resumen"
+        ]
+      },
+      "ImportarCsvDto": {
+        "type": "object",
+        "properties": {
+          "csv": {
+            "type": "string",
+            "description": "El contenido del archivo CSV (UTF-8, coma, con encabezado)",
+            "maxLength": 5242880
+          },
+          "tipo": {
+            "type": "string",
+            "enum": [
+              "postulaciones",
+              "contactos"
+            ],
+            "description": "Si no viene, se reconoce por el encabezado"
+          }
+        },
+        "required": [
+          "csv"
+        ]
+      },
+      "TipoCsv": {
+        "type": "string",
+        "enum": [
+          "postulaciones",
+          "contactos"
+        ]
+      },
+      "ResultadoDeFila": {
+        "type": "string",
+        "enum": [
+          "creada",
+          "ya_estaba",
+          "actualizada",
+          "error"
+        ]
+      },
+      "FilaImportadaDto": {
+        "type": "object",
+        "properties": {
+          "fila": {
+            "type": "number",
+            "description": "Línea del archivo (el encabezado es la 1)"
+          },
+          "resultado": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ResultadoDeFila"
+              }
+            ]
+          },
+          "clave": {
+            "type": "string",
+            "description": "URL del aviso o nombre del contacto"
+          },
+          "id": {
+            "type": "string"
+          },
+          "advertencias": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "codigo": {
+            "type": "string"
+          },
+          "campo": {
+            "type": "string",
+            "description": "Columna del CSV"
+          },
+          "mensaje": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "fila",
+          "resultado",
+          "clave",
+          "advertencias"
+        ]
+      },
+      "ResultadoCsvDto": {
+        "type": "object",
+        "properties": {
+          "tipo": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/TipoCsv"
+              }
+            ]
+          },
+          "creadas": {
+            "type": "number"
+          },
+          "yaEstaban": {
+            "type": "number"
+          },
+          "actualizadas": {
+            "type": "number"
+          },
+          "errores": {
+            "type": "number"
+          },
+          "conAdvertencias": {
+            "type": "number"
+          },
+          "advertencias": {
+            "description": "Del archivo entero",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "filas": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FilaImportadaDto"
+            }
+          }
+        },
+        "required": [
+          "tipo",
+          "creadas",
+          "yaEstaban",
+          "actualizadas",
+          "errores",
+          "conAdvertencias",
+          "advertencias",
+          "filas"
         ]
       }
     }

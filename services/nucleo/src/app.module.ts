@@ -30,6 +30,11 @@ import { CasosDeRed } from './red/aplicacion/casos-de-red';
 import { CasosDeRedInyectables } from './red/infraestructura/casos-de-red.provider';
 import { PrismaRed } from './red/infraestructura/prisma-red';
 import { RedController } from './red/infraestructura/red.controller';
+import { CasosCsv } from './csv/aplicacion/casos-csv';
+import { CasosCsvInyectables } from './csv/infraestructura/casos-csv.provider';
+import { CsvController } from './csv/infraestructura/csv.controller';
+import { LectorCsvParse } from './csv/infraestructura/lector-csv';
+import { ImportarFichas } from './postulaciones/aplicacion/importar-fichas';
 
 @Injectable()
 class CicloDeVida implements OnApplicationBootstrap, OnApplicationShutdown {
@@ -59,6 +64,7 @@ export class AppModule {
         EventosController,
         McpController,
         RedController,
+        CsvController,
       ],
       providers: [
         { provide: CONFIG, useValue: config },
@@ -97,6 +103,38 @@ export class AppModule {
               }),
             ),
           inject: [PRISMA, RELOJ, IDS, FLUJO],
+        },
+        {
+          provide: CasosCsvInyectables,
+          useFactory: (
+            prisma: PrismaClient,
+            reloj: Reloj,
+            ids: GeneradorId,
+            flujo: FlujoDeEventos,
+            red: CasosDeRedInyectables,
+          ) => {
+            const repo = new PrismaPostulacionRepositorio(prisma, ids, flujo);
+            const consultas = new PrismaConsultas(prisma, reloj);
+            return new CasosCsvInyectables(
+              new CasosCsv({
+                lector: new LectorCsvParse(),
+                reloj,
+                fichas: new ImportarFichas({
+                  repo,
+                  bandeja: new PrismaBandeja(prisma, ids, flujo),
+                  consultas,
+                  reloj,
+                  ids,
+                  ajustes: new PrismaAjustes(prisma),
+                }),
+                registrarContacto: red.red.registrarContacto,
+                red: new PrismaRed(prisma, flujo),
+                consultas,
+                idPorUrl: (url) => repo.idPorUrl(url.trim()),
+              }),
+            );
+          },
+          inject: [PRISMA, RELOJ, IDS, FLUJO, CasosDeRedInyectables],
         },
         { provide: APP_GUARD, useClass: AccesoGuard },
         CicloDeVida,

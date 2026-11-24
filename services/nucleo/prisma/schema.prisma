@@ -201,7 +201,8 @@ model SenalPendiente {
 model ContactoRed {
   id             String   @id @db.Uuid
   nombre         String
-  perfilUrl      String   @unique @map("perfil_url")
+  /// null = sin perfil de LinkedIn (se reconoce por nombre y empresa).
+  perfilUrl      String?  @unique @map("perfil_url")
   titular        String?
   empresa        String?
   conexion       String

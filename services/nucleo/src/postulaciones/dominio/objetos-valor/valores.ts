@@ -208,3 +208,21 @@ export function crearContacto(
     ...(linkedin ? { linkedin } : {}),
   };
 }
+
+/** Plataforma deducida del dominio de la URL del aviso (cuando la fila no la trae). */
+export function plataformaDesdeUrl(url: string): Plataforma {
+  const host = (() => {
+    try {
+      return new URL(url).hostname;
+    } catch {
+      return '';
+    }
+  })();
+  if (host.includes('linkedin.')) return 'linkedin';
+  if (host.includes('trabajando.')) return 'trabajando';
+  if (host.includes('getonbrd.') || host.includes('getonboard.')) return 'getonboard';
+  if (host.includes('chiletrabajos.')) return 'chiletrabajos';
+  if (host.includes('computrabajo.')) return 'computrabajo';
+  if (host.includes('indeed.')) return 'indeed';
+  return host ? 'sitio_empresa' : 'otra';
+}

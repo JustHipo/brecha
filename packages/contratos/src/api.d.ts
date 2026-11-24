@@ -474,6 +474,57 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/csv/importar": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Importa postulaciones o contactos; idempotente; informa cada fila sin cortar */
+        post: operations["importarCsv"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/csv/exportar/{tipo}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Todas las postulaciones o contactos, en el formato de importar */
+        get: operations["exportarCsv"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/csv/plantillas/{tipo}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Encabezado y dos filas de ejemplo inventadas */
+        get: operations["plantillaCsv"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -965,7 +1016,7 @@ export interface components {
         ContactoRedDto: {
             id: string;
             nombre: string;
-            perfilUrl: string;
+            perfilUrl: string | null;
             titular: string | null;
             empresa: string | null;
             conexion: components["schemas"]["EstadoDeConexion"];
@@ -994,8 +1045,8 @@ export interface components {
         };
         ContactoRedEntradaDto: {
             nombre: string;
-            /** @description linkedin.com/in/… */
-            perfilUrl: string;
+            /** @description linkedin.com/in/…; sin perfil, el contacto se reconoce por nombre y empresa */
+            perfilUrl?: string;
             titular?: string;
             empresa?: string;
             /** @description Liga el contacto a esta postulación */
@@ -1004,7 +1055,7 @@ export interface components {
         ContactoRedRegistradoDto: {
             id: string;
             nombre: string;
-            perfilUrl: string;
+            perfilUrl: string | null;
             titular: string | null;
             empresa: string | null;
             conexion: components["schemas"]["EstadoDeConexion"];
@@ -1021,12 +1072,14 @@ export interface components {
             /** @description De la más nueva a la más antigua */
             interacciones: components["schemas"]["InteraccionDto"][];
             nuevo?: boolean;
+            /** @description false si ya estaba igual */
+            cambiado?: boolean;
             agregada?: boolean;
         };
         ContactoRedDetalleDto: {
             id: string;
             nombre: string;
-            perfilUrl: string;
+            perfilUrl: string | null;
             titular: string | null;
             empresa: string | null;
             conexion: components["schemas"]["EstadoDeConexion"];
@@ -1045,6 +1098,8 @@ export interface components {
         };
         EditarContactoRedDto: {
             nombre?: string;
+            /** @description Completa el perfil de LinkedIn de un contacto que no lo tenía */
+            perfilUrl?: string;
             titular?: string | null;
             empresa?: string | null;
             notas?: string | null;
@@ -1061,6 +1116,43 @@ export interface components {
             /** Format: date-time */
             ocurridaEn?: string;
             referenciaExterna?: string;
+        };
+        ImportarCsvDto: {
+            /** @description El contenido del archivo CSV (UTF-8, coma, con encabezado) */
+            csv: string;
+            /**
+             * @description Si no viene, se reconoce por el encabezado
+             * @enum {string}
+             */
+            tipo?: "postulaciones" | "contactos";
+        };
+        /** @enum {string} */
+        TipoCsv: "postulaciones" | "contactos";
+        /** @enum {string} */
+        ResultadoDeFila: "creada" | "ya_estaba" | "actualizada" | "error";
+        FilaImportadaDto: {
+            /** @description Línea del archivo (el encabezado es la 1) */
+            fila: number;
+            resultado: components["schemas"]["ResultadoDeFila"];
+            /** @description URL del aviso o nombre del contacto */
+            clave: string;
+            id?: string;
+            advertencias: string[];
+            codigo?: string;
+            /** @description Columna del CSV */
+            campo?: string;
+            mensaje?: string;
+        };
+        ResultadoCsvDto: {
+            tipo: components["schemas"]["TipoCsv"];
+            creadas: number;
+            yaEstaban: number;
+            actualizadas: number;
+            errores: number;
+            conAdvertencias: number;
+            /** @description Del archivo entero */
+            advertencias: string[];
+            filas: components["schemas"]["FilaImportadaDto"][];
         };
     };
     responses: never;
@@ -2467,6 +2559,100 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ErrorDto"];
+                };
+            };
+        };
+    };
+    importarCsv: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ImportarCsvDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResultadoCsvDto"];
+                };
+            };
+            /** @description VALIDACION (archivo ilegible o encabezado sin las columnas obligatorias) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorDto"];
+                };
+            };
+        };
+    };
+    exportarCsv: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                tipo: "postulaciones" | "contactos";
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Archivo CSV (UTF-8 con BOM) */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/csv": string;
+                };
+            };
+            /** @description VALIDACION */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/csv": components["schemas"]["ErrorDto"];
+                };
+            };
+        };
+    };
+    plantillaCsv: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                tipo: "postulaciones" | "contactos";
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Archivo CSV (UTF-8 con BOM) */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/csv": string;
+                };
+            };
+            /** @description VALIDACION */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/csv": components["schemas"]["ErrorDto"];
                 };
             };
         };

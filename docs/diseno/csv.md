@@ -51,18 +51,19 @@ Encabezado: se aceptan las columnas en cualquier orden y sin distinguir mayúscu
 
 ```ts
 interface ResultadoCsv {
-  tipo: 'postulaciones' | 'contactos';
-  creadas: number;          // filas nuevas
-  yaEstaban: number;        // misma URL (postulaciones) o mismo perfil sin cambios (contactos)
-  actualizadas: number;     // solo contactos: perfil existente al que se le ligó la postulación o se le completaron datos
-  advertencias: number;
+  tipo: 'postulaciones' | 'contactos';   // reconocido por el encabezado si no se indica
+  creadas: number;
+  yaEstaban: number;      // misma URL (postulaciones), o mismo contacto sin cambios
+  actualizadas: number;   // solo contactos: se le ligó otra postulación o se completaron datos
   errores: number;
-  filas: { fila: number; resultado: 'creada' | 'ya_estaba' | 'actualizada' | 'advertencia' | 'error';
-           clave: string; codigo?: string; campo?: string; mensaje?: string }[];
+  conAdvertencias: number;
+  advertencias: string[]; // del archivo entero (columnas que no se usan)
+  filas: { fila: number; resultado: 'creada' | 'ya_estaba' | 'actualizada' | 'error'; clave: string; id?: string;
+           advertencias: string[]; codigo?: string; campo?: string; mensaje?: string }[];
 }
 ```
 
-`fila` es el número de línea del archivo (el encabezado es la 1), para que la persona la encuentre en su planilla. Una fila mala nunca corta las demás. Cada fila se guarda en su propia transacción (como el importador de F1).
+`fila` es la línea del archivo donde empieza la fila (el encabezado es la 1), para que la persona la encuentre en su planilla; `campo` es la columna del CSV. Una advertencia no impide importar la fila. Una fila mala nunca corta las demás; cada fila se guarda en su propia transacción.
 
 ## 4. Cambios en el núcleo
 
@@ -79,10 +80,12 @@ Una migración `20261126000000_csv_etiquetas` (con `migrate diff --script`, PRIS
 
 ### 4.3 Aplicación (`postulaciones/aplicacion/csv/`)
 
-- `csv.ts`: leer y escribir CSV (P6: librería o propio), sin dependencias de Nest.
-- `formato-postulaciones.ts` y `formato-contactos.ts`: columnas, fila → `FichaImportable` y vista → fila. Las columnas salen de una sola constante, que usan la importación, la exportación y la plantilla.
+El módulo vive en `src/csv/` porque cruza postulaciones y red.
+- `csv/aplicacion/formato.ts`: columnas (una sola constante para importar, exportar y la plantilla), puerto `LectorCsv`, fila → `FichaImportable`, notas de contactos con etiquetas y los ejemplos de la plantilla.
+- `csv/infraestructura/lector-csv.ts`: adaptador con `csv-parse` 7.0.3 y `csv-stringify` 6.9.0 (P6). Corrige el número de línea porque csv-parse cuenta dos líneas por cada `\r\n` dentro de una celda.
 - `ImportarPostulacionesCsv`: valida cada fila y llama a lo mismo que `ImportarFichas` (que se amplía con etiquetas, prioridad, stack, requisitos, sueldo publicado, correo de postulación y varias notas).
-- `ImportarContactosCsv`: por fila, busca la postulación por URL (`repo.idPorUrl`, misma normalización que hoy) y llama a `RegistrarContacto` del módulo de red. Las notas se completan solo si el contacto no tenía (§6).
+- `ImportarContactosCsv`: por fila, busca la postulación por URL (`repo.idPorUrl`) y llama a `RegistrarContacto` del módulo de red. Las notas se completan solo si el contacto no tenía (§6).
+- **Contactos sin LinkedIn** (decisión de Juan del 24-nov, checkpoint de C1): `ContactoDeRed.perfilUrl` pasa a ser opcional (migración `20261126010000_red_sin_perfil`). Sin perfil, el contacto se reconoce por nombre y empresa (sin distinguir mayúsculas); la fila sale con advertencia. Una URL que no es de LinkedIn queda en las notas como «Página: …». El perfil se puede completar después (`PATCH /red/:id` o `editar_contacto_red` con `perfilUrl`), pero no cambiar por otro.
 - `ExportarCsv`: arma los dos archivos desde `ConsultasDePostulaciones.exportar()` y `RedRepositorio.todos()`.
 - `ConsultasDePostulaciones.listar` y `tablero` aceptan `etiqueta` (una o varias, todas deben estar).
 
@@ -90,13 +93,13 @@ Una migración `20261126000000_csv_etiquetas` (con `migrate diff --script`, PRIS
 
 | Entrada | Qué |
 |---|---|
-| `POST /api/v1/csv/postulaciones` · `POST /api/v1/csv/contactos` | `{ csv: string }` (hasta 5 MB) → `ResultadoCsv` |
-| `GET /api/v1/csv/postulaciones` · `GET /api/v1/csv/contactos` | Descarga `text/csv; charset=utf-8` con BOM y `Content-Disposition` |
+| `POST /api/v1/csv/importar` | `{ csv: string, tipo? }` (hasta 5 MB; esa ruta acepta cuerpos de 6 MB) → `ResultadoCsv` |
+| `GET /api/v1/csv/exportar/{tipo}` | Descarga `text/csv; charset=utf-8` con BOM y `Content-Disposition` |
 | `GET /api/v1/csv/plantillas/{tipo}` | Encabezado más 2 filas de ejemplo inventadas |
 | `GET /postulaciones?etiqueta=` · `GET /postulaciones/tablero?etiqueta=` | Filtro |
 | `PATCH /postulaciones/:id` | Suma `etiquetas` y `prioridad` |
 | `GET /api/v1/postulaciones/etiquetas` | Etiquetas en uso con su conteo (para el filtro) |
-| MCP `exportar_csv {tipo}` · `importar_csv {tipo, csv}` (P5) | Mismos casos de uso |
+| MCP `exportar_csv {tipo}` · `importar_csv {csv, tipo?}` (P5) · `listar_etiquetas` | Mismos casos de uso |
 | MCP `listar_postulaciones` (`etiqueta`), `editar_postulacion` (`etiquetas`, `prioridad`), `crear_postulacion` (`etiquetas`) | |
 | `pnpm --filter nucleo importar archivo.csv [--contactos]` | Si la extensión es `.csv` usa el importador nuevo; `.json` sigue con el del artifact |
 

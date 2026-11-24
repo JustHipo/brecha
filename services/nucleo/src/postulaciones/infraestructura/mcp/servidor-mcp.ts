@@ -11,6 +11,8 @@ import type { CasosDeRed } from '../../../red/aplicacion/casos-de-red';
 import { FILTROS_DE_RED } from '../../../red/aplicacion/casos-de-red';
 import { TIPOS_DE_INTERACCION } from '../../../red/dominio/contacto-de-red';
 import type { CasosDeUso } from '../casos';
+import type { CasosCsv } from '../../../csv/aplicacion/casos-csv';
+import { TIPOS_CSV } from '../../../csv/aplicacion/formato';
 
 const LIMITE_EXPORTAR = 50_000;
 const estado = z.enum(ESTADOS);
@@ -60,7 +62,7 @@ async function correr(f: () => Promise<CallToolResult>): Promise<CallToolResult>
 }
 
 /** Adaptador de entrada 2: MCP (PLAN §12.2). Las escrituras quedan con origen `ia`. */
-export function crearServidorMcp(casos: CasosDeUso, red?: CasosDeRed): McpServer {
+export function crearServidorMcp(casos: CasosDeUso, red?: CasosDeRed, csv?: CasosCsv): McpServer {
   const s = new McpServer(
     { name: 'brecha', version: '1.0.0' },
     {
@@ -463,6 +465,55 @@ export function crearServidorMcp(casos: CasosDeUso, red?: CasosDeRed): McpServer
   );
 
   if (red) registrarRed(s, red);
+  if (csv) {
+    s.registerTool(
+      'importar_csv',
+      {
+        title: 'Importar un CSV de postulaciones o contactos',
+        description:
+          'Importa el contenido de un CSV (UTF-8, coma, con encabezado) con el formato de Brecha; el tipo se reconoce por el encabezado. ' +
+          'Idempotente: una postulación con la misma URL o un contacto con el mismo perfil «ya estaba». Cada fila mala se informa con su línea y columna sin cortar las demás. ' +
+          'Postulaciones: titulo,empresa,url,plataforma,modalidad,ubicacion,cierre,estado,prioridad,fecha_postulacion,canal_tipo,canal_valor,correo_postulacion,sueldo_publicado,stack,requisitos,etiquetas,notas,motivo. ' +
+          'Contactos: nombre,perfil_url,titular,empresa,correo,url_postulacion,motivo,mensaje_sugerido. Importa primero las postulaciones y después los contactos.',
+        inputSchema: {
+          csv: z.string().describe('El contenido completo del archivo'),
+          tipo: z.enum(TIPOS_CSV).optional(),
+        },
+      },
+      (a) =>
+        correr(async () => {
+          const r = await csv.importar.ejecutar(a);
+          const malas = r.filas.filter((f) => f.resultado === 'error' || f.advertencias.length);
+          const detalle = malas
+            .map((f) =>
+              f.resultado === 'error'
+                ? `línea ${f.fila} · error en ${f.campo ?? 'la fila'}: ${f.mensaje}`
+                : `línea ${f.fila} · ${f.advertencias.join('; ')}`,
+            )
+            .join('\n');
+          return ok(
+            `${r.tipo}: ${r.creadas} creadas, ${r.yaEstaban} ya estaban, ${r.actualizadas} actualizadas, ${r.errores} con error, ${r.conAdvertencias} con advertencia.` +
+              (r.advertencias.length ? `\n${r.advertencias.join('\n')}` : '') +
+              (detalle ? `\n${detalle}` : ''),
+            { ...r, filas: malas },
+          );
+        }),
+    );
+
+    s.registerTool(
+      'exportar_csv',
+      {
+        title: 'Exportar postulaciones o contactos a CSV',
+        description:
+          'Todas las postulaciones o todos los contactos en el mismo formato que importar_csv, para que otra persona los importe en su Brecha.',
+        inputSchema: { tipo: z.enum(TIPOS_CSV) },
+        annotations: lectura,
+      },
+      ({ tipo }) =>
+        correr(async () => ({ content: [{ type: 'text', text: await csv.exportar.ejecutar(tipo) }] })),
+    );
+  }
+
   return s;
 }
 
@@ -519,10 +570,10 @@ function registrarRed(s: McpServer, red: CasosDeRed): void {
     {
       title: 'Registrar o actualizar un contacto de LinkedIn',
       description:
-        'Si el perfil (linkedin.com/in/…) ya está, actualiza nombre, titular y empresa. postulacionId lo liga a esa postulación.',
+        'Si el perfil (linkedin.com/in/…) ya está, actualiza nombre, titular y empresa. Sin perfil, el contacto se reconoce por nombre y empresa. postulacionId lo liga a esa postulación.',
       inputSchema: {
         nombre: z.string(),
-        perfilUrl: z.string(),
+        perfilUrl: z.string().optional().describe('linkedin.com/in/…; omítelo si la persona no tiene'),
         titular: z.string().optional(),
         empresa: z.string().optional(),
         postulacionId: z.string().optional(),
@@ -574,6 +625,7 @@ function registrarRed(s: McpServer, red: CasosDeRed): void {
       inputSchema: {
         id: z.string(),
         nombre: z.string().optional(),
+        perfilUrl: z.string().optional().describe('Completa el perfil de LinkedIn si no lo tenía'),
         titular: z.string().nullable().optional(),
         empresa: z.string().nullable().optional(),
         notas: z.string().nullable().optional(),
