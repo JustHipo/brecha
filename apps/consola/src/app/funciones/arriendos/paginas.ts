@@ -514,8 +514,9 @@ export class ArriendosBusquedaPagina {
   private async cargar(): Promise<void> {
     const b = await firstValueFrom(this.api.busqueda());
     this.b.set(b);
+    // Transitorio hasta la página Perfil (perfil.md §5): las reglas sin criterio no se editan aquí.
     this.reglas.set(
-      b.reglas.map((r) => ({
+      b.reglas.flatMap((r) => (r.criterio ? [{ ...r, criterio: r.criterio }] : [])).map((r) => ({
         criterio: r.criterio,
         valor: Array.isArray(r.valor)
           ? r.valor.join(', ')

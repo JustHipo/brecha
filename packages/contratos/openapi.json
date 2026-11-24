@@ -8694,6 +8694,10 @@
           "id": {
             "type": "string"
           },
+          "texto": {
+            "type": "string",
+            "description": "La regla en tus palabras"
+          },
           "criterio": {
             "allOf": [
               {
@@ -8726,15 +8730,22 @@
           "prioridad": {
             "type": "number"
           },
+          "etiquetas": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
           "descripcion": {
             "type": "string",
-            "description": "«Dura · Arriendo más gastos comunes hasta $650.000»"
+            "description": "«Dura · Arriendo más gastos comunes hasta $650.000 #plata»"
           }
         },
         "required": [
           "id",
-          "criterio",
+          "texto",
           "dura",
+          "etiquetas",
           "descripcion"
         ]
       },
@@ -8819,6 +8830,13 @@
               "$ref": "#/components/schemas/CriterioDeBusqueda"
             }
           },
+          "criterios": {
+            "type": "array",
+            "description": "Todos los criterios",
+            "items": {
+              "$ref": "#/components/schemas/CriterioDeBusqueda"
+            }
+          },
           "uf": {
             "nullable": true,
             "type": "object",
@@ -8843,6 +8861,7 @@
           "persona",
           "historial",
           "criteriosSugeridos",
+          "criterios",
           "uf",
           "geocodificar",
           "actualizadaEn"
@@ -8851,7 +8870,16 @@
       "ReglaEntradaDto": {
         "type": "object",
         "properties": {
+          "id": {
+            "type": "string",
+            "description": "Solo al reemplazar la lista: conserva la regla con ese id"
+          },
+          "texto": {
+            "type": "string",
+            "description": "La regla en tus palabras; con criterio y sin texto, se describe sola"
+          },
           "criterio": {
+            "description": "Lo que el código revisa en el calce; sin él, la regla la aplica tu IA",
             "allOf": [
               {
                 "$ref": "#/components/schemas/CriterioDeBusqueda"
@@ -8885,10 +8913,73 @@
           "prioridad": {
             "type": "number",
             "description": "Solo blandas: 1 es la más importante"
+          },
+          "etiquetas": {
+            "description": "Etiquetas libres (minúsculas y sin tildes)",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "CambioDeReglaDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "La regla que cambia; solo cambia lo que mandas"
+          },
+          "texto": {
+            "type": "string",
+            "description": "La regla en tus palabras; con criterio y sin texto, se describe sola"
+          },
+          "criterio": {
+            "description": "Lo que el código revisa en el calce; sin él, la regla la aplica tu IA",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CriterioDeBusqueda"
+              }
+            ]
+          },
+          "valor": {
+            "description": "Monto máximo, mínimo, lista de opciones, sí/no o fecha; nada en renta_exigida y aval",
+            "oneOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "string"
+              },
+              {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            ]
+          },
+          "dura": {
+            "type": "boolean",
+            "description": "true = dura (por defecto)"
+          },
+          "prioridad": {
+            "type": "number",
+            "description": "Solo blandas: 1 es la más importante"
+          },
+          "etiquetas": {
+            "description": "Etiquetas libres (minúsculas y sin tildes)",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
           }
         },
         "required": [
-          "criterio"
+          "id"
         ]
       },
       "PersonaDto": {
@@ -8916,6 +9007,34 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/ReglaEntradaDto"
+            }
+          },
+          "agregar": {
+            "description": "Reglas nuevas",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ReglaEntradaDto"
+            }
+          },
+          "cambiar": {
+            "description": "Cambios a reglas existentes, por id",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CambioDeReglaDto"
+            }
+          },
+          "quitar": {
+            "description": "Id de las reglas que se quitan",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "ordenar": {
+            "description": "Id de las blandas en el orden nuevo (P1 primero)",
+            "type": "array",
+            "items": {
+              "type": "string"
             }
           },
           "persona": {

@@ -2259,11 +2259,14 @@ export interface components {
         };
         ReglaDto: {
             id: string;
-            criterio: components["schemas"]["CriterioDeBusqueda"];
+            /** @description La regla en tus palabras */
+            texto: string;
+            criterio?: components["schemas"]["CriterioDeBusqueda"];
             valor?: number | boolean | string | string[];
             dura: boolean;
             prioridad?: number;
-            /** @description «Dura · Arriendo más gastos comunes hasta $650.000» */
+            etiquetas: string[];
+            /** @description «Dura · Arriendo más gastos comunes hasta $650.000 #plata» */
             descripcion: string;
         };
         PersonaSalidaDto: {
@@ -2288,6 +2291,8 @@ export interface components {
             /** @description Del más nuevo al más antiguo (30) */
             historial: components["schemas"]["CambioDeBusquedaDto"][];
             criteriosSugeridos: components["schemas"]["CriterioDeBusqueda"][];
+            /** @description Todos los criterios */
+            criterios: components["schemas"]["CriterioDeBusqueda"][];
             uf: components["schemas"]["UfDto"] | null;
             /** @description Ubicar direcciones con Nominatim (OpenStreetMap) */
             geocodificar: boolean;
@@ -2295,13 +2300,36 @@ export interface components {
             actualizadaEn: string | null;
         };
         ReglaEntradaDto: {
-            criterio: components["schemas"]["CriterioDeBusqueda"];
+            /** @description Solo al reemplazar la lista: conserva la regla con ese id */
+            id?: string;
+            /** @description La regla en tus palabras; con criterio y sin texto, se describe sola */
+            texto?: string;
+            /** @description Lo que el código revisa en el calce; sin él, la regla la aplica tu IA */
+            criterio?: components["schemas"]["CriterioDeBusqueda"];
             /** @description Monto máximo, mínimo, lista de opciones, sí/no o fecha; nada en renta_exigida y aval */
             valor?: number | boolean | string | string[];
             /** @description true = dura (por defecto) */
             dura?: boolean;
             /** @description Solo blandas: 1 es la más importante */
             prioridad?: number;
+            /** @description Etiquetas libres (minúsculas y sin tildes) */
+            etiquetas?: string[];
+        };
+        CambioDeReglaDto: {
+            /** @description La regla que cambia; solo cambia lo que mandas */
+            id: string;
+            /** @description La regla en tus palabras; con criterio y sin texto, se describe sola */
+            texto?: string;
+            /** @description Lo que el código revisa en el calce; sin él, la regla la aplica tu IA */
+            criterio?: components["schemas"]["CriterioDeBusqueda"];
+            /** @description Monto máximo, mínimo, lista de opciones, sí/no o fecha; nada en renta_exigida y aval */
+            valor?: number | boolean | string | string[];
+            /** @description true = dura (por defecto) */
+            dura?: boolean;
+            /** @description Solo blandas: 1 es la más importante */
+            prioridad?: number;
+            /** @description Etiquetas libres (minúsculas y sin tildes) */
+            etiquetas?: string[];
         };
         PersonaDto: {
             rentaLiquida?: number | null;
@@ -2311,6 +2339,14 @@ export interface components {
         CambiarBusquedaDto: {
             /** @description Reemplaza todas las reglas */
             reglas?: components["schemas"]["ReglaEntradaDto"][];
+            /** @description Reglas nuevas */
+            agregar?: components["schemas"]["ReglaEntradaDto"][];
+            /** @description Cambios a reglas existentes, por id */
+            cambiar?: components["schemas"]["CambioDeReglaDto"][];
+            /** @description Id de las reglas que se quitan */
+            quitar?: string[];
+            /** @description Id de las blandas en el orden nuevo (P1 primero) */
+            ordenar?: string[];
             persona?: components["schemas"]["PersonaDto"];
             /** @description Por qué cambia (queda en el historial) */
             motivo: string;

@@ -42,11 +42,12 @@ describe('perfil de búsqueda', () => {
       { criterio: 'presupuesto_total', valor: 650000 },
       { criterio: 'mascota' },
     ]);
+    // Duras primero, en su orden; después las blandas por prioridad (perfil.md §3.1).
     expect(b.reglas.map(describir)).toEqual([
-      'P2 · Tipo: departamento',
-      'P1 · Tipo: casa',
       'Dura · Arriendo más gastos comunes hasta $650.000',
       'Dura · Acepta mascota: sí',
+      'P1 · Tipo: casa',
+      'P2 · Tipo: departamento',
     ]);
     const mal = Busqueda.reconstituir(busquedaVacia());
     const deps = depsDePrueba();

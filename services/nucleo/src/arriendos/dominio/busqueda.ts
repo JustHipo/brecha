@@ -1,9 +1,19 @@
+import {
+  anotarCambio,
+  aplicarCambios,
+  describirRegla,
+  hayCambiosDeReglas,
+  reglaGuardada,
+  type CambioDePerfil,
+  type Catalogo,
+  type EntradaCambios,
+  type Regla as ReglaDelPerfil,
+} from '../../compartido/dominio/perfil';
 import type { Deps } from '../../compartido/dominio/puertos';
 import type { DatosDeLaPropiedad } from './propiedad';
 import {
   comunaNormalizada,
   DatoInvalido,
-  entero,
   fecha,
   numero,
   numeroOpcional,
@@ -53,15 +63,8 @@ const VALOR: Record<Criterio, 'monto' | 'lista' | 'minimo' | 'siNo' | 'persona' 
   disponible_desde: 'fecha',
 };
 
-export interface Regla {
-  readonly id: string;
-  readonly criterio: Criterio;
-  /** Monto máximo, mínimo, lista, sí o no, o fecha máxima; nada para las de la persona. */
-  readonly valor?: number | string[] | boolean | string;
-  readonly dura: boolean;
-  /** Solo las blandas: 1 es la más importante. */
-  readonly prioridad?: number;
-}
+/** Una regla de la búsqueda de arriendo: la regla común del perfil (perfil.md §3.2) con un criterio de Arriendos. */
+export type Regla = ReglaDelPerfil<Criterio>;
 
 export interface Persona {
   readonly rentaLiquida?: number;
@@ -69,13 +72,7 @@ export interface Persona {
   readonly tieneMascota?: boolean;
 }
 
-export interface CambioDeBusqueda {
-  readonly ocurridoEn: Date;
-  readonly origen: Origen;
-  readonly motivo: string;
-  /** Las reglas como quedaron, en una línea cada una. */
-  readonly resumen: string[];
-}
+export type CambioDeBusqueda = CambioDePerfil;
 
 export interface DatosBusqueda {
   reglas: Regla[];
@@ -104,8 +101,20 @@ export const CRITERIOS_SUGERIDOS: readonly Criterio[] = [
 export function busquedaVacia(): DatosBusqueda {
   return {
     reglas: [
-      { id: 'inicial-renta', criterio: 'renta_exigida', dura: true },
-      { id: 'inicial-aval', criterio: 'aval', dura: true },
+      {
+        id: 'inicial-renta',
+        texto: describirValor('renta_exigida', undefined),
+        criterio: 'renta_exigida',
+        dura: true,
+        etiquetas: [],
+      },
+      {
+        id: 'inicial-aval',
+        texto: describirValor('aval', undefined),
+        criterio: 'aval',
+        dura: true,
+        etiquetas: [],
+      },
     ],
     persona: {},
     historial: [],
@@ -113,43 +122,51 @@ export function busquedaVacia(): DatosBusqueda {
   };
 }
 
-export type EntradaRegla = { criterio: unknown; valor?: unknown; dura?: unknown; prioridad?: unknown };
-
-function reglaValida(e: EntradaRegla, id: string): Regla {
-  const criterio = uno('criterio', CRITERIOS, e.criterio);
-  const dura = siNoOpcional('dura', e.dura) ?? true;
-  const prioridad = dura ? undefined : vacio(e.prioridad) ? 1 : entero('prioridad', e.prioridad, 1, 20);
-  const base = { id, criterio, dura, ...(prioridad ? { prioridad } : {}) };
+function valorValido(criterio: Criterio, v: unknown): unknown {
   switch (VALOR[criterio]) {
     case 'monto':
-      return { ...base, valor: numero(`valor (${criterio})`, e.valor, 0, 1e10) };
+      return numero(`valor (${criterio})`, v, 0, 1e10);
     case 'minimo':
-      return { ...base, valor: numero(`valor (${criterio})`, e.valor, 0, 100_000) };
+      return numero(`valor (${criterio})`, v, 0, 100_000);
     case 'lista': {
-      const lista = Array.isArray(e.valor) ? e.valor : vacio(e.valor) ? [] : [e.valor];
-      if (!lista.length) throw new DatoInvalido(`valor (${criterio})`, 'Pon al menos una opción');
+      const lista = Array.isArray(v) ? v : vacio(v) ? [] : String(v).split(',');
+      const limpia = lista.map((x) => (typeof x === 'string' ? x.trim() : x)).filter((x) => !vacio(x));
+      if (!limpia.length) throw new DatoInvalido(`valor (${criterio})`, 'Pon al menos una opción');
       const valores =
         criterio === 'tipo'
-          ? lista.map((v) => uno('valor (tipo)', TIPOS_DE_PROPIEDAD, v))
-          : lista.map((v) => texto(`valor (${criterio})`, v, 100));
-      return { ...base, valor: [...new Set(valores)] };
+          ? limpia.map((x) => uno('valor (tipo)', TIPOS_DE_PROPIEDAD, x))
+          : limpia.map((x) => texto(`valor (${criterio})`, x, 100));
+      return [...new Set(valores)];
     }
-    case 'siNo': {
-      const v = siNoOpcional(`valor (${criterio})`, e.valor);
-      return { ...base, valor: v ?? true };
-    }
+    case 'siNo':
+      return siNoOpcional(`valor (${criterio})`, v) ?? true;
     case 'fecha':
-      return { ...base, valor: fecha(`valor (${criterio})`, e.valor) };
+      return fecha(`valor (${criterio})`, v);
     case 'persona':
-      return base;
+      return undefined;
   }
+}
+
+/** Lo que Arriendos sabe revisar por código (el calce de abajo). */
+export const CATALOGO: Catalogo<Criterio> = {
+  criterios: CRITERIOS,
+  valor: (c, v) => valorValido(c, v),
+  describir: (c, v) => describirValor(c, v),
+};
+
+export interface EntradaBusqueda extends EntradaCambios {
+  persona?: Partial<Record<keyof Persona, unknown>> | null;
+  motivo: unknown;
 }
 
 export class Busqueda {
   private constructor(private d: DatosBusqueda) {}
 
+  /** Las reglas guardadas antes del perfil reciben su texto y etiquetas vacías (PB-D11). */
   static reconstituir(d: DatosBusqueda): Busqueda {
-    return new Busqueda(structuredClone(d));
+    const copia = structuredClone(d);
+    copia.reglas = copia.reglas.map((r) => reglaGuardada(r, CATALOGO));
+    return new Busqueda(copia);
   }
 
   datos(): DatosBusqueda {
@@ -157,51 +174,31 @@ export class Busqueda {
   }
 
   /**
-   * Cambia las reglas y los datos de la persona. Siempre con motivo: queda en el historial para que tu IA
-   * sepa por qué y cuándo cambió (P4). Con `reglas` reemplaza la lista entera; sin ella, la deja igual.
+   * Cambia las reglas (de a una o la lista entera) y los datos de la persona. Siempre con motivo: queda en el
+   * historial para que tu IA sepa por qué y cuándo cambió (P4 de arriendos.md, PB-D2).
    */
-  cambiar(
-    e: { reglas?: unknown; persona?: Partial<Record<keyof Persona, unknown>> | null; motivo: unknown },
-    origen: Origen,
-    deps: Deps,
-  ): void {
-    const motivo = texto('motivo', e.motivo, 500);
-    if (e.reglas !== undefined) {
-      if (!Array.isArray(e.reglas)) throw new DatoInvalido('reglas', 'Las reglas van en una lista');
-      if (e.reglas.length > 40) throw new DatoInvalido('reglas', 'Hasta 40 reglas');
-      this.d.reglas = (e.reglas as EntradaRegla[]).map((r) => reglaValida(r, deps.ids.nuevo()));
-      ordenarBlandas(this.d.reglas);
-    }
+  cambiar(e: EntradaBusqueda, origen: Origen, deps: Deps): void {
+    const reglas = hayCambiosDeReglas(e) ? aplicarCambios(this.d.reglas, e, CATALOGO, deps) : this.d.reglas;
+    let persona = this.d.persona;
     if (e.persona) {
       const p = e.persona;
-      const persona: Persona = { ...this.d.persona };
-      const fijar = <K extends keyof Persona>(k: K, v: Persona[K] | undefined) => {
-        if (v === undefined) delete (persona as Record<string, unknown>)[k];
-        else (persona as Record<string, unknown>)[k] = v;
+      const nueva: Record<string, unknown> = { ...this.d.persona };
+      const fijar = (k: keyof Persona, v: unknown) => {
+        if (v === undefined) Reflect.deleteProperty(nueva, k);
+        else nueva[k] = v;
       };
       if ('rentaLiquida' in p)
         fijar('rentaLiquida', numeroOpcional('persona.rentaLiquida', p.rentaLiquida, 0, 1e10));
       if ('tieneAval' in p) fijar('tieneAval', siNoOpcional('persona.tieneAval', p.tieneAval));
       if ('tieneMascota' in p) fijar('tieneMascota', siNoOpcional('persona.tieneMascota', p.tieneMascota));
-      this.d.persona = persona;
+      persona = nueva as Persona;
     }
     const ahora = deps.reloj.ahora();
-    this.d.historial.push({ ocurridoEn: ahora, origen, motivo, resumen: this.d.reglas.map(describir) });
-    if (this.d.historial.length > 200) this.d.historial = this.d.historial.slice(-200);
+    this.d.historial = anotarCambio(this.d.historial, reglas, { motivo: e.motivo, origen }, ahora);
+    this.d.reglas = reglas;
+    this.d.persona = persona;
     this.d.actualizadaEn = ahora;
   }
-}
-
-/** Las blandas quedan con prioridades seguidas (1, 2, 3…) respetando el orden pedido. */
-function ordenarBlandas(reglas: Regla[]): void {
-  const blandas = reglas
-    .map((r, i) => ({ r, i }))
-    .filter(({ r }) => !r.dura)
-    .sort((a, b) => (a.r.prioridad ?? 1) - (b.r.prioridad ?? 1) || a.i - b.i);
-  blandas.forEach(({ i }, n) => {
-    const r = reglas[i]!;
-    reglas[i] = { ...r, prioridad: n + 1 };
-  });
 }
 
 const NOMBRE: Record<Criterio, string> = {
@@ -222,31 +219,27 @@ const NOMBRE: Record<Criterio, string> = {
 
 const pesos = (n: number) => `$${Math.round(n).toLocaleString('es-CL')}`;
 
-/** «Dura · Arriendo más gastos comunes hasta $650.000», «P1 · Tipo: casa». */
-export function describir(r: Regla): string {
-  const quien = r.dura ? 'Dura' : `P${r.prioridad ?? 1}`;
-  const v = r.valor;
-  let que: string;
-  switch (VALOR[r.criterio]) {
+/** «Arriendo más gastos comunes hasta $650.000», «Tipo: casa». */
+export function describirValor(c: Criterio, v: unknown): string {
+  switch (VALOR[c]) {
     case 'monto':
-      que = `${NOMBRE[r.criterio]} hasta ${pesos(v as number)}`;
-      break;
+      return `${NOMBRE[c]} hasta ${pesos(v as number)}`;
     case 'minimo':
-      que = `${NOMBRE[r.criterio]}: ${v as number} o más`;
-      break;
+      return `${NOMBRE[c]}: ${v as number} o más`;
     case 'lista':
-      que = `${NOMBRE[r.criterio]}: ${(v as string[]).join(', ')}`;
-      break;
+      return `${NOMBRE[c]}: ${(v as string[]).join(', ')}`;
     case 'siNo':
-      que = `${NOMBRE[r.criterio]}: ${v ? 'sí' : 'no'}`;
-      break;
+      return `${NOMBRE[c]}: ${v ? 'sí' : 'no'}`;
     case 'fecha':
-      que = `${NOMBRE[r.criterio]} ${v as string}`;
-      break;
+      return `${NOMBRE[c]} ${v as string}`;
     default:
-      que = NOMBRE[r.criterio];
+      return NOMBRE[c];
   }
-  return `${quien} · ${que}`;
+}
+
+/** «Dura · Arriendo más gastos comunes hasta $650.000 #plata», «P1 · Tipo: casa». */
+export function describir(r: Regla): string {
+  return describirRegla(r);
 }
 
 // ── Calce ──
@@ -278,7 +271,12 @@ export function precioEnPesos(d: Pick<DatosDeLaPropiedad, 'precio'>, uf: number 
   return uf ? Math.round(d.precio.monto * uf) : null;
 }
 
-function revisar(r: Regla, p: DatosDeLaPropiedad, persona: Persona, uf: number | null): Resultado {
+function revisar(
+  r: Regla & { criterio: Criterio },
+  p: DatosDeLaPropiedad,
+  persona: Persona,
+  uf: number | null,
+): Resultado {
   const v = r.valor;
   switch (r.criterio) {
     case 'presupuesto_total': {
@@ -381,7 +379,9 @@ export function calcularCalce(p: DatosDeLaPropiedad, b: DatosBusqueda, uf: numbe
   let obtenido = 0;
   let revisadas = 0;
   for (const r of b.reglas) {
-    const res = revisar(r, p, b.persona, uf);
+    // Una regla sin criterio la aplica tu IA leyéndola; el calce no la cuenta.
+    if (!r.criterio) continue;
+    const res = revisar(r as Regla & { criterio: Criterio }, p, b.persona, uf);
     if (res === null) {
       sinDato.push({
         reglaId: r.id,

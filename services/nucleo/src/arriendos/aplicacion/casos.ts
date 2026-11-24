@@ -5,8 +5,10 @@ import {
   describir,
   precioEnPesos,
   type Calce,
+  CRITERIOS,
   type Criterio,
   type DatosBusqueda,
+  type EntradaBusqueda,
 } from '../dominio/busqueda';
 import { Canal, type DatosCanal } from '../dominio/canal';
 import { esCandidata } from '../dominio/duplicados';
@@ -679,6 +681,7 @@ export class CasosDeArriendos {
     persona: DatosBusqueda['persona'];
     historial: ConFechasEnTexto<DatosBusqueda['historial'][number]>[];
     criteriosSugeridos: Criterio[];
+    criterios: readonly Criterio[];
     uf: { valor: number; fecha: Fecha } | null;
     geocodificar: boolean;
     actualizadaEn: string | null;
@@ -695,16 +698,14 @@ export class CasosDeArriendos {
       persona: d.persona,
       historial: enTexto(d.historial).reverse().slice(0, 30),
       criteriosSugeridos: CRITERIOS_SUGERIDOS.filter((c) => !usados.has(c)),
+      criterios: CRITERIOS,
       uf,
       geocodificar,
       actualizadaEn: d.actualizadaEn?.toISOString() ?? null,
     };
   }
 
-  async cambiarBusqueda(
-    e: { reglas?: unknown; persona?: Record<string, unknown> | null; motivo: unknown },
-    origen: Origen,
-  ): ReturnType<CasosDeArriendos['verBusqueda']> {
+  async cambiarBusqueda(e: EntradaBusqueda, origen: Origen): ReturnType<CasosDeArriendos['verBusqueda']> {
     const b = await this.c.busqueda.leer();
     b.cambiar(e, origen, deps(this.c));
     await this.c.busqueda.guardar(b);
