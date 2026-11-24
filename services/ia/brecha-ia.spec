@@ -1,6 +1,7 @@
-# Receta de PyInstaller para `brecha-ia` (onedir, macOS arm64). Se arma con scripts/empaquetar.sh.
-# Sale en dist/brecha-ia/: el ejecutable `brecha-ia` y `_internal/` con Python, las dependencias
+# Receta de PyInstaller para `brecha-ia` (onedir; macOS arm64 o Windows x64). Se arma con scripts/empaquetar.sh.
+# Sale en dist/brecha-ia/: el ejecutable `brecha-ia` (`brecha-ia.exe` en Windows) y `_internal/` con Python, las dependencias
 # y las migraciones (en _internal/migraciones/, no en _internal/alembic/, que es el paquete).
+import sys
 from pathlib import Path
 
 from PyInstaller.utils.hooks import collect_submodules
@@ -16,7 +17,14 @@ for archivo in sorted((BASE / "alembic").rglob("*")):
 hiddenimports = [
     *collect_submodules("ia"),
     *collect_submodules("uvicorn"),  # loops, protocols y lifespan se eligen por nombre ("auto", "on")
-    "keyring.backends.macOS",
+    # El llavero de cada sistema: Keychain en macOS, Administrador de credenciales en Windows (con pywin32-ctypes).
+    *(
+        ["keyring.backends.macOS"]
+        if sys.platform == "darwin"
+        else ["keyring.backends.Windows", "win32ctypes.pywin32.win32cred", "win32ctypes.core"]
+        if sys.platform == "win32"
+        else []
+    ),
     "psycopg_binary",  # su hook ya junta las extensiones y la libpq
     "sqlalchemy.dialects.postgresql.psycopg",
     "pgvector.sqlalchemy",
@@ -53,7 +61,7 @@ exe = EXE(
     console=True,
     disable_windowed_traceback=False,
     argv_emulation=False,
-    target_arch="arm64",
+    target_arch="arm64" if sys.platform == "darwin" else None,
     codesign_identity=None,  # firma ad hoc; la app de escritorio firma el paquete completo
     entitlements_file=None,
 )

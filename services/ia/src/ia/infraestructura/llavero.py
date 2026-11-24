@@ -1,4 +1,7 @@
-"""Credenciales en el llavero del sistema operativo (en macOS, Keychain) con `keyring` (ADR 0010)."""
+"""Credenciales en el llavero del sistema operativo con `keyring` (ADR 0010).
+
+macOS: Keychain. Windows: Administrador de credenciales (credenciales genéricas, una por tipo).
+"""
 
 import contextlib
 import os
@@ -12,9 +15,9 @@ SERVICIO = "brecha"
 
 
 def servicio() -> str:
-    """La app instalada usa su propia entrada (BRECHA_LLAVERO=brecha-app).
+    """La app instalada usa su propia entrada (BRECHA_LLAVERO=brecha-app…).
 
-    Así la app es dueña de esa entrada y macOS no le pide permiso para leerla.
+    En macOS así la app es dueña de esa entrada y no le pide permiso para leerla; en Windows es fija.
     """
     return os.environ.get("BRECHA_LLAVERO") or SERVICIO
 

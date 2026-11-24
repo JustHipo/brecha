@@ -9,6 +9,6 @@
     "test": "uv run pytest",
     "dev": "uv run python -m ia.entradas.dev",
     "db:migrar": "uv run alembic upgrade head",
-    "empaquetar": "./scripts/empaquetar.sh"
+    "empaquetar": "bash scripts/empaquetar.sh"
   }
 }

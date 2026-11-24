@@ -1,6 +1,8 @@
+import logging
 from datetime import UTC, datetime
 
 import httpx
+import pytest
 from fastapi.testclient import TestClient
 
 from ia.aplicacion.puertos import EstadoDelServicio
@@ -168,3 +170,28 @@ def test_credencial_rechazada_no_se_guarda_y_mcp_no_puede_cambiarlas() -> None:
         headers={"Authorization": "Bearer tok-mcp"},
     )
     assert r.status_code == 403
+
+
+def test_los_secretos_no_salen_en_errores_ni_en_logs(caplog: pytest.LogCaptureFixture) -> None:
+    """La contraseña de aplicación y la llave nunca vuelven en una respuesta ni quedan en un registro (W5)."""
+    caplog.set_level(logging.DEBUG)
+    clave_corta = "qwertyuiopasdfg"  # 15 letras: el cuerpo no pasa la validación
+    clave_mala = "zxcvbnmlkjhgfdsa"  # 16 letras: Gmail (simulado) la rechaza
+    llave_mala = "sk-" + "s" * 10  # muy corta
+    llave_rechazada = "sk-" + "r" * 40  # OpenAI (simulado) la rechaza
+    h = {"Authorization": "Bearer tok-consola"}
+    c = cliente_con_credenciales(LlaveroEnMemoria(), correo_ok=False, openai_ok=False)
+    respuestas = [
+        c.put(
+            "/api/ia/credenciales/correo", json={"usuario": "a@ejemplo.test", "clave": clave_corta}, headers=h
+        ),
+        c.put(
+            "/api/ia/credenciales/correo", json={"usuario": "a@ejemplo.test", "clave": clave_mala}, headers=h
+        ),
+        c.put("/api/ia/credenciales/openai", json={"llave": llave_mala}, headers=h),
+        c.put("/api/ia/credenciales/openai", json={"llave": llave_rechazada}, headers=h),
+    ]
+    assert [r.status_code for r in respuestas] == [400, 400, 400, 400]  # la validación también responde 400
+    for secreto in (clave_corta, clave_mala, llave_mala, llave_rechazada):
+        assert all(secreto not in r.text for r in respuestas), secreto
+        assert secreto not in caplog.text, secreto

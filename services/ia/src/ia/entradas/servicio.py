@@ -118,8 +118,9 @@ def comprobar() -> int:
             faltan.append("psycopg_binary: psycopg no usa la libpq incluida")
         llavero = type(keyring.get_keyring()).__module__
         print(f"llavero: {llavero}")
-        if sys.platform == "darwin" and llavero != "keyring.backends.macOS":
-            faltan.append("keyring: no cargó el llavero de macOS")
+        esperado = {"darwin": "keyring.backends.macOS", "win32": "keyring.backends.Windows"}.get(sys.platform)
+        if esperado and llavero != esperado:
+            faltan.append(f"keyring: no cargó el llavero del sistema ({esperado}), cargó {llavero}")
         # Arman el contexto TLS con los certificados de certifi, sin abrir conexiones.
         httpx.Client().close()
         OpenAI(api_key="sk-comprobar").close()
