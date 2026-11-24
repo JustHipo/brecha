@@ -185,13 +185,21 @@ try {
   paso('modo completo: la ventana abrió la consola (captura en ventana.png)');
 
   // Cierre a la fuerza: los hijos quedan huérfanos; al volver a abrir, la app debe detenerlos y levantar todo.
+  const antes = pidsDeLaApp();
   process.kill(primera.pid, 'SIGKILL');
   await esperar(2000);
   abrir();
+  // Los huérfanos siguen respondiendo hasta que la Brecha nueva los detiene: primero se espera eso.
+  const appLog = join(datos, 'logs', 'app.log');
+  for (let i = 0; i < 90 && !/vez anterior/.test(readFileSync(appLog, 'utf8')); i++) await esperar(1000);
+  if (!/vez anterior/.test(readFileSync(appLog, 'utf8')))
+    throw new Error('la Brecha nueva no detuvo los procesos de la vez anterior');
   await esperarHttp(`${NUCLEO}/api/v1/salud`, 180);
   await esperarHttp(`${IA}/api/ia/salud`, 120);
-  const app_log = readFileSync(join(datos, 'logs', 'app.log'), 'utf8');
-  if (!/vez anterior/.test(app_log)) throw new Error('no se detectaron los procesos de la vez anterior');
+  for (let i = 0; i < 30 && pidsDeLaApp().length < 4; i++) await esperar(1000);
+  const despues = pidsDeLaApp();
+  if (despues.some((pid) => antes.includes(pid)) || antes.some(vivo))
+    throw new Error(`quedaron procesos de la vez anterior: antes ${antes}, después ${despues}`);
   paso('tras matar Brecha en seco, se volvió a abrir y limpió los procesos huérfanos');
 
   const hijos = pidsDeLaApp();

@@ -1,9 +1,9 @@
 import { mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { avisoDe } from './notificaciones';
-import { ProcesoSupervisado } from './proceso';
+import { ProcesoPorArranque, ProcesoSupervisado } from './proceso';
 import { Registro } from './registro';
 import { puertos, rutas } from './rutas';
 
@@ -78,5 +78,42 @@ describe('registro y supervisor', () => {
     await p.detener();
     expect(p.estado).toBe('detenido');
     expect(readFileSync(join(dir, 'prueba.log'), 'utf8')).toContain('se cayó');
+  });
+
+  it('vigila por PID lo que arranca otro programa (PostgreSQL con pg_ctl en Windows) y lo rearranca si se cae', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'arr-'));
+    let vivos = new Set<number>();
+    let siguiente = 100;
+    const anotados: (number | undefined)[] = [];
+    const parar = vi.fn(async () => {
+      vivos = new Set();
+    });
+    const p = new ProcesoPorArranque(
+      {
+        nombre: 'postgres',
+        arrancar: async () => {
+          siguiente += 1;
+          vivos.add(siguiente);
+          return siguiente;
+        },
+        parar,
+        vivo: (pid) => vivos.has(pid),
+        alLanzar: (pid) => anotados.push(pid),
+        cadaMs: 50,
+      },
+      new Registro(dir),
+      () => {},
+    );
+    p.iniciar();
+    await new Promise((r) => setTimeout(r, 100));
+    expect(p.estado).toBe('corriendo');
+    vivos.delete(101); // se cae solo
+    await new Promise((r) => setTimeout(r, 1_300));
+    expect(p.estado).toBe('corriendo');
+    expect(anotados).toEqual([101, undefined, 102]);
+    expect(readFileSync(join(dir, 'app.log'), 'utf8')).toContain('postgres se cayó');
+    await p.detener();
+    expect(parar).toHaveBeenCalledOnce();
+    expect(p.estado).toBe('detenido');
   });
 });

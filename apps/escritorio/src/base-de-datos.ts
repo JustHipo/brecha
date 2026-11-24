@@ -93,15 +93,51 @@ export async function postgresCorriendo(postgres: string, datos: string): Promis
   }
 }
 
+/** El PID del postmaster según postmaster.pid (primera línea), o null si no está. */
+export function pidDePostgres(datos: string): number | null {
+  try {
+    const pid = Number(readFileSync(join(datos, 'postmaster.pid'), 'utf8').split(/\r?\n/)[0]);
+    return Number.isInteger(pid) && pid > 0 ? pid : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Windows: PostgreSQL se niega a correr con permisos de administrador elevados («Execution of PostgreSQL by a user
+ * with administrative permissions is not permitted») y `pg_ctl start` es lo que sabe bajarlos (token restringido).
+ * Arranca, espera a que acepte conexiones y devuelve el PID del postmaster. El registro va a `log`.
+ */
+export async function arrancarConPgCtl(
+  postgres: string,
+  datos: string,
+  puerto: number,
+  log: string,
+): Promise<number> {
+  const opciones = argumentosDePostgres(datos, puerto, 'win32').slice(2).join(' ');
+  await ejecutar(
+    join(postgres, 'bin', exe('pg_ctl')),
+    ['start', '-D', datos, '-w', '-t', '60', '-l', log, '-o', opciones],
+    { windowsHide: true },
+  );
+  const pid = pidDePostgres(datos);
+  if (!pid) throw new Error('PostgreSQL arrancó pero no dejó postmaster.pid');
+  return pid;
+}
+
 /** Solo TCP en 127.0.0.1: sin socket Unix (su ruta no puede pasar de 103 caracteres en macOS). */
-export function argumentosDePostgres(datos: string, puerto: number): string[] {
+export function argumentosDePostgres(
+  datos: string,
+  puerto: number,
+  plataforma: NodeJS.Platform = process.platform,
+): string[] {
   return [
     '-D',
     datos,
     '-p',
     String(puerto),
-    '-c',
-    'unix_socket_directories=',
+    // En Windows no hace falta (y un valor vacío no pasa bien por `pg_ctl -o`).
+    ...(plataforma === 'win32' ? [] : ['-c', 'unix_socket_directories=']),
     '-c',
     'listen_addresses=127.0.0.1',
     '-c',

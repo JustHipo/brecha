@@ -21,8 +21,18 @@ export interface DefinicionDeProceso {
 
 const ESPERAS = [1_000, 2_000, 5_000, 10_000, 30_000, 60_000];
 
+/** Lo que el supervisor y el menú necesitan de cada pieza, la lance como la lance. */
+export interface Supervisado {
+  readonly nombre: string;
+  estado: EstadoDeProceso;
+  ultimoError: string | null;
+  iniciar(): void;
+  marcarListo(): void;
+  detener(): Promise<void>;
+}
+
 /** Un proceso hijo supervisado: si se cae, se reinicia con esperas crecientes; si sigue cayendo, queda «fallando». */
-export class ProcesoSupervisado {
+export class ProcesoSupervisado implements Supervisado {
   estado: EstadoDeProceso = 'detenido';
   ultimoError: string | null = null;
   private hijo: ChildProcess | null = null;
@@ -113,6 +123,106 @@ export class ProcesoSupervisado {
         hijo.kill(this.d.senalDeParada ?? 'SIGTERM');
       }
     });
+  }
+
+  private cambiar(e: EstadoDeProceso): void {
+    this.estado = e;
+    this.alCambiar();
+  }
+}
+
+export interface DefinicionPorArranque {
+  nombre: string;
+  /** Lo arranca y devuelve su PID (por ejemplo `pg_ctl start -w` y postmaster.pid). */
+  arrancar: () => Promise<number>;
+  /** Lo para bien (por ejemplo `pg_ctl stop -m fast`). */
+  parar: () => Promise<void>;
+  /** ¿Sigue vivo ese PID? */
+  vivo: (pid: number) => boolean;
+  alLanzar?: (pid: number | undefined) => void;
+  /** Cada cuánto revisar que siga vivo (ms). */
+  cadaMs?: number;
+}
+
+/**
+ * Una pieza que no es hija directa del supervisor: la arranca otro programa y se vigila por su PID.
+ * Es el caso de PostgreSQL en Windows, que se niega a correr con permisos de administrador elevados y solo
+ * `pg_ctl` sabe bajarlos (token restringido). Si se cae, se vuelve a arrancar con las mismas esperas.
+ */
+export class ProcesoPorArranque implements Supervisado {
+  estado: EstadoDeProceso = 'detenido';
+  ultimoError: string | null = null;
+  private pid: number | null = null;
+  private caidas = 0;
+  private parando = false;
+  private vigia: NodeJS.Timeout | null = null;
+  private temporizador: NodeJS.Timeout | null = null;
+
+  constructor(
+    private readonly d: DefinicionPorArranque,
+    private readonly registro: Registro,
+    private readonly alCambiar: () => void,
+  ) {}
+
+  get nombre(): string {
+    return this.d.nombre;
+  }
+
+  iniciar(): void {
+    this.parando = false;
+    void this.lanzar();
+  }
+
+  private async lanzar(): Promise<void> {
+    this.cambiar('iniciando');
+    try {
+      const pid = await this.d.arrancar();
+      if (this.parando) return;
+      this.pid = pid;
+      this.d.alLanzar?.(pid);
+      this.caidas = 0;
+      this.cambiar('corriendo');
+      this.vigia = setInterval(() => this.revisar(), this.d.cadaMs ?? 2_000);
+    } catch (e) {
+      this.ultimoError = (e as Error).message;
+      this.registro.escribir('app', `${this.d.nombre} no arrancó: ${this.ultimoError}`);
+      this.reintentar();
+    }
+  }
+
+  private revisar(): void {
+    if (this.parando || this.pid === null || this.d.vivo(this.pid)) return;
+    if (this.vigia) clearInterval(this.vigia);
+    this.vigia = null;
+    this.pid = null;
+    this.d.alLanzar?.(undefined);
+    this.ultimoError = 'terminó solo';
+    this.registro.escribir('app', `${this.d.nombre} se cayó`);
+    this.reintentar();
+  }
+
+  private reintentar(): void {
+    if (this.parando) return;
+    const espera = ESPERAS[Math.min(this.caidas, ESPERAS.length - 1)]!;
+    this.caidas += 1;
+    this.cambiar(this.caidas > 5 ? 'fallando' : 'reiniciando');
+    this.temporizador = setTimeout(() => void this.lanzar(), espera);
+  }
+
+  /** El arranque ya espera a que acepte conexiones: no hay nada más que marcar. */
+  marcarListo(): void {}
+
+  async detener(): Promise<void> {
+    this.parando = true;
+    if (this.vigia) clearInterval(this.vigia);
+    if (this.temporizador) clearTimeout(this.temporizador);
+    this.vigia = null;
+    if (this.pid !== null) {
+      await this.d.parar();
+      this.d.alLanzar?.(undefined);
+    }
+    this.pid = null;
+    this.cambiar('detenido');
   }
 
   private cambiar(e: EstadoDeProceso): void {

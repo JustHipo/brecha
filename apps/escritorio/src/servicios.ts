@@ -3,6 +3,7 @@ import { existsSync, mkdirSync, readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import {
   argumentosDePostgres,
+  arrancarConPgCtl,
   claves,
   crearCluster,
   detenerPostgres,
@@ -19,8 +20,9 @@ import {
   puertoDePostgres,
   esperarPuertoDisponible,
   RegistroDePids,
+  vivo,
 } from './plataforma';
-import { ProcesoSupervisado } from './proceso';
+import { ProcesoPorArranque, ProcesoSupervisado, type Supervisado } from './proceso';
 import type { Registro } from './registro';
 import { PUERTOS, type Rutas } from './rutas';
 
@@ -34,7 +36,7 @@ export interface Carpetas {
  * Cada pieza es un proceso hijo supervisado; si una se cae, se reinicia sola.
  */
 export class Servicios {
-  readonly procesos: ProcesoSupervisado[] = [];
+  readonly procesos: Supervisado[] = [];
   error: string | null = null;
   readonly instancia: string;
   /** Puerto de PostgreSQL de esta instancia (5434 o el libre que se eligió, ver puertoDePostgres). */
@@ -51,7 +53,7 @@ export class Servicios {
     this.instancia = join(c.datos, 'instancia');
   }
 
-  get(nombre: string): ProcesoSupervisado | undefined {
+  get(nombre: string): Supervisado | undefined {
     return this.procesos.find((p) => p.nombre === nombre);
   }
 
@@ -105,17 +107,30 @@ export class Servicios {
     if (await crearCluster(this.r.postgres, datos, this.instancia, k)) {
       this.registro.escribir('app', 'base de datos nueva creada');
     }
-    const pg = this.agregar({
-      nombre: 'postgres',
-      comando: binPostgres,
-      args: argumentosDePostgres(datos, puerto),
-      env: { ...process.env, LC_ALL: 'C' },
-      senalDeParada: 'SIGINT',
-      detenerCon: async () => {
-        if (!(await detenerPostgres(this.r.postgres, datos))) throw new Error('pg_ctl stop falló');
-      },
-      listoTras: 60_000,
-    });
+    const pg =
+      process.platform === 'win32'
+        ? // Windows: PostgreSQL no corre con permisos de administrador elevados; pg_ctl los baja (ver arrancarConPgCtl).
+          this.agregarPorArranque({
+            nombre: 'postgres',
+            arrancar: () =>
+              arrancarConPgCtl(this.r.postgres, datos, puerto, join(this.c.logs, 'postgres.log')),
+            parar: async () => {
+              await detenerPostgres(this.r.postgres, datos);
+            },
+            vivo,
+            ejecutable: binPostgres,
+          })
+        : this.agregar({
+            nombre: 'postgres',
+            comando: binPostgres,
+            args: argumentosDePostgres(datos, puerto),
+            env: { ...process.env, LC_ALL: 'C' },
+            senalDeParada: 'SIGINT',
+            detenerCon: async () => {
+              if (!(await detenerPostgres(this.r.postgres, datos))) throw new Error('pg_ctl stop falló');
+            },
+            listoTras: 60_000,
+          });
     pg.iniciar();
     await esperarPostgres(k, puerto);
     pg.marcarListo();
@@ -211,6 +226,21 @@ export class Servicios {
     const pids = this.pids;
     const p = new ProcesoSupervisado(
       { ...d, alLanzar: (pid) => pids?.anotar(d.nombre, pid, d.comando) },
+      this.registro,
+      this.alCambiar,
+    );
+    this.procesos.push(p);
+    return p;
+  }
+
+  private agregarPorArranque(
+    d: Omit<ConstructorParameters<typeof ProcesoPorArranque>[0], 'alLanzar'> & { ejecutable: string },
+  ): ProcesoPorArranque {
+    const previo = this.get(d.nombre);
+    if (previo) this.procesos.splice(this.procesos.indexOf(previo), 1);
+    const pids = this.pids;
+    const p = new ProcesoPorArranque(
+      { ...d, alLanzar: (pid) => pids?.anotar(d.nombre, pid, d.ejecutable) },
       this.registro,
       this.alCambiar,
     );

@@ -23,10 +23,14 @@ const puerto = await puertoCualquiera();
 
 console.log(`datos en ${datos}, puerto ${puerto}`);
 await bd.crearCluster(postgres, datos, instancia, claves);
-const servidor = spawn(join(postgres, 'bin', exe('postgres')), bd.argumentosDePostgres(datos, puerto), {
-  stdio: ['ignore', 'inherit', 'inherit'],
-  windowsHide: true,
-});
+// En Windows como lo hace la app: con pg_ctl, que baja los permisos de administrador (el runner del CI los tiene).
+const servidor =
+  process.platform === 'win32'
+    ? (await bd.arrancarConPgCtl(postgres, datos, puerto, join(base, 'postgres.log')), null)
+    : spawn(join(postgres, 'bin', exe('postgres')), bd.argumentosDePostgres(datos, puerto), {
+        stdio: ['ignore', 'inherit', 'inherit'],
+        windowsHide: true,
+      });
 let fallo = null;
 try {
   await bd.esperarPostgres(claves, puerto);
@@ -53,7 +57,7 @@ try {
   fallo = e;
 } finally {
   const parado = await bd.detenerPostgres(postgres, datos);
-  if (!parado) servidor.kill();
+  if (!parado) servidor?.kill();
   rmSync(base, { recursive: true, force: true });
 }
 if (fallo) {
