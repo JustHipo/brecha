@@ -9,6 +9,7 @@ import {
 } from '@angular/core';
 import { Router } from '@angular/router';
 import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
+import { Foco } from '../../nucleo/foco/foco';
 import { Formato } from '../../nucleo/idioma/idioma';
 import { RecorridoStore } from '../recorrido/recorrido.store';
 import { TableroStore } from '../tablero/tablero.store';
@@ -100,6 +101,7 @@ export class PaletaDeComandos {
   private readonly store = inject(TableroStore);
   private readonly formato = inject(Formato);
   private readonly recorrido = inject(RecorridoStore);
+  private readonly foco = inject(Foco);
   private readonly t = inject(TranslocoService);
   protected readonly texto = signal('');
   protected readonly activo = signal(0);
@@ -123,6 +125,18 @@ export class PaletaDeComandos {
       texto: 'busqueda.crear',
       traducir: true,
       accion: () => this.ir('/postulaciones/nueva'),
+    },
+    {
+      id: 'c-foco-empleo',
+      texto: 'foco.irEmpleo',
+      traducir: true,
+      accion: () => this.foco.cambiar('empleo'),
+    },
+    {
+      id: 'c-foco-arriendos',
+      texto: 'foco.irArriendos',
+      traducir: true,
+      accion: () => this.foco.cambiar('arriendos'),
     },
     {
       id: 'c-es',

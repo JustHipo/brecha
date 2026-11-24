@@ -21,7 +21,10 @@
     "red": "Network",
     "redPendientes": "({{n}} to reply)",
     "ajustes": "Settings",
-    "importar": "Import and export"
+    "importar": "Import and export",
+    "mapa": "Map",
+    "canales": "Channels",
+    "propiedades": "Properties"
   },
   "busqueda": {
     "abrir": "Search or run…",
@@ -804,5 +807,16 @@
     "iaApagada": "The AI service is not running: once it is back you will see what you are missing.",
     "sinPerfil": "Load your profile in Settings to see which tools you are missing.",
     "porAnalizar": "Not compared with your profile yet: it shows up in a few minutes."
+  },
+  "foco": {
+    "empleo": "Jobs",
+    "arriendos": "Rentals",
+    "cambiar": "Current focus: {{foco}}. Switch focus",
+    "porRevisar": "{{n}} to review",
+    "irEmpleo": "Switch to Jobs",
+    "irArriendos": "Switch to Rentals"
+  },
+  "arriendos": {
+    "vacio": "Nothing here yet."
   }
 }

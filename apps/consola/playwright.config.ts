@@ -9,9 +9,10 @@ if (existsSync(join(raiz, '.env'))) process.loadEnvFile(join(raiz, '.env'));
 const url = process.env.DATABASE_URL_PRUEBAS;
 if (!url) throw new Error('Falta DATABASE_URL_PRUEBAS (ver .env.example)');
 
-const NUCLEO = 4310;
-const CONSOLA = 4210;
-const IA_SIN_SERVICIO = 4419;
+// Puertos por variable para correr las e2e en dos worktrees a la vez (lección de 24-nov-2026).
+const NUCLEO = Number(process.env.E2E_NUCLEO ?? 4310);
+const CONSOLA = Number(process.env.E2E_CONSOLA ?? 4210);
+const IA_SIN_SERVICIO = Number(process.env.E2E_IA ?? 4419);
 const dir = process.env.BRECHA_DIR_E2E ?? mkdtempSync(join(tmpdir(), 'brecha-e2e-'));
 process.env.BRECHA_DIR_E2E = dir;
 process.env.NUCLEO_E2E = String(NUCLEO);

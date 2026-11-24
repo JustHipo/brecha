@@ -21,7 +21,10 @@
     "red": "Red",
     "redPendientes": "({{n}} por responder)",
     "ajustes": "Ajustes",
-    "importar": "Importar y exportar"
+    "importar": "Importar y exportar",
+    "mapa": "Mapa",
+    "canales": "Canales",
+    "propiedades": "Propiedades"
   },
   "busqueda": {
     "abrir": "Buscar o ejecutar…",
@@ -804,5 +807,16 @@
     "iaApagada": "El servicio con IA no está corriendo: cuando vuelva verás qué te falta.",
     "sinPerfil": "Carga tu perfil en Ajustes para ver qué herramientas te faltan.",
     "porAnalizar": "Todavía no se compara con tu perfil: aparece en unos minutos."
+  },
+  "foco": {
+    "empleo": "Empleo",
+    "arriendos": "Arriendos",
+    "cambiar": "Foco actual: {{foco}}. Cambiar de foco",
+    "porRevisar": "{{n}} por revisar",
+    "irEmpleo": "Cambiar a Empleo",
+    "irArriendos": "Cambiar a Arriendos"
+  },
+  "arriendos": {
+    "vacio": "Todavía no hay nada aquí."
   }
 }

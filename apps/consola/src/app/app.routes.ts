@@ -1,5 +1,7 @@
+import { inject } from '@angular/core';
 import type { Routes } from '@angular/router';
 import { accesoGuard, soloConClaveGuard } from './nucleo/acceso/acceso.guard';
+import { Foco } from './nucleo/foco/foco';
 
 export const routes: Routes = [
   {
@@ -12,7 +14,16 @@ export const routes: Routes = [
     canActivate: [accesoGuard],
     loadComponent: () => import('./funciones/marco/marco').then((m) => m.Marco),
     children: [
-      { path: '', pathMatch: 'full', redirectTo: 'tablero' },
+      // La app abre en el último foco que usaste (docs/diseno/arriendos.md, A-D3).
+      { path: '', pathMatch: 'full', redirectTo: () => inject(Foco).inicioRecordado() },
+      {
+        path: 'arriendos',
+        loadChildren: () => import('./funciones/arriendos/arriendos.routes').then((m) => m.RUTAS),
+      },
+      {
+        path: 'mapa',
+        loadComponent: () => import('./funciones/mapa/mapa-empleo').then((m) => m.MapaEmpleoPagina),
+      },
       {
         path: 'tablero',
         loadComponent: () => import('./funciones/tablero/tablero').then((m) => m.TableroPagina),

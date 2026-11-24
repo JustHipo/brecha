@@ -189,3 +189,10 @@
     border: 0;
   }
 }
+
+/* Color de la barra por foco (docs/diseno/arriendos.md, P2). Verde provisorio para Arriendos: lo elige Juan. */
+:root[data-foco='arriendos'] {
+  --barra-desde: #2f7d6d;
+  --barra-hasta: #1d5247;
+  --barra-tinta-suave: #cdeee5;
+}
