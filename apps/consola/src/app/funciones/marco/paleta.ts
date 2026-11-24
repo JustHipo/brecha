@@ -8,8 +8,9 @@ import {
   signal,
 } from '@angular/core';
 import { Router } from '@angular/router';
-import { TranslocoPipe } from '@jsverse/transloco';
+import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
 import { Formato } from '../../nucleo/idioma/idioma';
+import { RecorridoStore } from '../recorrido/recorrido.store';
 import { TableroStore } from '../tablero/tablero.store';
 
 interface Opcion {
@@ -98,6 +99,8 @@ export class PaletaDeComandos {
   private readonly router = inject(Router);
   private readonly store = inject(TableroStore);
   private readonly formato = inject(Formato);
+  private readonly recorrido = inject(RecorridoStore);
+  private readonly t = inject(TranslocoService);
   protected readonly texto = signal('');
   protected readonly activo = signal(0);
 
@@ -133,6 +136,12 @@ export class PaletaDeComandos {
       traducir: true,
       accion: () => this.formato.cambiarIdioma('en'),
     },
+    {
+      id: 'c-recorrido',
+      texto: 'busqueda.recorrido',
+      traducir: true,
+      accion: () => this.recorrido.iniciar(),
+    },
   ];
 
   protected readonly opciones = computed<Opcion[]>(() => {
@@ -147,7 +156,11 @@ export class PaletaDeComandos {
         traducir: false,
         accion: () => this.ir(`/postulaciones/${t.id}`),
       }));
-    return [...postulaciones, ...(q ? [] : this.comandos)];
+    // Los comandos también se filtran por su texto, para encontrar «recorrido» escribiéndolo.
+    const comandos = this.comandos.filter(
+      (c) => !q || this.t.translate(c.texto).toLowerCase().includes(q),
+    );
+    return [...postulaciones, ...comandos];
   });
 
   protected tecla(e: KeyboardEvent): void {

@@ -34,8 +34,55 @@
     "crear": "Create an application",
     "idiomaEs": "Switch to Spanish",
     "idiomaEn": "Switch to English",
+    "recorrido": "Take the guided tour",
     "cerrar": "Close",
     "importarCsv": "Import or export CSV"
+  },
+  "recorrido": {
+    "contador": "Step {{n}} of {{total}}",
+    "siguiente": "Next",
+    "atras": "Back",
+    "saltar": "Skip",
+    "terminar": "Finish",
+    "enAjustes": {
+      "titulo": "Guided tour",
+      "texto": "A short walk through Brecha's screens: the board, an application's page, the Inbox, your network and these settings.",
+      "ver": "Take the tour"
+    },
+    "pasos": {
+      "bienvenida": {
+        "titulo": "Welcome to Brecha",
+        "texto": "Brecha helps you keep track of your job applications: where you applied, where each one stands and what they answered. Everything is saved on your computer; only what you connect, like Gmail or OpenAI, goes out. It takes 8 short steps."
+      },
+      "tablero": {
+        "titulo": "The board",
+        "texto": "Each column is a status: Undecided, To apply, Applied, In process, Interview and Offer. Drag a card to another column to change its status; with the keyboard, focus it and press M. If the status needs something, like the date you applied, you will be asked."
+      },
+      "nueva": {
+        "titulo": "Add an application",
+        "texto": "With “New application” you save a job post you care about: role, company, link and platform. It starts as “Undecided” and you move it from there."
+      },
+      "ficha": {
+        "titulo": "Each application has its page",
+        "texto": "Click a card to open its page. Its whole story is there: the signals that arrived (emails and replies from the company), your notes, the people you talked to and the interviews."
+      },
+      "bandeja": {
+        "titulo": "The Inbox",
+        "texto": "When you connect your email, the AI reads messages from companies and suggests which application each one belongs to. What it cannot match with confidence waits here for you to confirm, match or discard."
+      },
+      "red": {
+        "titulo": "Your LinkedIn network",
+        "texto": "Keep track here of the people you talk to on LinkedIn: requests, messages and which application they relate to. LinkedIn notifications that reach your email are added on their own."
+      },
+      "ajustes": {
+        "titulo": "Settings",
+        "texto": "Connect your Gmail (with an app password) and your OpenAI key here so the AI can read your emails. Brecha works without them too, but you enter everything by hand."
+      },
+      "importar": {
+        "titulo": "Bring what you already have",
+        "texto": "If you were already tracking your applications somewhere else, import them so you do not start from scratch. You can take this tour again anytime from Settings or by searching “tour” in the bar at the top."
+      }
+    }
   },
   "idioma": {
     "etiqueta": "Language",

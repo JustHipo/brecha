@@ -116,7 +116,9 @@ import { ABIERTOS, CERRADOS, SIN_FILTROS, TableroStore } from './tablero.store';
             {{ 'tablero.limpiarFiltros' | transloco }}
           </button>
         }
-        <a hlmBtn routerLink="/postulaciones/nueva">+ {{ 'nav.nueva' | transloco }}</a>
+        <a hlmBtn routerLink="/postulaciones/nueva" data-tutorial="nueva"
+          >+ {{ 'nav.nueva' | transloco }}</a
+        >
       </div>
     </div>
 
@@ -163,11 +165,12 @@ import { ABIERTOS, CERRADOS, SIN_FILTROS, TableroStore } from './tablero.store';
           <div class="grid flex-1 place-items-center">
             <div
               class="flex max-w-md flex-col items-center gap-3 rounded-2xl border border-dashed border-linea bg-superficie p-10 text-center"
+              data-tutorial="tablero"
             >
               <h2 class="m-0 text-xl font-extrabold">{{ 'tablero.vacioTitulo' | transloco }}</h2>
               <p class="m-0 text-tinta-suave">{{ 'tablero.vacioTexto' | transloco }}</p>
               <div class="flex gap-2">
-                <label hlmBtn variant="outline" class="cursor-pointer">
+                <label hlmBtn variant="outline" class="cursor-pointer" data-tutorial="importar">
                   {{ 'tablero.importar' | transloco }}
                   <input
                     type="file"
@@ -194,9 +197,10 @@ import { ABIERTOS, CERRADOS, SIN_FILTROS, TableroStore } from './tablero.store';
           class="grid min-w-[1500px] grid-cols-[repeat(6,minmax(220px,1fr))_96px] items-start gap-3.5"
           [attr.aria-busy]="store.estado() === 'cargando'"
         >
-          @for (estado of abiertos; track estado) {
+          @for (estado of abiertos; track estado; let primera = $first) {
             @let col = store.columna(estado);
             <section
+              [attr.data-tutorial]="primera ? 'tablero' : null"
               [attr.aria-label]="'estados.' + estado | transloco"
               class="flex min-h-40 flex-col gap-2.5 rounded-[12px] transition-opacity"
               [class.opacity-40]="arrastrando() && !acepta(estado)"
@@ -222,6 +226,7 @@ import { ABIERTOS, CERRADOS, SIN_FILTROS, TableroStore } from './tablero.store';
               } @else {
                 @for (t of col?.items ?? []; track t.id) {
                   <b-tarjeta
+                    data-tutorial="ficha"
                     cdkDrag
                     [cdkDragData]="t"
                     (cdkDragStarted)="arrastrando.set(t)"

@@ -8,6 +8,8 @@ import { BandejaStore } from '../bandeja/bandeja.store';
 import { EstadoIaStore } from '../conexiones/estado-ia.store';
 import { RedStore } from '../red/red.store';
 import { TableroStore } from '../tablero/tablero.store';
+import { Recorrido } from '../recorrido/recorrido';
+import { RecorridoStore } from '../recorrido/recorrido.store';
 import { PaletaDeComandos } from './paleta';
 
 const ICONOS = {
@@ -36,7 +38,15 @@ const PUNTOS = [
 /** Marco de la ventana (ui.md §3): barra lateral terracota, barra superior y contenido. */
 @Component({
   selector: 'b-marco',
-  imports: [RouterOutlet, RouterLink, RouterLinkActive, TranslocoPipe, HlmButton, PaletaDeComandos],
+  imports: [
+    RouterOutlet,
+    RouterLink,
+    RouterLinkActive,
+    TranslocoPipe,
+    HlmButton,
+    PaletaDeComandos,
+    Recorrido,
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: { class: 'flex h-dvh min-h-0', '(window:keydown)': 'atajo($event)' },
   template: `
@@ -44,7 +54,7 @@ const PUNTOS = [
       [attr.aria-label]="'nav.secciones' | transloco"
       class="barra-terracota flex w-[236px] flex-none flex-col px-2.5 py-3.5"
     >
-      <div class="flex items-center gap-2.5 px-2 pt-1 pb-4">
+      <div class="flex items-center gap-2.5 px-2 pt-1 pb-4" data-tutorial="marca">
         <span
           class="grid size-7 place-items-center rounded-lg bg-white font-titulo text-sm font-extrabold text-[#B5532A]"
           aria-hidden="true"
@@ -55,7 +65,7 @@ const PUNTOS = [
       @for (n of nav; track n.ruta) {
         <a
           [routerLink]="n.ruta"
-          [attr.data-tutorial]="n.ruta === '/importar' ? 'importar' : null"
+          [attr.data-tutorial]="n.tutorial"
           routerLinkActive="bg-white/[0.17] font-semibold"
           class="flex items-center gap-2.5 rounded-lg px-2.5 py-[7px] font-medium text-white no-underline hover:bg-white/10"
         >
@@ -120,6 +130,7 @@ const PUNTOS = [
       <div class="flex-1"></div>
       <a
         routerLink="/ajustes"
+        data-tutorial="ajustes"
         routerLinkActive="bg-white/[0.17] font-semibold"
         class="mb-2 flex items-center gap-2.5 rounded-lg px-2.5 py-[7px] font-medium text-white no-underline hover:bg-white/10"
       >
@@ -203,7 +214,9 @@ const PUNTOS = [
             <path d="M20 20l-3.5-3.5"></path>
           </svg>
           <span class="flex-1">{{ 'busqueda.abrir' | transloco }}</span>
-          <kbd class="rounded-[5px] border border-linea px-[5px] text-[11px]">⌘K</kbd>
+          <kbd class="rounded-[5px] border border-linea px-[5px] text-[11px]">{{
+            teclaBuscar
+          }}</kbd>
         </button>
         <div
           role="group"
@@ -232,6 +245,7 @@ const PUNTOS = [
     @if (paletaAbierta()) {
       <b-paleta (cerrar)="paletaAbierta.set(false)" />
     }
+    <b-recorrido />
   `,
 })
 export class Marco {
@@ -243,16 +257,22 @@ export class Marco {
   private readonly formato = inject(Formato);
   private readonly transloco = inject(TranslocoService);
   private readonly router = inject(Router);
+  private readonly recorrido = inject(RecorridoStore);
 
-  protected readonly nav = [
+  /** El atajo de la búsqueda como se escribe en cada sistema (en Windows no existe ⌘). */
+  protected readonly teclaBuscar = /Mac|iPhone|iPad/.test(globalThis.navigator?.userAgent ?? '')
+    ? '⌘K'
+    : 'Ctrl K';
+
+  protected readonly nav: { ruta: string; etiqueta: string; icono: string; tutorial?: string }[] = [
     { ruta: '/tablero', etiqueta: 'nav.tablero', icono: ICONOS.tablero },
     { ruta: '/lista', etiqueta: 'nav.lista', icono: ICONOS.lista },
-    { ruta: '/bandeja', etiqueta: 'nav.bandeja', icono: ICONOS.bandeja },
-    { ruta: '/red', etiqueta: 'nav.red', icono: ICONOS.red },
+    { ruta: '/bandeja', etiqueta: 'nav.bandeja', icono: ICONOS.bandeja, tutorial: 'bandeja' },
+    { ruta: '/red', etiqueta: 'nav.red', icono: ICONOS.red, tutorial: 'red' },
     { ruta: '/avisos', etiqueta: 'nav.avisos', icono: ICONOS.avisos },
     { ruta: '/preguntar', etiqueta: 'nav.preguntar', icono: ICONOS.preguntar },
     { ruta: '/conexiones', etiqueta: 'nav.conexiones', icono: ICONOS.conexiones },
-    { ruta: '/importar', etiqueta: 'nav.importar', icono: ICONOS.csv },
+    { ruta: '/importar', etiqueta: 'nav.importar', icono: ICONOS.csv, tutorial: 'importar' },
   ];
   protected readonly iconoAjustes = ICONOS.ajustes;
   protected readonly puntos = PUNTOS;
@@ -266,6 +286,7 @@ export class Marco {
     if (this.bandeja.estado() === 'inicial') void this.bandeja.cargar();
     if (this.red.estado() === 'inicial') void this.red.cargar(true);
     this.estadoIa.iniciar();
+    this.recorrido.iniciarSiEsPrimeraVez();
     this.transloco.langChanges$.subscribe((l) => this.idiomaActivo.set(l));
   }
 
@@ -284,6 +305,7 @@ export class Marco {
   }
 
   protected atajo(e: KeyboardEvent): void {
+    if (this.recorrido.abierto()) return;
     if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
       e.preventDefault();
       this.paletaAbierta.update((v) => !v);
