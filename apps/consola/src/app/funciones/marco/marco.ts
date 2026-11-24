@@ -352,7 +352,7 @@ export class Marco {
   protected readonly foco = inject(Foco);
   protected readonly focos: { id: FocoId; color: string; atajo: string }[] = [
     { id: 'empleo', color: '#B5532A', atajo: '1' },
-    { id: 'arriendos', color: '#2F7D6D', atajo: '2' },
+    { id: 'arriendos', color: '#2B6A8F', atajo: '2' },
   ];
   private readonly navEmpleo: Seccion[] = [
     { ruta: '/tablero', etiqueta: 'nav.tablero', icono: ICONOS.tablero },

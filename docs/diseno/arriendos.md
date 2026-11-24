@@ -205,4 +205,4 @@ Rama `arriendos` desde `brecha-junta` y después con `origin/windows` juntada (2
 
 **No verificado:** llamadas reales a OpenAI con los prompts nuevos (sin correos reales de arriendo todavía, P8); el fondo de OpenFreeMap y Nominatim desde la app (las pruebas usan fondo liso y respuestas grabadas); Windows.
 
-**Pendiente de Juan:** elegir el color de Arriendos (hoy un verde provisorio, `styles.css`).
+**Color de Arriendos:** azul petróleo (#2b6a8f a #1b445e, texto blanco a 5,9:1), elegido por Juan el 24-nov-2026 entre tres opciones (verde pino, azul petróleo y ciruela).
