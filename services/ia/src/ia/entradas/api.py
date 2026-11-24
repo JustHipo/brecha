@@ -7,6 +7,7 @@ from typing import Annotated, Any, Literal
 from fastapi import BackgroundTasks, Depends, FastAPI, Header, HTTPException, Query, Request, Response
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
+from openai import OpenAI
 from pydantic import BaseModel, Field
 
 from ia.aplicacion.puertos import (
@@ -15,12 +16,14 @@ from ia.aplicacion.puertos import (
     Credenciales,
     FiltrosDeAvisos,
     NucleoNoDisponible,
+    TipoDeCredencial,
     estado_de,
 )
 from ia.dominio.aviso import Aviso, AvisoInvalido
 from ia.dominio.calce import Perfil
 from ia.entradas.servicios import Servicios
 from ia.infraestructura.config import Config, cargar_config
+from ia.infraestructura.imap import LectorImap
 from ia.infraestructura.llavero import Llavero
 from ia.infraestructura.postgres.correos import RepositorioPostgresDeCorreos
 from ia.infraestructura.postgres.motor import crear_motor
@@ -61,6 +64,40 @@ class PreguntaEntrada(BaseModel):
     pregunta: str = Field(min_length=3, max_length=500)
 
 
+class CredencialCorreo(BaseModel):
+    usuario: str = Field(pattern=r"^[^@\s]+@[^@\s]+\.[^@\s]+$", max_length=320)
+    clave: str = Field(min_length=16, max_length=64)
+
+
+class CredencialOpenAI(BaseModel):
+    llave: str = Field(pattern=r"^sk-", min_length=20, max_length=300)
+
+
+def enmascarar(correo: str) -> str:
+    nombre, _, dominio = correo.partition("@")
+    return f"{nombre[:2]}{'•' * max(len(nombre) - 2, 1)}@{dominio}"
+
+
+def _probar_correo(usuario: str, clave: str) -> str | None:
+    """Abre la carpeta en solo lectura y la cierra: no marca nada."""
+    lector = LectorImap(usuario, clave)
+    try:
+        lector.uidvalidity()
+        return None
+    except Exception as e:
+        return f"Gmail no aceptó el correo y la contraseña de aplicación ({type(e).__name__})"
+    finally:
+        lector.cerrar()
+
+
+def _probar_openai(llave: str) -> str | None:
+    try:
+        OpenAI(api_key=llave, timeout=20, max_retries=0).models.list()
+        return None
+    except Exception as e:
+        return f"OpenAI no aceptó la llave ({type(e).__name__})"
+
+
 def vista_aviso(g: AvisoGuardado, detalle: bool = False) -> dict[str, Any]:
     a = g.aviso
     v: dict[str, Any] = {
@@ -96,6 +133,8 @@ def crear_app(
     estado: ConsultaDeEstado | None = None,
     credenciales: Credenciales | None = None,
     servicios: Servicios | None = None,
+    probar_correo: Callable[[str, str], str | None] | None = None,
+    probar_openai: Callable[[str], str | None] | None = None,
 ) -> FastAPI:
     cfg = config or cargar_config()
     ver = verificador or VerificadorDeTokens(cfg.nucleo_url)
@@ -188,6 +227,61 @@ def crear_app(
                 "Las búsquedas de Get on Board van a su API pública (solo el texto que buscas).",
             ],
         }
+
+    # ── Credenciales desde Ajustes (F3): se prueban antes de guardarlas y nunca se devuelven ──
+
+    def solo_la_persona(tipo: Annotated[str, Depends(con_token)]) -> str:
+        if tipo in {"mcp", "servicio"}:
+            raise HTTPException(
+                403, {"codigo": "PROHIBIDO", "mensaje": "Las credenciales solo se cambian desde la consola"}
+            )
+        return tipo
+
+    @app.get("/api/ia/credenciales")
+    def ver_credenciales(_: Annotated[str, Depends(con_token)]) -> dict[str, Any]:
+        usuario = llavero.obtener(TipoDeCredencial.CORREO_USUARIO)
+        e = estado_de(llavero)
+        return {
+            "correo": {"configurado": e.correo, "usuario": enmascarar(usuario) if usuario else None},
+            "openai": {"configurado": e.openai},
+        }
+
+    @app.put("/api/ia/credenciales/correo")
+    def guardar_correo(
+        cuerpo: CredencialCorreo, _: Annotated[str, Depends(solo_la_persona)]
+    ) -> dict[str, Any]:
+        usuario = cuerpo.usuario.strip().lower()
+        clave = cuerpo.clave.replace(" ", "")
+        error = (probar_correo or _probar_correo)(usuario, clave)
+        if error:
+            raise HTTPException(400, {"codigo": "CREDENCIAL_INVALIDA", "mensaje": error, "campo": "clave"})
+        llavero.guardar(TipoDeCredencial.CORREO_USUARIO, usuario)
+        llavero.guardar(TipoDeCredencial.CORREO_CLAVE, clave)
+        return {"configurado": True, "usuario": enmascarar(usuario)}
+
+    @app.put("/api/ia/credenciales/openai")
+    def guardar_openai(
+        cuerpo: CredencialOpenAI, _: Annotated[str, Depends(solo_la_persona)]
+    ) -> dict[str, Any]:
+        llave = cuerpo.llave.strip()
+        error = (probar_openai or _probar_openai)(llave)
+        if error:
+            raise HTTPException(400, {"codigo": "CREDENCIAL_INVALIDA", "mensaje": error, "campo": "llave"})
+        llavero.guardar(TipoDeCredencial.OPENAI, llave)
+        return {"configurado": True}
+
+    @app.delete("/api/ia/credenciales/{tipo}", status_code=204)
+    def borrar_credencial(
+        tipo: Literal["correo", "openai"], _: Annotated[str, Depends(solo_la_persona)]
+    ) -> Response:
+        tipos = (
+            [TipoDeCredencial.CORREO_USUARIO, TipoDeCredencial.CORREO_CLAVE]
+            if tipo == "correo"
+            else [TipoDeCredencial.OPENAI]
+        )
+        for t in tipos:
+            llavero.borrar(t)
+        return Response(status_code=204)
 
     # ── Avisos, perfil y Preguntar (F2-09 a F2-12) ─────────────────────────────
 
