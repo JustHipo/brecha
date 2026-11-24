@@ -30,6 +30,28 @@ export const routes: Routes = [
         path: 'postulaciones/:id',
         loadComponent: () => import('./funciones/postulacion/ficha').then((m) => m.FichaPagina),
       },
+      {
+        path: 'bandeja',
+        loadComponent: () => import('./funciones/bandeja/bandeja').then((m) => m.BandejaPagina),
+      },
+      {
+        path: 'avisos',
+        loadComponent: () => import('./funciones/avisos/avisos').then((m) => m.AvisosPagina),
+      },
+      {
+        path: 'avisos/:id',
+        loadComponent: () => import('./funciones/avisos/aviso').then((m) => m.AvisoPagina),
+      },
+      {
+        path: 'preguntar',
+        loadComponent: () =>
+          import('./funciones/preguntar/preguntar').then((m) => m.PreguntarPagina),
+      },
+      {
+        path: 'conexiones',
+        loadComponent: () =>
+          import('./funciones/conexiones/conexiones').then((m) => m.ConexionesPagina),
+      },
     ],
   },
   { path: '**', redirectTo: 'tablero' },

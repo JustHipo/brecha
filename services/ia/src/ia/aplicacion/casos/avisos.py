@@ -342,11 +342,9 @@ class Preguntar(_ConTrazas):
             )
         )
         filtros = filtros_de_la_pregunta(pregunta)
-        recuperados = (
-            [g for g in self.repo.listar(filtros) if g.calce is not None]
-            if filtros.por_calce
-            else self.repo.cercanos(vector, K_RECUPERADOS, filtros)
-        )
+        recuperados = self.repo.cercanos(vector, K_RECUPERADOS, filtros)
+        if filtros.por_calce:  # el tema decide cuáles; el calce, en qué orden se le presentan al modelo
+            recuperados.sort(key=lambda g: -(g.calce.puntaje if g.calce else -1))
         if not recuperados and (filtros.modalidad or filtros.usd_minimo):
             recuperados = self.repo.cercanos(vector, K_RECUPERADOS, FiltrosDeAvisos(limite=K_RECUPERADOS))
         if not recuperados:

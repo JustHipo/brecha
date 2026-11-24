@@ -4,12 +4,18 @@ import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
 import { HlmButton } from '@brecha/ui/button';
 import { Eventos } from '../../nucleo/eventos/eventos.service';
 import { Formato, type Idioma } from '../../nucleo/idioma/idioma';
+import { BandejaStore } from '../bandeja/bandeja.store';
+import { EstadoIaStore } from '../conexiones/estado-ia.store';
 import { TableroStore } from '../tablero/tablero.store';
 import { PaletaDeComandos } from './paleta';
 
 const ICONOS = {
   tablero: 'M4 4h6v16H4zM14 4h6v10h-6z',
   lista: 'M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01',
+  bandeja: 'M4 13h4l2 3h4l2-3h4M4 13l2-8h12l2 8v6H4z',
+  avisos: 'M4 7h16v12H4zM9 7V5h6v2M4 12h16',
+  preguntar: 'M5 5h14v10H9l-4 4zM9 9h6M9 12h4',
+  conexiones: 'M9 7V3M15 7V3M7 7h10v4a5 5 0 0 1-10 0zM12 16v5',
 };
 const PUNTOS = [
   '#BFD5FF',
@@ -61,6 +67,16 @@ const PUNTOS = [
             <path [attr.d]="n.icono"></path>
           </svg>
           <span class="flex-1">{{ n.etiqueta | transloco }}</span>
+          @if (n.ruta === '/bandeja' && bandeja.conteo()) {
+            <span
+              class="min-w-5 rounded-full bg-white px-1.5 text-center text-xs font-bold text-[#873719] tabular-nums"
+              aria-hidden="true"
+              >{{ bandeja.conteo() }}</span
+            >
+            <span class="solo-lector">{{
+              'nav.bandejaPendientes' | transloco: { n: bandeja.conteo() }
+            }}</span>
+          }
         </a>
       }
       @if (store.porPlataforma().length) {
@@ -110,6 +126,26 @@ const PUNTOS = [
       <header class="flex h-14 flex-none items-center gap-3.5 border-b border-linea px-6">
         <span class="text-tinta-suave">{{ 'nav.postulaciones' | transloco }}</span>
         <span class="ml-auto"></span>
+        <span role="status" class="contents">
+          <a
+            routerLink="/conexiones"
+            class="flex items-center gap-[7px] rounded-full border border-linea px-3 py-1 font-semibold text-tinta no-underline hover:bg-superficie"
+            [attr.title]="'ia.verConexiones' | transloco"
+            data-indicador-ia
+          >
+            <span
+              class="size-2 rounded-full"
+              [class.bg-ok]="estadoIa.indicador() === 'lista'"
+              [class.bg-prioridad-media]="estadoIa.indicador() === 'no_disponible'"
+              [class.bg-error]="
+                estadoIa.indicador() === 'apagada' || estadoIa.indicador() === 'error'
+              "
+              [class.bg-prioridad-baja]="estadoIa.indicador() === 'cargando'"
+              aria-hidden="true"
+            ></span>
+            {{ 'ia.' + estadoIa.indicador() | transloco: { n: estadoIa.enCola() } }}
+          </a>
+        </span>
         <button
           type="button"
           (click)="paletaAbierta.set(true)"
@@ -162,6 +198,8 @@ const PUNTOS = [
 export class Marco {
   protected readonly store = inject(TableroStore);
   protected readonly eventos = inject(Eventos);
+  protected readonly bandeja = inject(BandejaStore);
+  protected readonly estadoIa = inject(EstadoIaStore);
   private readonly formato = inject(Formato);
   private readonly transloco = inject(TranslocoService);
   private readonly router = inject(Router);
@@ -169,6 +207,10 @@ export class Marco {
   protected readonly nav = [
     { ruta: '/tablero', etiqueta: 'nav.tablero', icono: ICONOS.tablero },
     { ruta: '/lista', etiqueta: 'nav.lista', icono: ICONOS.lista },
+    { ruta: '/bandeja', etiqueta: 'nav.bandeja', icono: ICONOS.bandeja },
+    { ruta: '/avisos', etiqueta: 'nav.avisos', icono: ICONOS.avisos },
+    { ruta: '/preguntar', etiqueta: 'nav.preguntar', icono: ICONOS.preguntar },
+    { ruta: '/conexiones', etiqueta: 'nav.conexiones', icono: ICONOS.conexiones },
   ];
   protected readonly puntos = PUNTOS;
   protected readonly idiomas: Idioma[] = ['es', 'en'];
@@ -178,6 +220,8 @@ export class Marco {
 
   constructor() {
     if (this.store.estado() === 'inicial') void this.store.cargar();
+    if (this.bandeja.estado() === 'inicial') void this.bandeja.cargar();
+    this.estadoIa.iniciar();
     this.transloco.langChanges$.subscribe((l) => this.idiomaActivo.set(l));
   }
 

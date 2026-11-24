@@ -5,6 +5,7 @@ from datetime import UTC, datetime
 from typing import Annotated, Any, Literal
 
 from fastapi import BackgroundTasks, Depends, FastAPI, Header, HTTPException, Query, Request, Response
+from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
@@ -111,6 +112,9 @@ def crear_app(
         title="Brecha · servicio con IA", version="1", docs_url="/docs", openapi_url="/openapi.json"
     )
 
+    # En desarrollo la consola se abre como localhost o 127.0.0.1; en la app, el origen es el núcleo.
+    origenes = {cfg.consola_origen, cfg.consola_origen.replace("localhost", "127.0.0.1"), cfg.nucleo_url}
+
     @app.middleware("http")
     async def host_y_origen(
         peticion: Request, siguiente: Callable[[Request], Awaitable[Response]]
@@ -119,11 +123,21 @@ def crear_app(
         if host not in HOSTS:
             return JSONResponse({"codigo": "NO_AUTENTICADO", "mensaje": "Host no permitido"}, status_code=401)
         origen = peticion.headers.get("origin")
-        if origen is not None and origen != cfg.consola_origen:
+        if origen is not None and origen not in origenes:
             return JSONResponse(
                 {"codigo": "NO_AUTENTICADO", "mensaje": "Origen no permitido"}, status_code=401
             )
         return await siguiente(peticion)
+
+    @app.exception_handler(RequestValidationError)
+    async def error_de_validacion(_: Request, e: RequestValidationError) -> JSONResponse:
+        """Mismo formato que el núcleo: {codigo, mensaje, campo}."""
+        primero = e.errors()[0] if e.errors() else {}
+        campo = ".".join(str(x) for x in primero.get("loc", ())[1:]) or None
+        return JSONResponse(
+            {"codigo": "VALIDACION", "mensaje": str(primero.get("msg", "Datos inválidos")), "campo": campo},
+            status_code=400,
+        )
 
     @app.exception_handler(HTTPException)
     async def error_http(_: Request, e: HTTPException) -> JSONResponse:
@@ -165,9 +179,13 @@ def crear_app(
                 "llamadasMes": e.llamadas_mes,
             },
             "salida": [
-                "Solo los correos de plataformas que pasan el filtro: "
-                "un fragmento de hasta 4.000 caracteres va a OpenAI.",
+                "Solo los correos que pasan el filtro: un fragmento de hasta 4.000 caracteres va a OpenAI, "
+                "con el dominio del remitente y nunca su dirección.",
                 "El resto del correo no sale de tu máquina.",
+                "El texto de cada aviso va a OpenAI una vez, para sacar sus requisitos y su vector.",
+                "Tus preguntas en Preguntar van a OpenAI junto con los 8 avisos más cercanos.",
+                "Tu perfil y tus postulaciones no salen: el calce se calcula en tu máquina.",
+                "Las búsquedas de Get on Board van a su API pública (solo el texto que buscas).",
             ],
         }
 
@@ -210,7 +228,7 @@ def crear_app(
                 cita="Pegado a mano",
             )
         except AvisoInvalido as e:
-            raise HTTPException(400, {"codigo": "DATO_INVALIDO", "mensaje": str(e)}) from e
+            raise HTTPException(400, {"codigo": "VALIDACION", "mensaje": str(e)}) from e
         s = srv()
         id, _nuevo = s.avisos.guardar(a)
         tareas.add_task(s.procesar_avisos)

@@ -19,6 +19,8 @@ export type EstadoAcceso = Esquemas['EstadoAccesoDto'];
 export type Sesion = Esquemas['SesionDto'];
 export type SenalRegistrada = Esquemas['SenalRegistradaDto'];
 export type ResultadoImportacion = Esquemas['ResultadoImportacionDto'];
+export type SenalPendiente = Esquemas['SenalPendienteDto'];
+export type AvisoEntrada = Esquemas['AvisoEntradaDto'];
 
 export interface FiltrosLista {
   estado?: string[];
@@ -102,6 +104,20 @@ export class Api {
       cuerpo,
     );
   }
+  // Bandeja (F2): señales que llegaron sin postulación.
+  bandeja() {
+    return this.http.get<SenalPendiente[]>(`${BASE}/bandeja`);
+  }
+  asociarSenal(senalId: string, postulacionId: string) {
+    return this.http.post<Detalle>(`${BASE}/bandeja/${senalId}/asociar`, { postulacionId });
+  }
+  crearDesdeSenal(senalId: string, aviso: AvisoEntrada) {
+    return this.http.post<Detalle>(`${BASE}/bandeja/${senalId}/crear`, { aviso });
+  }
+  descartarSenal(senalId: string) {
+    return this.http.post<SenalPendiente>(`${BASE}/bandeja/${senalId}/descartar`, {});
+  }
+
   importar(exportArtifact: object) {
     return this.http.post<ResultadoImportacion>(`${BASE}/postulaciones/importar`, exportArtifact);
   }

@@ -11,6 +11,7 @@ if (!url) throw new Error('Falta DATABASE_URL_PRUEBAS (ver .env.example)');
 
 const NUCLEO = 4310;
 const CONSOLA = 4210;
+const IA_SIN_SERVICIO = 4419;
 const dir = process.env.BRECHA_DIR_E2E ?? mkdtempSync(join(tmpdir(), 'brecha-e2e-'));
 process.env.BRECHA_DIR_E2E = dir;
 process.env.NUCLEO_E2E = String(NUCLEO);
@@ -51,7 +52,8 @@ export default defineConfig({
       url: `http://localhost:${CONSOLA}`,
       reuseExistingServer: false,
       timeout: 120_000,
-      env: { NUCLEO_PUERTO: String(NUCLEO), BRECHA_DIR: dir },
+      // La API de IA no corre en el e2e: un puerto sin nadie, para no tocar nunca la de desarrollo.
+      env: { NUCLEO_PUERTO: String(NUCLEO), IA_PUERTO: String(IA_SIN_SERVICIO), BRECHA_DIR: dir },
     },
   ],
 });

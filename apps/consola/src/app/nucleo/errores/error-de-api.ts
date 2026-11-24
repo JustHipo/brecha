@@ -1,9 +1,16 @@
 import type { CodigoError } from '@brecha/contratos';
 
+/**
+ * Códigos propios de la API de IA (F2). `IA_APAGADA` lo pone la consola cuando el servicio con IA
+ * no responde (el proxy devuelve 500 o 502 sin cuerpo, o no hay red).
+ */
+export type CodigoErrorIa =
+  'IA_NO_DISPONIBLE' | 'NUCLEO_NO_DISPONIBLE' | 'DATO_INVALIDO' | 'IA_APAGADA';
+
 /** Error del núcleo con su `codigo` estable (PLAN §12.1). `RED` si no hubo respuesta. */
 export class ErrorDeApi extends Error {
   constructor(
-    readonly codigo: CodigoError | 'RED',
+    readonly codigo: CodigoError | CodigoErrorIa | 'RED',
     mensaje: string,
     readonly status: number,
     readonly campo?: string,

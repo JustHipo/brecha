@@ -70,7 +70,7 @@ def test_pegar_analiza_liga_y_calcula_con_el_perfil(entorno) -> None:  # type: i
 def test_aviso_invalido_y_desconocido(entorno) -> None:  # type: ignore[no-untyped-def]
     cliente, _ = entorno
     r = cliente.post("/api/ia/avisos", json={**PEGADO, "url": "sin-esquema"}, headers=H)
-    assert r.status_code == 400 and r.json()["codigo"] == "DATO_INVALIDO"
+    assert r.status_code == 400 and r.json()["codigo"] == "VALIDACION"
     assert cliente.get("/api/ia/avisos/no-existe", headers=H).status_code == 404
 
 
@@ -122,3 +122,15 @@ def test_procesar_no_corre_dos_veces_a_la_vez(entorno) -> None:  # type: ignore[
         assert servicios.procesar_avisos() == {"ocupado": True}
         otro.execute(sql("SELECT pg_advisory_unlock(:k)"), {"k": CANDADO_AVISOS})
     assert "ocupado" not in servicios.procesar_avisos()
+
+
+def test_un_cuerpo_invalido_responde_con_la_forma_del_nucleo(entorno) -> None:  # type: ignore[no-untyped-def]
+    cliente, _ = entorno
+    r = cliente.post("/api/ia/preguntas", json={"pregunta": "a"}, headers=H)
+    assert r.status_code == 400
+    assert r.json()["codigo"] == "VALIDACION" and r.json()["campo"] == "pregunta"
+
+
+def test_acepta_la_consola_abierta_como_127(entorno) -> None:  # type: ignore[no-untyped-def]
+    cliente, _ = entorno
+    assert cliente.get("/api/ia/salud", headers={"origin": "http://127.0.0.1:4200"}).status_code == 200

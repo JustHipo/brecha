@@ -14,7 +14,7 @@ export default async function preparar(): Promise<void> {
   await cliente.connect();
   await cliente.query('SET search_path TO nucleo');
   await cliente.query(
-    'TRUNCATE postulacion, cambio_estado, senal, discrepancia, entrevista, contacto, nota, acceso, ajuste, outbox CASCADE',
+    'TRUNCATE postulacion, cambio_estado, senal, senal_pendiente, discrepancia, entrevista, contacto, nota, acceso, ajuste, outbox CASCADE',
   );
   await cliente.end();
 }

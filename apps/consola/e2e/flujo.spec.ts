@@ -1,7 +1,14 @@
 import AxeBuilder from '@axe-core/playwright';
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type APIRequestContext, type Page } from '@playwright/test';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 
-const hoy = new Date().toISOString().slice(0, 10);
+// Fecha local (no UTC): el núcleo compara con su reloj local y entre las 21:00 y las 24:00 en Chile
+// la fecha UTC ya es «mañana», una fechaPostulacion futura que rechaza.
+function fechaLocal(d = new Date()): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+const hoy = fechaLocal();
 
 async function sinViolaciones(page: Page) {
   const r = await new AxeBuilder({ page })
@@ -114,4 +121,97 @@ test('cambia de idioma en vivo', async ({ page }) => {
   await expect(page.getByRole('heading', { name: 'My applications' })).toBeVisible();
   await page.getByRole('button', { name: 'ES' }).click();
   await expect(page.getByRole('heading', { name: 'Mis postulaciones' })).toBeVisible();
+});
+
+// F2-13: la Bandeja contra el núcleo real. La señal entra como la manda el vigía (token de servicio).
+async function senalSinPostulacion(request: APIRequestContext, datos: Record<string, unknown>) {
+  const token = readFileSync(join(process.env.BRECHA_DIR_E2E!, 'token-servicio'), 'utf8').trim();
+  const r = await request.post(`http://127.0.0.1:${process.env.NUCLEO_E2E}/api/v1/senales`, {
+    headers: { Authorization: `Bearer ${token}` },
+    data: { fuente: 'correo', plataforma: 'getonboard', confianza: 0.8, ...datos },
+  });
+  expect(r.status()).toBe(201);
+  expect((await r.json()).destino).toBe('bandeja');
+}
+
+test('F2-13: una señal de la bandeja se asocia a una postulación y aparece en su ficha', async ({
+  page,
+  request,
+}) => {
+  await crear(page, 'Analista QA', 'Lumen Ficticia', 'https://ejemplo.test/e2e/lumen');
+  const ficha = page.url();
+  await senalSinPostulacion(request, {
+    resumen: 'Queremos agendar una entrevista técnica contigo',
+    estadoSugerido: 'entrevista',
+    referenciaExterna: `<e2e-lumen-${Date.now()}@ejemplo.test>`,
+    remitente: 'talento@lumen.test',
+    asunto: 'Entrevista con Lumen',
+    empresaDetectada: 'Lumen Ficticia',
+    cargoDetectado: 'Analista QA',
+  });
+  await senalSinPostulacion(request, {
+    resumen: 'Gracias por postular a Data Analyst',
+    referenciaExterna: `<e2e-orbe-${Date.now()}@ejemplo.test>`,
+    asunto: 'Recibimos tu postulación',
+    empresaDetectada: 'Orbe Ficticia',
+    cargoDetectado: 'Data Analyst',
+  });
+
+  await page.goto('/bandeja');
+  await expect(page.getByRole('heading', { level: 1, name: 'Bandeja' })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Bandeja (2 por revisar)' })).toBeVisible();
+  const lumen = page.locator('[data-senal]').filter({ hasText: 'Entrevista con Lumen' });
+  await expect(lumen.getByText('talento@lumen.test')).toBeVisible();
+  await expect(lumen).toContainText(/Confianza:\s*80\s?%/);
+  await sinViolaciones(page);
+
+  // Asociar: el buscador parte con la empresa detectada.
+  await lumen.getByRole('button', { name: 'Asociar' }).click();
+  const asociar = page.getByRole('dialog');
+  await expect(asociar.getByLabel('Buscar postulación')).toHaveValue('Lumen Ficticia');
+  const resultado = asociar.getByRole('button', { name: /Lumen Ficticia/ });
+  await expect(resultado).toBeVisible();
+  await sinViolaciones(page);
+  await resultado.click();
+  await expect(page.getByText('Señal asociada a Lumen Ficticia · Analista QA')).toBeVisible();
+  await expect(lumen).toHaveCount(0);
+  await expect(page.getByRole('link', { name: 'Bandeja (1 por revisar)' })).toBeVisible();
+
+  // Crear postulación con los datos de la otra señal (falta solo la URL del aviso).
+  const orbe = page.locator('[data-senal]').filter({ hasText: 'Recibimos tu postulación' });
+  await orbe.getByRole('button', { name: 'Crear postulación' }).click();
+  const crearDialogo = page.getByRole('dialog');
+  await expect(crearDialogo.getByLabel('Empresa')).toHaveValue('Orbe Ficticia');
+  await expect(crearDialogo.getByLabel('Cargo')).toHaveValue('Data Analyst');
+  await crearDialogo.getByLabel('URL del aviso').fill('https://ejemplo.test/e2e/orbe');
+  await crearDialogo.getByRole('button', { name: 'Crear y asociar' }).click();
+  await expect(page.getByText('Postulación creada: Orbe Ficticia · Data Analyst')).toBeVisible();
+  await expect(page.getByText('No hay señales por revisar')).toBeVisible();
+  await sinViolaciones(page);
+
+  // La señal asociada está en la ficha.
+  await page.goto(ficha);
+  await expect(page.getByText('Queremos agendar una entrevista técnica contigo')).toBeVisible();
+});
+
+test('F2-13: sin la API de IA, las pantallas lo dicen y son accesibles', async ({ page }) => {
+  await page.goto('/conexiones');
+  await expect(page.getByRole('heading', { level: 1, name: 'Conexiones' })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Servicio con IA apagado' })).toBeVisible();
+  await expect(
+    page.getByText('El servicio con IA no responde: está apagado o se cayó.').first(),
+  ).toBeVisible();
+  await sinViolaciones(page);
+
+  await page.goto('/avisos');
+  await expect(page.getByRole('heading', { level: 1, name: 'Avisos' })).toBeVisible();
+  await expect(page.getByRole('alert')).toContainText('El servicio con IA no responde');
+  await sinViolaciones(page);
+
+  await page.goto('/preguntar');
+  await expect(page.getByRole('heading', { level: 1, name: 'Preguntar' })).toBeVisible();
+  await page.getByLabel('Tu pregunta').fill('¿Qué aviso calza mejor conmigo?');
+  await page.getByRole('button', { name: 'Preguntar', exact: true }).click();
+  await expect(page.getByRole('alert')).toContainText('El servicio con IA no responde');
+  await sinViolaciones(page);
 });
