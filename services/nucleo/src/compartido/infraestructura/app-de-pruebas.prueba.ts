@@ -12,7 +12,9 @@ export interface AppDePrueba {
 }
 
 /** Levanta el núcleo completo contra la base de pruebas, con una carpeta de instancia temporal. */
-export async function appDePrueba(): Promise<AppDePrueba> {
+export async function appDePrueba(
+  opciones: { antesDeIniciar?: (app: INestApplication) => void } = {},
+): Promise<AppDePrueba> {
   const url = process.env.DATABASE_URL_PRUEBAS;
   if (!url) throw new Error('Falta DATABASE_URL_PRUEBAS');
   const config: Config = {
@@ -23,6 +25,7 @@ export async function appDePrueba(): Promise<AppDePrueba> {
     dir: mkdtempSync(join(tmpdir(), 'brecha-')),
   };
   const app = await crearApp(config, { logger: false });
+  opciones.antesDeIniciar?.(app);
   await app.init();
   return { app, config, token: (tipo) => readFileSync(join(config.dir, `token-${tipo}`), 'utf8').trim() };
 }

@@ -8,6 +8,7 @@
     "typecheck": "uv run mypy",
     "test": "uv run pytest",
     "dev": "uv run python -m ia.entradas.dev",
-    "db:migrar": "uv run alembic upgrade head"
+    "db:migrar": "uv run alembic upgrade head",
+    "empaquetar": "./scripts/empaquetar.sh"
   }
 }

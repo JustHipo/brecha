@@ -11,3 +11,9 @@ apps/consola/public/
 **/.venv/
 services/ia/uv.lock
 **/.import_linter_cache/
+
+# App de escritorio y servicio con IA compilados (F3)
+apps/escritorio/recursos
+apps/escritorio/empaquetado
+services/ia/build
+services/ia/dist

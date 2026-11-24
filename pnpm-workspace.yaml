@@ -18,6 +18,12 @@ allowBuilds:
   msgpackr-extract: true
   '@parcel/watcher': true
   '@tailwindcss/oxide': true
+  # instalador de Windows de electron-builder: la app es solo para macOS (D39)
+  electron-winstaller: false
+  # descarga el binario de Electron para la app de escritorio (F3)
+  electron: true
+  # crea los enlaces de las bibliotecas de PostgreSQL 17 que van dentro de la app (D36)
+  '@embedded-postgres/darwin-arm64': true
 
 minimumReleaseAgeExclude:
   - '@typescript-eslint/eslint-plugin@8.74.0'
