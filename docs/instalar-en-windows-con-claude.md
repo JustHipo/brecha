@@ -43,6 +43,7 @@ Pasos:
 
 7. Conectar Claude con Brecha (para que yo pueda pedirte cosas sobre mis postulaciones): con Brecha abierta, corre en PowerShell
    claude mcp add --transport http --scope user brecha http://127.0.0.1:4300/mcp --header "Authorization: Bearer $(Get-Content $env:APPDATA\Brecha\instancia\token-mcp)"
+   Si «claude» no se reconoce (solo está la app de escritorio, sin el CLI aparte), usa el claude.exe que trae la app: búscalo con Get-ChildItem "$env:LOCALAPPDATA\Claude-Data" -Recurse -Filter claude.exe y córrelo con su ruta completa. Revisa con «claude mcp get brecha» que diga Connected.
    No muestres el token. Después pídeme que abra una sesión nueva de Claude y comprueba que la herramienta brecha responde con «resumen».
 
 8. Usar la app: con mi ayuda, crea una postulación de prueba desde el tablero (Crear postulación), muévela de columna arrastrándola y ábrela para ver su ficha. Después bórrala o descártala. Explícame en simple: el tablero, la Bandeja (correos que la IA leyó y espera que yo confirme), Avisos, mi red de LinkedIn y Ajustes.
