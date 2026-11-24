@@ -46,7 +46,18 @@
       },
       {
         "from": "empaquetado/nucleo",
-        "to": "nucleo"
+        "to": "nucleo",
+        "filter": [
+          "**/*",
+          "!.turbo/**",
+          "!**/*.map",
+          "!**/*.spec.js",
+          "!**/*.d.ts",
+          "!eslint.config.mjs",
+          "!vitest.config.mts",
+          "!tsconfig*.json",
+          "!.dependency-cruiser.cjs"
+        ]
       },
       {
         "from": "../consola/dist/consola/browser",
@@ -78,7 +89,8 @@
     },
     "dmg": {
       "title": "Brecha"
-    }
+    },
+    "afterPack": "./scripts/despues-de-empaquetar.cjs"
   },
   "optionalDependencies": {
     "@embedded-postgres/darwin-arm64": "17.12.0-beta.19"

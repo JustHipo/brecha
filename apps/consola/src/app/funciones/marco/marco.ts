@@ -162,7 +162,7 @@ const PUNTOS = [
         <span class="ml-auto"></span>
         <span role="status" class="contents">
           <a
-            routerLink="/conexiones"
+            [routerLink]="estadoIa.indicador() === 'sin_configurar' ? '/ajustes' : '/conexiones'"
             class="flex items-center gap-[7px] rounded-full border border-linea px-3 py-1 font-semibold text-tinta no-underline hover:bg-superficie"
             [attr.title]="'ia.verConexiones' | transloco"
             data-indicador-ia
@@ -170,7 +170,10 @@ const PUNTOS = [
             <span
               class="size-2 rounded-full"
               [class.bg-ok]="estadoIa.indicador() === 'lista'"
-              [class.bg-prioridad-media]="estadoIa.indicador() === 'no_disponible'"
+              [class.bg-prioridad-media]="
+                estadoIa.indicador() === 'no_disponible' ||
+                estadoIa.indicador() === 'sin_configurar'
+              "
               [class.bg-error]="
                 estadoIa.indicador() === 'apagada' || estadoIa.indicador() === 'error'
               "

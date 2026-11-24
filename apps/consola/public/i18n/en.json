@@ -340,6 +340,7 @@
   "ia": {
     "cargando": "Checking the AI…",
     "lista": "AI ready",
+    "sin_configurar": "Set up email and AI in Settings",
     "no_disponible": "AI unavailable: {{n}} emails queued",
     "apagada": "AI service is off",
     "error": "The AI did not answer properly",

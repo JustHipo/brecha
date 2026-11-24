@@ -340,6 +340,7 @@
   "ia": {
     "cargando": "Revisando la IA…",
     "lista": "IA lista",
+    "sin_configurar": "Configura el correo y la IA en Ajustes",
     "no_disponible": "IA no disponible: {{n}} correos en cola",
     "apagada": "Servicio con IA apagado",
     "error": "La IA no respondió bien",

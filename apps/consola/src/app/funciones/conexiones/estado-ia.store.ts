@@ -8,7 +8,8 @@ import { ErrorDeApi } from '../../nucleo/errores/error-de-api';
 export const CADA_MS = 60_000;
 export const MINIMO_MS = 15_000;
 
-export type Indicador = 'cargando' | 'lista' | 'no_disponible' | 'apagada' | 'error';
+export type Indicador =
+  'cargando' | 'lista' | 'sin_configurar' | 'no_disponible' | 'apagada' | 'error';
 
 /**
  * Estado de la IA para el indicador de la barra superior y la pantalla Conexiones (ui.md §5).
@@ -34,7 +35,8 @@ export class EstadoIaStore {
     if (this.apagada()) return 'apagada';
     if (this.error()) return 'error';
     if (!c) return 'cargando';
-    return c.ia.configurado && !c.ia.ultimoError ? 'lista' : 'no_disponible';
+    if (!c.ia.configurado || !c.correo.configurado) return 'sin_configurar';
+    return c.ia.ultimoError ? 'no_disponible' : 'lista';
   });
 
   readonly enCola = computed(() => this.conexiones()?.ia.enCola ?? 0);
