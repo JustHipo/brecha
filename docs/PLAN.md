@@ -160,6 +160,14 @@ Una pyme registra sus importaciones y las sigue por hitos, con RAG sobre normati
 | D38 | Alcance para cerrar el desarrollo | **F3 sin RabbitMQ más F7**: app de escritorio, Ajustes, notificaciones, validación con IA y hooks leyendo el outbox; instalador y README. F4 queda para después | Para una sola persona, el outbox ya garantiza que no se pierdan eventos |
 | D39 | Firma de la app | **Sin firma de Apple** (firma ad hoc) | Uso personal; macOS pregunta una vez por el acceso al llavero |
 | D40 | Red de LinkedIn | **Contactos, solicitudes y mensajes en el núcleo, ligados a postulaciones**, actualizados por la IA de la persona por MCP (LinkedIn no tiene API) | Pedido de Juan el 23-nov-2026: saber con quién habla en cada postulación y por qué vía |
+| D41 | Importar y exportar por CSV | **Postulaciones y contactos de LinkedIn en CSV** (coma, UTF-8, encabezado), idempotente por URL del aviso y por perfil; exportar en el mismo formato; plantillas. Pedido de Juan el 24-nov-2026 para la Brecha de Tamara | `docs/diseno/csv.md`; REST `/csv/*`, MCP `importar_csv` y `exportar_csv`, `pnpm importar archivo.csv`, página Importar y exportar |
+| D42 | Etiquetas | **Objeto de valor del agregado**, guardadas en minúsculas y sin tildes, con filtro en lista, tablero, API y MCP | Migración `20261126000000_csv_etiquetas` |
+| D43 | Prioridad fijada a mano | Manda **solo en estados abiertos**; las cerradas siguen en baja (R12) | Editable en la ficha y por MCP; columna `prioridad` del CSV |
+| D44 | Estados al importar | **Los 9**; desde `postulado` se exigen fecha y canal; `descartado` no, salvo que traiga uno; columna opcional `motivo` (si falta, «Importado desde CSV») | Se crean directo con origen `importacion`, sin discrepancias |
+| D45 | Stack con calce | El `stack` cuenta **directo como requisitos** sin llamar al modelo; el modelo solo completa con el texto de `requisitos`. **Toda postulación entra al inventario de Avisos** | `TraerAvisosDelNucleo` y `AnalizarSinModelo` en el servicio con IA |
+| D46 | Contactos sin LinkedIn | **Se importan igual**, reconocidos por nombre y empresa, con advertencia; el perfil se completa después | Migración `20261126010000_red_sin_perfil` |
+| D47 | Lector de CSV | **csv-parse 7.0.3 y csv-stringify 6.9.0** | Detrás del puerto `LectorCsv` |
+| D48 | Rojo de las brechas | Token **`brecha` #B42318 sobre #FDECEA** (5,8:1), siempre con ✕ y «falta» | `apps/consola/src/styles.css` |
 
 ### 6.1 D8: lo que pidió Juan después del checkpoint de F0
 
@@ -276,6 +284,13 @@ Cada fase termina con un checkpoint: la revisas, la pruebas y decides si seguimo
 - **Hooks:** un archivo de configuración que, por tipo de evento, ejecuta un comando local o llama a una URL local.
 - **Segundo plano con Electron (D19):** `apps/escritorio` arranca con el equipo, vive en la barra de menú, mantiene el modo liviano (núcleo, PostgreSQL y vigía como procesos hijos) y levanta el completo al abrir la ventana. Empaquetar PostgreSQL y Python por sistema se resuelve aquí (a verificar qué distribución de binarios usar).
 - **Hecho cuando:** mover una tarjeta contra la evidencia genera un aviso de posible error; un correo de una postulación descartada llega como aviso de prioridad baja; al apagar RabbitMQ un rato no se pierde ningún evento.
+
+### CSV, etiquetas y stack con calce (24-nov-2026, D41 a D48)
+**Estado**: ✅ Implementado en la rama `f2-csv` (PR hacia `f2`); plan y decisiones en `docs/diseno/csv.md`
+- Probado con los CSV reales de Tamara en una base de pruebas: 88 postulaciones y 51 contactos (10 sin LinkedIn, como advertencia), 0 errores; importar dos veces deja lo mismo y exportar e importar da el mismo archivo.
+
+**Problemas encontrados:** csv-parse cuenta dos líneas por cada `\r\n` dentro de una celda; NestJS no registra su parser JSON global si ya hay un middleware llamado `jsonParser` (el límite de 6 MB de la ruta de importar dejó sin cuerpo a las demás).
+**Soluciones aplicadas:** se corrige el número de línea en el lector; el parser de la ruta de importar va envuelto en una función con otro nombre.
 
 ### F4: Panorama en Next.js (local)
 **Estado**: ⬜ Pendiente
