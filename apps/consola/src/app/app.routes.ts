@@ -76,6 +76,11 @@ export const routes: Routes = [
         loadComponent: () => import('./funciones/csv/csv').then((m) => m.CsvPagina),
       },
       {
+        path: 'perfil',
+        data: { foco: 'empleo' },
+        loadComponent: () => import('./funciones/perfil/perfil').then((m) => m.PerfilPagina),
+      },
+      {
         path: 'ajustes',
         loadComponent: () =>
           import('./funciones/recorrido/ajustes-con-recorrido').then((m) => m.AjustesConRecorrido),

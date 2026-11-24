@@ -28,9 +28,12 @@ export const RUTAS: Routes = [
     loadComponent: () => import('./paginas').then((m) => m.ArriendosCanalesPagina),
   },
   {
-    path: 'busqueda',
-    loadComponent: () => import('./paginas').then((m) => m.ArriendosBusquedaPagina),
+    path: 'perfil',
+    data: { foco: 'arriendos' },
+    loadComponent: () => import('../perfil/perfil').then((m) => m.PerfilPagina),
   },
+  // «Tu búsqueda» pasó a ser el Perfil (docs/diseno/perfil.md §5).
+  { path: 'busqueda', redirectTo: 'perfil' },
   {
     path: 'importar',
     loadComponent: () => import('./importar').then((m) => m.ArriendosImportarPagina),

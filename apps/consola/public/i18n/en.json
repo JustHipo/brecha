@@ -26,7 +26,8 @@
     "canales": "Channels",
     "propiedades": "Properties",
     "busqueda": "Your search",
-    "importarArriendos": "Import"
+    "importarArriendos": "Import",
+    "perfil": "Profile"
   },
   "busqueda": {
     "abrir": "Search or run…",
@@ -1138,5 +1139,74 @@
     "ubicarAyuda": "It looks up one address per second; come back in a bit.",
     "ubicando": "Locating {{n}} properties…",
     "fijada": "Location saved"
+  },
+  "perfil": {
+    "titulo": "Search profile",
+    "ayuda": {
+      "empleo": "Your rules for the job search. Hard rules rule a job out; soft rules sort, and P1 weighs the most. The ones Brecha checks flag “clashes with your profile” on each application without changing its status; your AI applies the rest by reading them. Your AI reads this profile before searching and asks you before changing it.",
+      "arriendos": "Your rules for the rental search. Hard rules rule a property out; soft rules sort, and P1 weighs the most. The ones Brecha checks give each property its match; your AI applies the rest by reading them. Your AI reads this profile before searching and asks you before changing it."
+    },
+    "filtrar": "Filter by tag",
+    "todas": "All",
+    "sinEtiqueta": "No tag",
+    "regla": "Rule",
+    "reglaEjemplo": {
+      "empleo": "Santiago only hybrid or remote",
+      "arriendos": "Close to a metro station"
+    },
+    "tipo": "Type",
+    "dura": "Hard",
+    "blanda": "Soft",
+    "subir": "Raise the priority of “{{regla}}”",
+    "bajar": "Lower the priority of “{{regla}}”",
+    "quitar": "Remove the rule “{{regla}}”",
+    "nuevaEtiqueta": "+ tag",
+    "agregarEtiqueta": "Add a tag to “{{regla}}”",
+    "quitarEtiqueta": "Remove the tag {{etiqueta}}",
+    "chequeo": "Brecha checks it",
+    "sinChequeo": "No, your AI applies it",
+    "criterios": {
+      "titulo": "Words in the title",
+      "modalidad_por_region": "Work mode by region",
+      "sueldo_publicado": "Published salary"
+    },
+    "incluir": "The title says (comma separated)",
+    "excluir": "Clashes if it says (comma separated)",
+    "zonas": {
+      "valparaiso": "Valparaíso Region",
+      "santiago": "Santiago",
+      "otra": "Anywhere else"
+    },
+    "noIndica": "No written work mode counts as on-site on:",
+    "minimo": "Minimum in pesos (empty: your expected salary)",
+    "valor": "Value",
+    "usaTusDatos": "Uses your details below",
+    "agregar": "Rule",
+    "sinReglas": "No rules yet. Add the first one or ask your AI.",
+    "tusDatos": "Your details",
+    "rentaPretendida": "Expected salary (net)",
+    "disponibleDesde": "Available from",
+    "notas": "Notes for your AI",
+    "motivo": "Why are you changing your profile?",
+    "motivoEjemplo": {
+      "empleo": "Only hybrid in Santiago",
+      "arriendos": "Starting to look in Ñuñoa"
+    },
+    "guardar": "Save",
+    "guardado": "Profile saved",
+    "historial": "History",
+    "sinHistorial": "You have not changed your profile yet.",
+    "origenes": {
+      "consola": "You",
+      "ia": "Your AI",
+      "importacion": "Import",
+      "senal": "Signal",
+      "correo": "Email"
+    },
+    "chocaCon": "Clashes with your profile: {{texto}}",
+    "tuPerfil": "Your profile",
+    "verPerfil": "See your profile",
+    "noSePudo": "Not checked",
+    "fichaAyuda": "It is a heads-up: it does not change the application status."
   }
 }

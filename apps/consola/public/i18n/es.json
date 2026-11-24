@@ -26,7 +26,8 @@
     "canales": "Canales",
     "propiedades": "Propiedades",
     "busqueda": "Tu búsqueda",
-    "importarArriendos": "Importar"
+    "importarArriendos": "Importar",
+    "perfil": "Perfil"
   },
   "busqueda": {
     "abrir": "Buscar o ejecutar…",
@@ -1138,5 +1139,74 @@
     "ubicarAyuda": "Busca una dirección por segundo; vuelve en un rato.",
     "ubicando": "Ubicando {{n}} propiedades…",
     "fijada": "Ubicación guardada"
+  },
+  "perfil": {
+    "titulo": "Perfil de búsqueda",
+    "ayuda": {
+      "empleo": "Tus reglas para buscar trabajo. Las duras descartan; las blandas ordenan y P1 pesa más. Las que Brecha revisa marcan «choca con tu perfil» en cada postulación, sin cambiar su estado; las demás las aplica tu IA leyéndolas. Tu IA lee este perfil antes de buscar y te pregunta antes de cambiarlo.",
+      "arriendos": "Tus reglas para buscar arriendo. Las duras descartan una propiedad; las blandas ordenan y P1 pesa más. Las que Brecha revisa dan el calce de cada propiedad; las demás las aplica tu IA leyéndolas. Tu IA lee este perfil antes de buscar y te pregunta antes de cambiarlo."
+    },
+    "filtrar": "Filtrar por etiqueta",
+    "todas": "Todas",
+    "sinEtiqueta": "Sin etiqueta",
+    "regla": "Regla",
+    "reglaEjemplo": {
+      "empleo": "Santiago solo híbrido o remoto",
+      "arriendos": "Cerca de una estación de metro"
+    },
+    "tipo": "Tipo",
+    "dura": "Dura",
+    "blanda": "Blanda",
+    "subir": "Subir la prioridad de «{{regla}}»",
+    "bajar": "Bajar la prioridad de «{{regla}}»",
+    "quitar": "Quitar la regla «{{regla}}»",
+    "nuevaEtiqueta": "+ etiqueta",
+    "agregarEtiqueta": "Agregar una etiqueta a «{{regla}}»",
+    "quitarEtiqueta": "Quitar la etiqueta {{etiqueta}}",
+    "chequeo": "La revisa Brecha",
+    "sinChequeo": "No, la aplica tu IA",
+    "criterios": {
+      "titulo": "Palabras del título",
+      "modalidad_por_region": "Modalidad por región",
+      "sueldo_publicado": "Sueldo publicado"
+    },
+    "incluir": "El título dice (separadas por coma)",
+    "excluir": "Choca si dice (separadas por coma)",
+    "zonas": {
+      "valparaiso": "Región de Valparaíso",
+      "santiago": "Santiago",
+      "otra": "Otro lugar"
+    },
+    "noIndica": "Sin modalidad escrita cuenta como presencial en:",
+    "minimo": "Mínimo en pesos (vacío: tu renta pretendida)",
+    "valor": "Valor",
+    "usaTusDatos": "Usa tus datos de abajo",
+    "agregar": "Regla",
+    "sinReglas": "Todavía no tienes reglas. Agrega la primera o pídesela a tu IA.",
+    "tusDatos": "Tus datos",
+    "rentaPretendida": "Renta pretendida (líquida)",
+    "disponibleDesde": "Disponible desde",
+    "notas": "Notas para tu IA",
+    "motivo": "¿Por qué cambias tu perfil?",
+    "motivoEjemplo": {
+      "empleo": "En Santiago solo híbrido",
+      "arriendos": "Empiezo a buscar en Ñuñoa"
+    },
+    "guardar": "Guardar",
+    "guardado": "Perfil guardado",
+    "historial": "Historial",
+    "sinHistorial": "Todavía no cambias tu perfil.",
+    "origenes": {
+      "consola": "Tú",
+      "ia": "Tu IA",
+      "importacion": "Importación",
+      "senal": "Señal",
+      "correo": "Correo"
+    },
+    "chocaCon": "Choca con tu perfil: {{texto}}",
+    "tuPerfil": "Tu perfil",
+    "verPerfil": "Ver tu perfil",
+    "noSePudo": "Sin revisar",
+    "fichaAyuda": "Es un aviso: no cambia el estado de la postulación."
   }
 }
