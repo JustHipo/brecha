@@ -163,16 +163,20 @@ export class RegistroDePids {
     writeFileSync(this.ruta, JSON.stringify(todos));
   }
 
-  /** Detiene los procesos de la vez anterior que sigan vivos y sean los mismos ejecutables. Devuelve sus nombres. */
+  /**
+   * Detiene los procesos de la vez anterior que sigan vivos y sean los mismos ejecutables. Devuelve sus nombres.
+   * `excepto`: los que se paran de otra forma (PostgreSQL, con pg_ctl).
+   */
   async detenerHuerfanos(
     nombreDe: (pid: number) => Promise<string | null> = (p) => nombreDeProceso(p),
     matar: (pid: number) => void = (p) => process.kill(p),
     esperaMs = 10_000,
+    excepto: string[] = [],
   ): Promise<string[]> {
     const detenidos: string[] = [];
     const pidsDetenidos: number[] = [];
     for (const [nombre, { pid, ejecutable }] of Object.entries(this.leer())) {
-      if (pid === process.pid || !vivo(pid)) continue;
+      if (excepto.includes(nombre) || pid === process.pid || !vivo(pid)) continue;
       const actual = await nombreDe(pid);
       if (!actual || actual.toLowerCase() !== ejecutable.toLowerCase()) continue;
       try {

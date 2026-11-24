@@ -1,4 +1,4 @@
-import { execFile } from 'node:child_process';
+import { execFile, spawn } from 'node:child_process';
 import { createHash, randomBytes } from 'node:crypto';
 import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -115,11 +115,23 @@ export async function arrancarConPgCtl(
   log: string,
 ): Promise<number> {
   const opciones = argumentosDePostgres(datos, puerto, 'win32').slice(2).join(' ');
-  await ejecutar(
-    join(postgres, 'bin', exe('pg_ctl')),
-    ['start', '-D', datos, '-w', '-t', '60', '-l', log, '-o', opciones],
-    { windowsHide: true },
-  );
+  // Sin pipes y esperando 'exit' (no 'close'): el postgres.exe que lanza pg_ctl hereda la salida y la deja abierta,
+  // así que execFile se quedaría esperando para siempre. Lo que diga PostgreSQL queda en `log`.
+  const codigo = await new Promise<number | null>((listo, falla) => {
+    const hijo = spawn(
+      join(postgres, 'bin', exe('pg_ctl')),
+      ['start', '-D', datos, '-w', '-t', '60', '-l', log, '-o', opciones],
+      { stdio: 'ignore', windowsHide: true },
+    );
+    hijo.once('error', falla);
+    hijo.once('exit', listo);
+  });
+  if (codigo !== 0) {
+    const ultimas = existsSync(log)
+      ? readFileSync(log, 'utf8').trim().split(/\r?\n/).slice(-5).join(' · ')
+      : '';
+    throw new Error(`pg_ctl start salió con ${codigo}${ultimas ? `: ${ultimas}` : ''}`);
+  }
   const pid = pidDePostgres(datos);
   if (!pid) throw new Error('PostgreSQL arrancó pero no dejó postmaster.pid');
   return pid;

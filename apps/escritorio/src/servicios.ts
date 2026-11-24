@@ -76,14 +76,14 @@ export class Servicios {
     if (!existsSync(binPostgres)) {
       throw new Error(`No está PostgreSQL en ${this.r.postgres}`);
     }
-    // Lo que quedó vivo de la vez anterior (en Windows los hijos no mueren con la app): primero PostgreSQL con
-    // un cierre limpio, después el resto si siguen con los puertos tomados.
-    if (await postgresCorriendo(this.r.postgres, datos)) {
-      this.registro.escribir('app', 'PostgreSQL de la vez anterior seguía corriendo: se detiene');
-      await detenerPostgres(this.r.postgres, datos);
-    }
+    // Lo que quedó vivo de la vez anterior (en Windows los hijos no mueren con la app): primero el núcleo y la IA,
+    // que tienen conexiones abiertas, y después PostgreSQL con un cierre limpio.
     this.pids = new RegistroDePids(this.instancia);
-    const huerfanos = await this.pids.detenerHuerfanos();
+    const huerfanos = await this.pids.detenerHuerfanos(undefined, undefined, undefined, ['postgres']);
+    if (await postgresCorriendo(this.r.postgres, datos)) {
+      const parado = await detenerPostgres(this.r.postgres, datos);
+      huerfanos.push(parado ? 'postgres' : 'postgres (no respondió a pg_ctl stop)');
+    }
     if (huerfanos.length)
       this.registro.escribir('app', `procesos de la vez anterior detenidos: ${huerfanos.join(', ')}`);
     for (const [nombre, puerto] of [

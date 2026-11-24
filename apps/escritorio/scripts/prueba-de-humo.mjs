@@ -191,12 +191,16 @@ try {
   abrir();
   // Los huérfanos siguen respondiendo hasta que la Brecha nueva los detiene: primero se espera eso.
   const appLog = join(datos, 'logs', 'app.log');
-  for (let i = 0; i < 90 && !/vez anterior/.test(readFileSync(appLog, 'utf8')); i++) await esperar(1000);
-  if (!/vez anterior/.test(readFileSync(appLog, 'utf8')))
-    throw new Error('la Brecha nueva no detuvo los procesos de la vez anterior');
+  const limpio = () => /procesos de la vez anterior detenidos/.test(readFileSync(appLog, 'utf8'));
+  for (let i = 0; i < 120 && !limpio(); i++) await esperar(1000);
+  if (!limpio()) throw new Error('la Brecha nueva no detuvo los procesos de la vez anterior');
   await esperarHttp(`${NUCLEO}/api/v1/salud`, 180);
   await esperarHttp(`${IA}/api/ia/salud`, 120);
-  for (let i = 0; i < 30 && pidsDeLaApp().length < 4; i++) await esperar(1000);
+  const nuevos = () => {
+    const p = pidsDeLaApp();
+    return p.length === 4 && !p.some((pid) => antes.includes(pid));
+  };
+  for (let i = 0; i < 60 && !nuevos(); i++) await esperar(1000);
   const despues = pidsDeLaApp();
   if (despues.some((pid) => antes.includes(pid)) || antes.some(vivo))
     throw new Error(`quedaron procesos de la vez anterior: antes ${antes}, después ${despues}`);
