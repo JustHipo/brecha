@@ -19,7 +19,7 @@ def repo() -> RepositorioPostgresDeCorreos:
         url = cfg.ia_database_url.replace("/brecha", "/brecha_pruebas")
     motor = crear_motor(url)
     with motor.begin() as c:
-        c.execute(text("TRUNCATE ia.correo, ia.estado_vigia"))
+        c.execute(text("TRUNCATE ia.correo, ia.estado_vigia, ia.clasificacion, ia.traza"))
     return RepositorioPostgresDeCorreos(motor)
 
 
@@ -43,3 +43,19 @@ def test_punto_de_lectura(repo: RepositorioPostgresDeCorreos) -> None:
     repo.registrar_revision(PuntoDeLectura(42, 9), ahora, None)
     repo.registrar_revision(PuntoDeLectura(42, 15), ahora, "error de prueba")
     assert repo.punto_de_lectura() == PuntoDeLectura(42, 15)
+
+
+def test_cola_de_clasificacion(repo: RepositorioPostgresDeCorreos) -> None:
+    from ia.dominio.clasificacion import Clasificacion
+
+    repo.guardar(g("<1@x>", EstadoDeCorreo.PENDIENTE, "texto"))
+    repo.guardar(g("<2@x>", EstadoDeCorreo.PENDIENTE, "texto"))
+    assert [c.message_id for c in repo.pendientes(10)] == ["<1@x>", "<2@x>"]
+    repo.marcar_clasificado(
+        "<1@x>", Clasificacion(True, "linkedin", "F", "B", "entrevista", "r", 0.8), "gpt-prueba"
+    )
+    for _ in range(5):
+        repo.marcar_intento_fallido("<2@x>", 5)
+    assert repo.pendientes(10) == [] and repo.en_cola() == 0
+    repo.registrar_error_ia("cuota: sin saldo")
+    repo.registrar_error_ia(None)

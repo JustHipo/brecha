@@ -6,6 +6,7 @@ from datetime import date, datetime
 from enum import StrEnum
 from typing import Protocol
 
+from ia.dominio.clasificacion import Clasificacion
 from ia.dominio.correo import CorreoLeido, EstadoDeCorreo
 
 
@@ -82,3 +83,65 @@ class RepositorioDeCorreos(Protocol):
     def guardar(self, correo: CorreoGuardado) -> None: ...
     def registrar_revision(self, punto: PuntoDeLectura, cuando: datetime, error: str | None) -> None: ...
     def en_cola(self) -> int: ...
+
+
+# ── Modelo de lenguaje y trazas (F2-06, ADR 0016) ──────────────────────────────
+
+
+class ErrorDeModelo(Exception):
+    """Error tipado del proveedor (IAAPP-006). `tipo` decide si se sigue con el próximo correo o se para."""
+
+    def __init__(self, tipo: str, mensaje: str) -> None:
+        super().__init__(mensaje)
+        self.tipo = tipo  # cuota | limite | credencial | no_disponible | respuesta_invalida
+
+    @property
+    def detiene(self) -> bool:
+        return self.tipo in {"cuota", "limite", "credencial", "no_disponible"}
+
+
+@dataclass(frozen=True)
+class Uso:
+    modelo: str
+    tokens_entrada: int
+    tokens_salida: int
+    duracion_ms: int
+
+
+class ModeloDeLenguaje(Protocol):
+    def clasificar_correo(
+        self, remitente: str, asunto: str, fragmento: str, plataforma_detectada: str | None
+    ) -> tuple[Clasificacion, Uso]: ...
+
+
+@dataclass(frozen=True)
+class Traza:
+    caso: str
+    modelo: str
+    tokens_entrada: int
+    tokens_salida: int
+    costo_usd: float
+    duracion_ms: int
+    resultado: str  # ok | cuota | limite | credencial | no_disponible | respuesta_invalida
+    creada_en: datetime
+
+
+class RegistroDeTrazas(Protocol):
+    def registrar(self, traza: Traza) -> None: ...
+
+
+@dataclass(frozen=True)
+class CorreoPorClasificar:
+    message_id: str
+    remitente: str
+    asunto: str
+    fragmento: str
+    plataforma: str | None
+    intentos: int
+
+
+class ColaDeClasificacion(Protocol):
+    def pendientes(self, limite: int) -> list[CorreoPorClasificar]: ...
+    def marcar_clasificado(self, message_id: str, clasificacion: Clasificacion, modelo: str) -> None: ...
+    def marcar_intento_fallido(self, message_id: str, maximo: int) -> None: ...
+    def registrar_error_ia(self, error: str | None) -> None: ...

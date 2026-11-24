@@ -24,7 +24,6 @@ ia = "ia.entradas.cli:main"
 [dependency-groups]
 dev = [
   "pytest==9.2.0",
-  "respx==0.23.1",
   "freezegun==1.5.5",
   "ruff==0.17.6",
   "mypy==2.4.1",

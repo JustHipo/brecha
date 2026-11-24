@@ -14,7 +14,7 @@ Escrito el 23-nov-2026 a partir de una revisión de 46 ofertas de empleo backend
 
 - **Qué es:** Brecha es un proyecto personal para aprender, en un sistema real, las herramientas que más piden las ofertas de desarrollo backend en Chile (Angular, React y Next.js, microservicios, RAG, colas y eventos, arquitectura hexagonal), conectadas a un stack conocido (NestJS, Prisma, PostgreSQL).
 - **Qué hace la app:** sigue postulaciones de empleo en varias plataformas, con evidencia del correo y validación por IA (sección 4).
-- **Qué se decidió:** sección 6 (D1 a D33). **Qué falta decidir:** sección 6.3.
+- **Qué se decidió:** sección 6 (D1 a D34). **Qué falta decidir:** sección 6.3.
 
 ## 2. Qué cubre y qué deja fuera
 
@@ -153,6 +153,7 @@ Una pyme registra sus importaciones y las sigue por hitos, con RAG sobre normati
 | D31 | trabajando | **Fuera de F2**: solo sus correos | Su API no es pública; el portal lo revisa la IA del usuario por MCP (D14) |
 | D32 | Perfil para brechas y calce | **Desde los datos del CV** (archivo local), editable en Conexiones | Nunca al repo |
 | D33 | Primera sincronización del correo | **Últimos 60 días** | Después, solo lo nuevo |
+| D34 | Modelo para clasificar correos | **`gpt-6-luna`** (USD 0,10 entrada y 0,50 salida por millón de tokens, página oficial del 24-nov-2026), con salida estructurada | Probado con 27 correos reales: USD 0,0045 en total. Se cambia en `OPENAI_MODELO` |
 
 ### 6.1 D8: lo que pidió Juan después del checkpoint de F0
 

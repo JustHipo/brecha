@@ -20,7 +20,10 @@ class Config(BaseSettings):
     brecha_dir: Path = Path(".brecha")
     vigia_minutos: int = Field(default=15, ge=1, le=1440)  # D29
     dias_primera_sincronizacion: int = Field(default=60, ge=1, le=365)  # D33
-    openai_modelo: str | None = None  # se elige al empezar F2 (docs/diseno/f2.md §4)
+    # Elegido en F2-06 con la página oficial de precios (developers.openai.com/api/docs/pricing, 2026-11-24).
+    openai_modelo: str = "gpt-6-luna"
+    openai_precio_entrada: float = 0.10  # USD por millón de tokens
+    openai_precio_salida: float = 0.50
     openai_modelo_embeddings: str = "text-embedding-3-small"
 
     @property

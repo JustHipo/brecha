@@ -3,14 +3,16 @@
 Sin el cuerpo completo: solo el fragmento de lo que pasó el filtro.
 """
 
+from dataclasses import asdict
 from datetime import UTC, datetime
 
-from sqlalchemy import Engine, func, select
+from sqlalchemy import Engine, func, select, update
 from sqlalchemy.dialects.postgresql import insert
 
-from ia.aplicacion.puertos import CorreoGuardado, PuntoDeLectura
+from ia.aplicacion.puertos import CorreoGuardado, CorreoPorClasificar, PuntoDeLectura, Traza
+from ia.dominio.clasificacion import Clasificacion
 from ia.dominio.correo import EstadoDeCorreo
-from ia.infraestructura.postgres.tablas import correo, estado_vigia
+from ia.infraestructura.postgres.tablas import clasificacion, correo, estado_vigia, traza
 
 
 class RepositorioPostgresDeCorreos:
@@ -70,3 +72,69 @@ class RepositorioPostgresDeCorreos:
                 .where(correo.c.estado == EstadoDeCorreo.PENDIENTE.value)
             ).scalar_one()
         return int(n)
+
+    # ── Cola de clasificación (F2-06) ───────────────────────────────────────────
+
+    def pendientes(self, limite: int) -> list[CorreoPorClasificar]:
+        with self.motor.connect() as c:
+            filas = c.execute(
+                select(correo)
+                .where(correo.c.estado == EstadoDeCorreo.PENDIENTE.value)
+                .order_by(correo.c.recibido_en)
+                .limit(limite)
+            ).all()
+        return [
+            CorreoPorClasificar(
+                f.message_id, f.remitente, f.asunto or "", f.fragmento or "", f.plataforma, f.intentos
+            )
+            for f in filas
+        ]
+
+    def marcar_clasificado(self, message_id: str, clasif: Clasificacion, modelo: str) -> None:
+        with self.motor.begin() as c:
+            c.execute(
+                insert(clasificacion)
+                .values(
+                    message_id=message_id,
+                    resultado=asdict(clasif),
+                    modelo=modelo,
+                    confianza=clasif.confianza,
+                    creada_en=datetime.now(UTC),
+                )
+                .on_conflict_do_nothing(index_elements=["message_id"])
+            )
+            c.execute(
+                update(correo)
+                .where(correo.c.message_id == message_id)
+                .values(estado=EstadoDeCorreo.CLASIFICADO.value)
+            )
+
+    def marcar_intento_fallido(self, message_id: str, maximo: int) -> None:
+        with self.motor.begin() as c:
+            c.execute(
+                update(correo).where(correo.c.message_id == message_id).values(intentos=correo.c.intentos + 1)
+            )
+            c.execute(
+                update(correo)
+                .where(correo.c.message_id == message_id, correo.c.intentos >= maximo)
+                .values(estado=EstadoDeCorreo.ERROR.value)
+            )
+
+    def registrar_error_ia(self, error: str | None) -> None:
+        with self.motor.begin() as c:
+            c.execute(
+                insert(estado_vigia)
+                .values(id=1, ultimo_error_ia=error)
+                .on_conflict_do_update(index_elements=["id"], set_={"ultimo_error_ia": error})
+            )
+
+
+class TrazasPostgres:
+    """D28: cada llamada al modelo queda con modelo, tokens, costo y resultado; nunca el texto del correo."""
+
+    def __init__(self, motor: Engine) -> None:
+        self.motor = motor
+
+    def registrar(self, t: Traza) -> None:
+        with self.motor.begin() as c:
+            c.execute(insert(traza).values(**asdict(t)))
