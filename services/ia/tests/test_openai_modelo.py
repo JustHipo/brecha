@@ -138,3 +138,54 @@ def test_una_respuesta_fuera_del_dominio_es_respuesta_invalida() -> None:
             "a@b.test", "x", "y", None
         )
     assert e.value.tipo == "respuesta_invalida"
+
+
+def test_analizar_aviso_devuelve_requisitos() -> None:
+    from ia.dominio.aviso import Aviso
+    from ia.dominio.calce import Requisito
+
+    s = Simulado(
+        respuesta(
+            {
+                "requisitos": [
+                    {"nombre": "NestJS", "obligatorio": True, "anos": 2},
+                    {"nombre": " ", "obligatorio": False, "anos": None},
+                    {"nombre": "AWS", "obligatorio": False, "anos": None},
+                ],
+                "anos_totales": 3,
+            }
+        )
+    )
+    a = Aviso("https://ejemplo.test/1", "Backend", "Ficticia", "otra", "remoto", "manual", "NestJS 2 años")
+    reqs, uso = s.modelo().analizar_aviso(a)
+    assert reqs == [Requisito("NestJS", True, 2), Requisito("AWS", False, None)]
+    assert uso.tokens_entrada == 700
+    assert "NestJS 2 años" in s.pedidos[0].content.decode()
+
+
+def test_embeber_ordena_por_indice() -> None:
+    cuerpo = {
+        "object": "list",
+        "model": "text-embedding-3-small",
+        "data": [
+            {"object": "embedding", "index": 1, "embedding": [0.2]},
+            {"object": "embedding", "index": 0, "embedding": [0.1]},
+        ],
+        "usage": {"prompt_tokens": 12, "total_tokens": 12},
+    }
+    s = Simulado(httpx2.Response(200, json=cuerpo))
+    vectores, uso = s.modelo().embeber(["a", "b"])
+    assert vectores == [[0.1], [0.2]]
+    assert uso.tokens_entrada == 12
+    assert s.pedidos[0].url.path.endswith("/embeddings")
+
+
+def test_responder_devuelve_texto_y_citas() -> None:
+    from ia.aplicacion.puertos import AvisoParaResponder
+
+    s = Simulado(respuesta({"respuesta": "Backend en Ficticia", "citados": ["a1"]}))
+    texto, citados, _ = s.modelo().responder(
+        "¿Qué piden?", [AvisoParaResponder("a1", "Backend", "Ficticia", "remoto", None, ("NestJS",), "texto")]
+    )
+    assert (texto, citados) == ("Backend en Ficticia", ["a1"])
+    assert "[id: a1]" in s.pedidos[0].content.decode()

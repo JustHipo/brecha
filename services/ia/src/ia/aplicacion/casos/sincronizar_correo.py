@@ -6,7 +6,7 @@ from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 
 from ia.aplicacion.puertos import CorreoGuardado, LectorDeCorreo, PuntoDeLectura, RepositorioDeCorreos
-from ia.dominio.correo import EstadoDeCorreo
+from ia.dominio.correo import CorreoLeido, EstadoDeCorreo
 from ia.dominio.filtro import filtrar
 from ia.dominio.fragmento import fragmento
 
@@ -49,43 +49,55 @@ class SincronizarCorreo:
             for c in self.lector.nuevos(desde_uid, desde_fecha):
                 r.leidos += 1
                 ultimo = max(ultimo or 0, c.uid)
-                if self.repo.existe(c.message_id):
+                destino, plataforma = ingresar(self.repo, c)
+                if destino == "repetido":
                     r.repetidos += 1
-                    continue
-                f = filtrar(c)
-                if not f.pasa:
+                elif destino == "filtrado":
                     r.filtrados += 1
-                    self.repo.guardar(
-                        CorreoGuardado(
-                            c.message_id,
-                            c.uid,
-                            c.remitente,
-                            c.recibido_en,
-                            EstadoDeCorreo.FILTRADO,
-                            f.plataforma,
-                            f.motivo,
-                        )
-                    )
-                    continue
-                r.pendientes += 1
-                clave = f.plataforma or "otra"
-                r.por_plataforma[clave] = r.por_plataforma.get(clave, 0) + 1
-                self.repo.guardar(
-                    CorreoGuardado(
-                        c.message_id,
-                        c.uid,
-                        c.remitente,
-                        c.recibido_en,
-                        EstadoDeCorreo.PENDIENTE,
-                        f.plataforma,
-                        f.motivo,
-                        asunto=c.asunto[:500],
-                        fragmento=fragmento(c.texto),
-                    )
-                )
+                else:
+                    r.pendientes += 1
+                    clave = plataforma or "otra"
+                    r.por_plataforma[clave] = r.por_plataforma.get(clave, 0) + 1
             self.repo.registrar_revision(PuntoDeLectura(validez, ultimo), cuando, None)
         except Exception as e:  # la fuente falló: queda visible en estado_vigia, nunca en silencio
             r.error = f"{type(e).__name__}: {str(e)[:200]}"
             self.repo.registrar_revision(punto, cuando, r.error)
         r.en_cola = self.repo.en_cola()
         return r
+
+
+def ingresar(repo: RepositorioDeCorreos, c: CorreoLeido) -> tuple[str, str | None]:
+    """Un correo leído entra a la base: repetido, filtrado (sin asunto ni fragmento) o por clasificar.
+
+    Lo usan el vigía y `ia probar-correo` (correos de prueba en archivos, sin tocar el punto de lectura).
+    """
+    if repo.existe(c.message_id):
+        return "repetido", None
+    f = filtrar(c)
+    if not f.pasa:
+        repo.guardar(
+            CorreoGuardado(
+                c.message_id,
+                c.uid,
+                c.remitente,
+                c.recibido_en,
+                EstadoDeCorreo.FILTRADO,
+                f.plataforma,
+                f.motivo,
+            )
+        )
+        return "filtrado", f.plataforma
+    repo.guardar(
+        CorreoGuardado(
+            c.message_id,
+            c.uid,
+            c.remitente,
+            c.recibido_en,
+            EstadoDeCorreo.PENDIENTE,
+            f.plataforma,
+            f.motivo,
+            asunto=c.asunto[:500],
+            fragmento=fragmento(c.texto),
+        )
+    )
+    return "pendiente", f.plataforma

@@ -1,9 +1,11 @@
 """Tablas del esquema `ia` con SQLAlchemy Core. Las crea Alembic (alembic/versions)."""
 
+from pgvector.sqlalchemy import Vector
 from sqlalchemy import (
     BigInteger,
     Boolean,
     Column,
+    Date,
     DateTime,
     Float,
     ForeignKey,
@@ -69,4 +71,45 @@ traza = Table(
     Column("duracion_ms", Integer, nullable=False),
     Column("resultado", String(30), nullable=False),
     Column("creada_en", DateTime(timezone=True), nullable=False),
+)
+
+aviso = Table(
+    "aviso",
+    metadata,
+    Column("id", String(36), primary_key=True),
+    Column("url", String(2000), nullable=False),
+    Column("url_clave", String(2000), nullable=False, unique=True),
+    Column("titulo", String(300), nullable=False),
+    Column("empresa", String(200), nullable=False),
+    Column("plataforma", String(30), nullable=False),
+    Column("modalidad", String(20), nullable=False),
+    Column("origen", String(20), nullable=False),
+    Column("texto", Text, nullable=False),
+    Column("ubicacion", String(200)),
+    Column("stack", JSONB, nullable=False),
+    Column("sueldo", String(200)),
+    Column("usd_mes", Integer),
+    Column("publicado_en", Date),
+    Column("cierre", Date),
+    Column("cita", String(300)),
+    Column("requisitos", JSONB),
+    Column("calce", Integer),
+    Column("brechas", JSONB),
+    Column("cumple", JSONB),
+    Column("analizado_con", String(100)),
+    Column("postulacion_id", String(36)),
+    Column("vinculo_enviado", String(60)),
+    Column("embedding", Vector(1536)),
+    Column("embedding_modelo", String(100)),
+    Column("creado_en", DateTime(timezone=True), nullable=False),
+    Column("actualizado_en", DateTime(timezone=True), nullable=False),
+)
+
+perfil = Table(
+    "perfil",
+    metadata,
+    Column("id", Integer, primary_key=True),
+    Column("herramientas", JSONB, nullable=False),
+    Column("anos_totales", Float, nullable=False),
+    Column("actualizado_en", DateTime(timezone=True), nullable=False),
 )

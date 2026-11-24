@@ -7,7 +7,9 @@ export class RelojDelSistema implements Reloj {
     return new Date();
   }
   hoy(): Fecha {
-    const d = new Date();
+    return this.fechaDe(new Date());
+  }
+  fechaDe(d: Date): Fecha {
     const mes = String(d.getMonth() + 1).padStart(2, '0');
     const dia = String(d.getDate()).padStart(2, '0');
     return `${d.getFullYear()}-${mes}-${dia}`;

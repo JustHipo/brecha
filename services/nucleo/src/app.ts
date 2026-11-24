@@ -25,6 +25,9 @@ export async function crearApp(
     AppModule.para(config, { ...(opciones.reloj ? { reloj: opciones.reloj } : {}) }),
     {
       logger: opciones.logger ?? ['error', 'warn', 'log'],
+      // El stream SSE de la consola queda abierto: sin esto, app.close() espera para siempre
+      // y el modo watch nunca levanta el proceso nuevo.
+      forceCloseConnections: true,
     },
   );
   app.setGlobalPrefix('api/v1', { exclude: [{ path: 'mcp', method: RequestMethod.ALL }] });

@@ -21,6 +21,18 @@ def lanzar_vigia() -> subprocess.Popen[bytes]:
     return subprocess.Popen([sys.executable, "-m", "ia.entradas.vigia"])
 
 
+def detener(p: subprocess.Popen[bytes], espera_s: float = 10) -> None:
+    """Le pide al proceso que pare; si sigue ocupado (por ejemplo, esperando a OpenAI), lo mata."""
+    if p.poll() is not None:
+        return
+    p.terminate()
+    try:
+        p.wait(timeout=espera_s)
+    except subprocess.TimeoutExpired:
+        p.kill()
+        p.wait()
+
+
 def main() -> None:
     cfg = cargar_config()
     api = subprocess.Popen(
@@ -38,14 +50,13 @@ def main() -> None:
             if ahora != visto:
                 visto = ahora
                 print("ia.dev: cambió el código, reinicio el vigía", flush=True)
-                vigia.terminate()
-                vigia.wait(timeout=10)
+                detener(vigia)
                 vigia = lanzar_vigia()
     except KeyboardInterrupt:
         pass
     finally:
         for p in (api, vigia):
-            p.terminate()
+            detener(p)
 
 
 if __name__ == "__main__":

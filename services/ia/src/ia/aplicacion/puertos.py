@@ -7,6 +7,8 @@ from enum import StrEnum
 from typing import Protocol
 
 from ia.dominio.asociacion import PostulacionConocida
+from ia.dominio.aviso import Aviso
+from ia.dominio.calce import Calce, Perfil, Requisito
 from ia.dominio.clasificacion import Clasificacion
 from ia.dominio.correo import CorreoLeido, EstadoDeCorreo
 
@@ -212,3 +214,86 @@ class EstadoDelServicio:
 
 class ConsultaDeEstado(Protocol):
     def estado(self, desde_mes: datetime) -> EstadoDelServicio: ...
+
+
+# ── Avisos, análisis, embeddings y Preguntar (F2-09 a F2-12) ───────────────────
+
+
+@dataclass(frozen=True)
+class AvisoGuardado:
+    id: str
+    aviso: Aviso
+    requisitos: tuple[Requisito, ...] | None  # None: sin analizar
+    calce: Calce | None
+    postulacion_id: str | None
+    distancia: float | None = None  # solo en una búsqueda por vector
+    vinculo_enviado: str | None = None  # «postulación:calce» que ya conoce el núcleo
+
+
+@dataclass(frozen=True)
+class FiltrosDeAvisos:
+    texto: str | None = None
+    modalidad: str | None = None
+    plataforma: str | None = None
+    calce_minimo: int | None = None
+    usd_minimo: int | None = None
+    limite: int = 200
+
+
+class RepositorioDeAvisos(Protocol):
+    def guardar(self, aviso: Aviso) -> tuple[str, bool]: ...  # (id, es nuevo)
+    def por_id(self, id: str) -> AvisoGuardado | None: ...
+    def listar(self, filtros: FiltrosDeAvisos) -> list[AvisoGuardado]: ...
+    def sin_analizar(self, limite: int) -> list[AvisoGuardado]: ...
+    def guardar_analisis(
+        self, id: str, requisitos: list[Requisito], calce: Calce | None, modelo: str
+    ) -> None: ...
+    def recalcular(self, id: str, calce: Calce | None) -> None: ...
+    def analizados(self) -> list[AvisoGuardado]: ...
+    def vincular(self, id: str, postulacion_id: str) -> None: ...
+    def marcar_vinculo_enviado(self, id: str, clave: str) -> None: ...
+    def sin_vector(self, limite: int) -> list[AvisoGuardado]: ...
+    def guardar_vector(self, id: str, vector: list[float], modelo: str) -> None: ...
+    def cercanos(self, vector: list[float], k: int, filtros: FiltrosDeAvisos) -> list[AvisoGuardado]: ...
+    def contar(self) -> dict[str, int]: ...
+
+
+class FuenteDeAvisos(Protocol):
+    """Una fuente externa de avisos (Get on Board por su API pública)."""
+
+    def buscar(self, consulta: str, maximo: int) -> list[Aviso]: ...
+
+
+class AnalizadorDeAvisos(Protocol):
+    def analizar_aviso(self, aviso: Aviso) -> tuple[list[Requisito], Uso]: ...
+
+
+class Embeddings(Protocol):
+    modelo_embeddings: str
+
+    def embeber(self, textos: list[str]) -> tuple[list[list[float]], Uso]: ...
+
+
+@dataclass(frozen=True)
+class AvisoParaResponder:
+    id: str
+    titulo: str
+    empresa: str
+    modalidad: str
+    sueldo: str | None
+    stack: tuple[str, ...]
+    texto: str
+
+
+class Respondedor(Protocol):
+    def responder(self, pregunta: str, avisos: list[AvisoParaResponder]) -> tuple[str, list[str], Uso]: ...
+
+
+class RepositorioDePerfil(Protocol):
+    def perfil(self) -> Perfil | None: ...
+    def guardar(self, perfil: Perfil) -> None: ...
+
+
+class EnlaceConNucleo(Protocol):
+    def postulaciones(self) -> list[PostulacionConocida]: ...
+    def vincular_aviso(self, postulacion_id: str, aviso_id: str, calce: float | None) -> None: ...

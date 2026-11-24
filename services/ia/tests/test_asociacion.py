@@ -43,5 +43,53 @@ def test_normaliza_sufijos_parentesis_y_genero() -> None:
 
 
 def test_sin_empresa_o_empresa_desconocida_va_a_la_bandeja() -> None:
-    assert asociar(None, "Backend", "otra", CONOCIDAS).motivo == "sin empresa detectada"
+    assert asociar(None, "Backend", "otra", CONOCIDAS).postulacion_id is None
     assert asociar("Otra Empresa", "Backend", "otra", CONOCIDAS).postulacion_id is None
+
+
+def test_empresa_desde_el_dominio_del_remitente() -> None:
+    from ia.dominio.asociacion import empresa_del_dominio
+
+    assert empresa_del_dominio("orbital-pruebas.example") == "orbital pruebas"
+    assert empresa_del_dominio("seleccion.ficticia.com.co") == "ficticia"
+    assert empresa_del_dominio("ficticia.cl") == "ficticia"
+    assert empresa_del_dominio("jobs.linkedin.com") is None
+    assert empresa_del_dominio("gmail.com") is None
+    assert empresa_del_dominio(None) is None
+
+
+def test_sin_empresa_asocia_por_el_dominio_o_solo_por_cargo() -> None:
+    from ia.dominio.asociacion import PostulacionConocida, asociar
+
+    conocidas = [
+        PostulacionConocida("a", "Orbital Pruebas SpA", "Desarrollador Backend de Prueba", "otra", True),
+        PostulacionConocida("b", "Otra Empresa", "Analista de Datos", "otra", True),
+        PostulacionConocida("c", "Tercera", "Desarrollador Backend de Prueba", "otra", False),
+    ]
+    por_dominio = asociar(None, "Backend", "otra", conocidas, "orbital-pruebas.example")
+    assert por_dominio.postulacion_id == "a" and "dominio" in por_dominio.motivo
+    por_cargo = asociar(None, "Desarrollador Backend de Prueba", "otra", conocidas, "gmail.com")
+    assert por_cargo.postulacion_id == "a" and "solo por cargo" in por_cargo.motivo  # «c» no está activa
+    assert asociar(None, "Analista", "otra", conocidas, None).postulacion_id is None
+
+
+def test_sin_empresa_y_cargo_repetido_va_a_la_bandeja() -> None:
+    from ia.dominio.asociacion import PostulacionConocida, asociar
+
+    conocidas = [
+        PostulacionConocida("a", "Uno", "Desarrollador Backend", "otra", True),
+        PostulacionConocida("b", "Dos", "Desarrollador Backend", "otra", True),
+    ]
+    r = asociar(None, "Desarrollador Backend", "otra", conocidas)
+    assert r.postulacion_id is None and "2 postulaciones" in r.motivo
+
+
+def test_empate_entre_una_cerrada_y_una_activa_gana_la_activa() -> None:
+    from ia.dominio.asociacion import PostulacionConocida, asociar
+
+    conocidas = [
+        PostulacionConocida("vieja", "Ficticia", "Backend", "otra", False),
+        PostulacionConocida("nueva", "Ficticia", "Backend", "otra", True),
+    ]
+    r = asociar("Ficticia", "Backend", "otra", conocidas)
+    assert r.postulacion_id == "nueva" and "activa" in r.motivo

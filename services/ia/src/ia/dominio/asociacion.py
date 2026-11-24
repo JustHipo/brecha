@@ -8,6 +8,8 @@ import unicodedata
 from dataclasses import dataclass
 from difflib import SequenceMatcher
 
+from ia.dominio.reglas import DOMINIOS_DE_PLATAFORMAS, DOMINIOS_DE_SELECCION
+
 SUFIJOS = re.compile(
     r"\b(s\.?\s?a\.?|spa|s\.?p\.?a\.?|ltda\.?|limitada|chile|cl|group|grupo|inc\.?|llc|sas|eirl|"
     r"consultores|consulting|tecnolog[ií]a|technologies|software|labs?)\b"
@@ -24,6 +26,7 @@ class PostulacionConocida:
     titulo: str
     plataforma: str
     activa: bool
+    url: str = ""
 
 
 @dataclass(frozen=True)
@@ -71,15 +74,49 @@ def parecido_cargo(a: str, b: str) -> float:
     return round(0.7 * contenido + 0.3 * jaccard, 3)
 
 
-def asociar(
-    empresa: str | None, cargo: str | None, plataforma: str, conocidas: list[PostulacionConocida]
-) -> ResultadoAsociacion:
-    """Puntaje por empresa (necesaria) y cargo.
+SOLO_CARGO = 0.9
+_GENERICOS = {"gmail", "outlook", "hotmail", "yahoo", "icloud", "mail", "correo", "noreply", "no reply"}
 
-    Si dos quedan empatadas, decide la plataforma por la que llegó.
+
+def empresa_del_dominio(dominio: str | None) -> str | None:
+    """«orbital-pruebas.cl» → «orbital pruebas». Nada si es una plataforma, un ATS o un correo genérico."""
+    if not dominio:
+        return None
+    d = dominio.lower().strip(".")
+    if any(d == x or d.endswith("." + x) for x in (*DOMINIOS_DE_PLATAFORMAS, *DOMINIOS_DE_SELECCION)):
+        return None
+    partes = d.split(".")
+    if len(partes) < 2:
+        return None
+    # La etiqueta registrable: la anterior al sufijo (y a «com», «co» o «gob» en sufijos de dos partes).
+    etiqueta = (
+        partes[-3] if len(partes) >= 3 and partes[-2] in {"com", "co", "gob", "org", "net"} else partes[-2]
+    )
+    nombre = etiqueta.replace("-", " ").strip()
+    return None if not nombre or nombre in _GENERICOS else nombre
+
+
+def asociar(
+    empresa: str | None,
+    cargo: str | None,
+    plataforma: str,
+    conocidas: list[PostulacionConocida],
+    dominio_remitente: str | None = None,
+) -> ResultadoAsociacion:
+    """Puntaje por empresa y cargo. En un empate decide la plataforma y, con cargo, la única activa.
+
+    Sin empresa en el correo, se prueba con el dominio del remitente (si es de la empresa) y, si tampoco,
+    solo con el cargo: una única postulación activa con un cargo casi igual.
     """
     if not empresa:
-        return ResultadoAsociacion(None, 0.0, "sin empresa detectada")
+        desde_dominio = empresa_del_dominio(dominio_remitente)
+        if desde_dominio:
+            r = asociar(desde_dominio, cargo, plataforma, conocidas)
+            if r.postulacion_id:
+                return ResultadoAsociacion(
+                    r.postulacion_id, r.puntaje, f"{r.motivo}, por el dominio del remitente"
+                )
+        return _solo_por_cargo(cargo, conocidas)
     e = normalizar_empresa(empresa)
     c = normalizar_cargo(cargo or "")
     puntajes: list[tuple[float, PostulacionConocida]] = []
@@ -101,4 +138,21 @@ def asociar(
     por_plataforma = [q for q in empatadas if q.plataforma == plataforma]
     if len(por_plataforma) == 1:
         return ResultadoAsociacion(por_plataforma[0].id, mejor, f"asociada por plataforma ({mejor})")
+    activas = [q for q in (por_plataforma or empatadas) if q.activa]
+    if c and len(activas) == 1:  # el mismo cargo publicado de nuevo: la que sigue en curso
+        return ResultadoAsociacion(activas[0].id, mejor, f"asociada a la única activa ({mejor})")
     return ResultadoAsociacion(None, mejor, f"ambigua: {len(empatadas)} candidatas parecidas ({mejor})")
+
+
+def _solo_por_cargo(cargo: str | None, conocidas: list[PostulacionConocida]) -> ResultadoAsociacion:
+    if not cargo:
+        return ResultadoAsociacion(None, 0.0, "sin empresa ni cargo detectados")
+    c = normalizar_cargo(cargo)
+    candidatas = [(parecido_cargo(c, normalizar_cargo(p.titulo)), p) for p in conocidas if p.activa]
+    altas = [(s, p) for s, p in candidatas if s >= SOLO_CARGO]
+    if len(altas) == 1:
+        s, p = altas[0]
+        return ResultadoAsociacion(p.id, s, f"asociada solo por cargo ({s})")
+    if not altas:
+        return ResultadoAsociacion(None, 0.0, "sin empresa detectada y ningún cargo igual")
+    return ResultadoAsociacion(None, SOLO_CARGO, f"sin empresa: {len(altas)} postulaciones con ese cargo")

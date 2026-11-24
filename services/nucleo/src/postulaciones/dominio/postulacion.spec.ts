@@ -10,7 +10,7 @@ import {
 } from './errores';
 import { AVISO, enEstado } from './fabrica.prueba';
 import { crearAvisoResumen } from './objetos-valor/valores';
-import { Postulacion } from './postulacion';
+import { Postulacion, type PostulacionDatos } from './postulacion';
 
 const CANAL = { tipo: 'portal', valor: 'LinkedIn' } as const;
 const SEGURAS = { aplicarSeguras: false, umbral: 0.9 };
@@ -356,6 +356,63 @@ describe('R11: una señal no cambia el estado por sí sola', () => {
       { ...deps, ...SEGURAS },
     );
     expect(() => p.aplicarSenal(s.id, deps)).toThrow(DatoInvalido);
+  });
+
+  function sinPostular(extra: Partial<PostulacionDatos> = {}) {
+    const { fechaPostulacion: _f, canal: _c, ...resto } = enEstado('por_postular', deps).datos();
+    return Postulacion.reconstituir({ ...resto, ...extra });
+  }
+
+  it('una señal de «postulado» trae la fecha y el canal que exige R2', () => {
+    const p = sinPostular();
+    const s = p.registrarSenal(
+      {
+        fuente: 'correo',
+        plataforma: 'getonboard',
+        resumen: 'Recibimos tu postulación',
+        estadoSugerido: 'postulado',
+        confianza: 0.98,
+        recibidaEn: new Date('2026-11-20T15:00:00Z'),
+      },
+      { ...deps, aplicarSeguras: true, umbral: 0.9 },
+    );
+    expect(s.aplicada).toBe(true);
+    expect(p.estado).toBe('postulado');
+    expect(p.datos().fechaPostulacion).toBe('2026-11-20');
+    expect(p.datos().canal).toEqual({ tipo: 'portal', valor: 'getonboard' });
+  });
+
+  it('si la señal no sabe la plataforma, el canal usa la del aviso', () => {
+    const p = sinPostular();
+    const s = p.registrarSenal(
+      {
+        fuente: 'correo',
+        plataforma: 'otra',
+        resumen: 'Recibida',
+        estadoSugerido: 'postulado',
+        confianza: 0.95,
+      },
+      { ...deps, aplicarSeguras: true, umbral: 0.9 },
+    );
+    expect(s.aplicada).toBe(true);
+    expect(p.datos().canal).toEqual({ tipo: 'portal', valor: p.datos().aviso.plataforma });
+  });
+
+  it('la fecha de una señal de «postulado» nunca queda en el futuro y respeta el canal existente', () => {
+    const p = sinPostular({ canal: { tipo: 'email', valor: 'rrhh@ejemplo.test' } });
+    const s = p.registrarSenal(
+      {
+        fuente: 'manual',
+        resumen: 'Postulé',
+        estadoSugerido: 'postulado',
+        confianza: 1,
+        recibidaEn: new Date('2026-11-30T12:00:00Z'),
+      },
+      { ...deps, ...SEGURAS },
+    );
+    p.aplicarSenal(s.id, deps);
+    expect(p.datos().fechaPostulacion).toBe(deps.reloj.hoy());
+    expect(p.datos().canal).toEqual({ tipo: 'email', valor: 'rrhh@ejemplo.test' });
   });
 
   it('aplicar una señal que coincide con el estado actual solo la marca', () => {

@@ -39,7 +39,12 @@ class NucleoHttp:
             datos = r.json()
             conocidas += [
                 PostulacionConocida(
-                    p["id"], p["empresa"], p["titulo"], p["plataforma"], p["estado"] not in TERMINALES
+                    p["id"],
+                    p["empresa"],
+                    p["titulo"],
+                    p["plataforma"],
+                    p["estado"] not in TERMINALES,
+                    p.get("url", ""),
                 )
                 for p in datos["items"]
             ]
@@ -75,3 +80,11 @@ class NucleoHttp:
         if d["destino"] == "bandeja":
             return RespuestaDelNucleo("bandeja", False, None)
         return RespuestaDelNucleo("postulacion", bool(d["senal"]["aplicada"]), d["postulacion"]["estado"])
+
+    def vincular_aviso(self, postulacion_id: str, aviso_id: str, calce: float | None) -> None:
+        cuerpo: dict[str, Any] = {"avisoId": aviso_id}
+        if calce is not None:
+            cuerpo["calce"] = round(calce, 4)
+        r = self._pedir("PATCH", f"/postulaciones/{postulacion_id}/aviso", json=cuerpo)
+        if r.status_code != 200:
+            raise NucleoNoDisponible(f"vincular aviso respondió {r.status_code}: {r.text[:200]}")

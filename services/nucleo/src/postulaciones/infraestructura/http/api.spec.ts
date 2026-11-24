@@ -18,7 +18,10 @@ const AVISO = {
   ubicacion: 'Chile',
 };
 const CANAL = { tipo: 'portal', valor: 'Get on Board' };
-const hoy = new Date().toISOString().slice(0, 10);
+// Fechas en la zona del equipo, como RelojDelSistema: en UTC, entre las 21:00 y las 24:00 de Chile ya es mañana.
+const fechaLocal = (d: Date) =>
+  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+const hoy = fechaLocal(new Date());
 
 const api = () => {
   const auth = (r: request.Test) => r.set('Authorization', `Bearer ${token}`);
@@ -230,7 +233,7 @@ describe('rutas de postulaciones (F1-10b)', () => {
     await crear();
     const r = await api().get('/postulaciones?estado=sin_decidir&prioridad=media&limit=10').expect(200);
     expect(r.body).toMatchObject({ total: 1, limit: 10, offset: 0 });
-    const manana = new Date(Date.now() + 86_400_000).toISOString().slice(0, 10);
+    const manana = fechaLocal(new Date(Date.now() + 86_400_000));
     await crear({ aviso: { ...AVISO, url: 'https://ejemplo.test/pronto', cierre: manana } });
     const altas = await api().get('/postulaciones?prioridad=alta').expect(200);
     expect(altas.body.items.map((i: { cierre: string }) => i.cierre)).toEqual([manana]);

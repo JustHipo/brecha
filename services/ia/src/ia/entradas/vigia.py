@@ -4,12 +4,13 @@ import logging
 import signal
 import threading
 from collections.abc import Callable
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 
 from ia.aplicacion.casos.clasificar_pendientes import ClasificarPendientes, ResumenDeClasificacion
 from ia.aplicacion.casos.registrar_senales import RegistrarSenales, ResumenDeRegistro
 from ia.aplicacion.casos.sincronizar_correo import ResumenDeSincronizacion, SincronizarCorreo
 from ia.aplicacion.puertos import Credenciales, TipoDeCredencial, estado_de
+from ia.entradas.servicios import Servicios
 from ia.infraestructura.config import cargar_config
 from ia.infraestructura.imap import LectorImap
 from ia.infraestructura.llavero import Llavero
@@ -105,6 +106,36 @@ def main() -> None:
             return ResumenDeRegistro(error=str(e))
         return RegistrarSenales(nucleo, repo).ejecutar()
 
+    servicios = Servicios(cfg, llavero, motor)
+    ultima_busqueda: list[datetime] = []
+
+    def avisos() -> None:
+        """Get on Board cada `getonboard_cada_horas` y, con OpenAI, análisis, calce, vectores y vínculos."""
+        ahora = datetime.now(UTC)
+        vencida = not ultima_busqueda or ahora - ultima_busqueda[0] >= timedelta(
+            hours=cfg.getonboard_cada_horas
+        )
+        if cfg.getonboard_busquedas and vencida:
+            ultima_busqueda[:] = [ahora]
+            b = servicios.buscar_getonboard(cfg.getonboard_busquedas)
+            log.info(
+                "Get on Board: %s avisos, %s nuevos%s",
+                b["encontrados"],
+                b["nuevos"],
+                f" (error: {b['error']})" if b["error"] else "",
+            )
+        r = servicios.procesar_avisos()
+        a = r.get("analisis") or {}
+        if a.get("analizados") or a.get("error"):
+            log.info("avisos: %s analizados, error: %s", a.get("analizados"), a.get("error") or "ninguno")
+        v = r.get("vinculos") or {}
+        if v.get("calcesEnviados") or v.get("error"):
+            log.info(
+                "avisos ligados: %s calces enviados, error: %s",
+                v.get("calcesEnviados"),
+                v.get("error") or "ninguno",
+            )
+
     parar = threading.Event()
     signal.signal(signal.SIGTERM, lambda *_: parar.set())
     signal.signal(signal.SIGINT, lambda *_: parar.set())
@@ -114,6 +145,10 @@ def main() -> None:
             una_vuelta(llavero, sincronizar, clasificar, registrar)
         except Exception:  # una vuelta rota no apaga el vigía: queda en el log y se intenta en la próxima
             log.exception("la vuelta del vigía falló")
+        try:
+            avisos()
+        except Exception:
+            log.exception("la vuelta de avisos falló")
         parar.wait(cfg.vigia_minutos * 60)
     log.info("vigía detenido")
 

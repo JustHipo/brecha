@@ -2,12 +2,23 @@
 
 from collections.abc import Awaitable, Callable
 from datetime import UTC, datetime
-from typing import Annotated, Any
+from typing import Annotated, Any, Literal
 
-from fastapi import Depends, FastAPI, Header, HTTPException, Request, Response
+from fastapi import BackgroundTasks, Depends, FastAPI, Header, HTTPException, Query, Request, Response
 from fastapi.responses import JSONResponse
+from pydantic import BaseModel, Field
 
-from ia.aplicacion.puertos import ConsultaDeEstado, Credenciales, estado_de
+from ia.aplicacion.puertos import (
+    AvisoGuardado,
+    ConsultaDeEstado,
+    Credenciales,
+    FiltrosDeAvisos,
+    NucleoNoDisponible,
+    estado_de,
+)
+from ia.dominio.aviso import Aviso, AvisoInvalido
+from ia.dominio.calce import Perfil
+from ia.entradas.servicios import Servicios
 from ia.infraestructura.config import Config, cargar_config
 from ia.infraestructura.llavero import Llavero
 from ia.infraestructura.postgres.correos import RepositorioPostgresDeCorreos
@@ -16,17 +27,86 @@ from ia.infraestructura.verificador import VerificadorDeTokens
 
 HOSTS = {"127.0.0.1", "localhost"}
 
+Plataforma = Literal[
+    "linkedin", "trabajando", "getonboard", "computrabajo", "chiletrabajos", "indeed", "sitio_empresa", "otra"
+]
+
+
+class AvisoPegado(BaseModel):
+    url: str = Field(max_length=2000)
+    titulo: str = Field(min_length=1, max_length=300)
+    empresa: str = Field(min_length=1, max_length=200)
+    texto: str = Field(min_length=20, max_length=20000)
+    plataforma: Plataforma = "otra"
+    modalidad: Literal["remoto", "hibrido", "presencial", "no_indica"] = "no_indica"
+    stack: list[str] = Field(default_factory=list, max_length=40)
+
+
+class Busqueda(BaseModel):
+    consulta: str = Field(min_length=2, max_length=100)
+    maximo: int = Field(default=40, ge=1, le=100)
+
+
+class Vinculo(BaseModel):
+    postulacionId: str = Field(min_length=1, max_length=36)
+
+
+class PerfilEntrada(BaseModel):
+    herramientas: dict[str, float] = Field(max_length=200)
+    anosTotales: float = Field(ge=0, le=60)
+
+
+class PreguntaEntrada(BaseModel):
+    pregunta: str = Field(min_length=3, max_length=500)
+
+
+def vista_aviso(g: AvisoGuardado, detalle: bool = False) -> dict[str, Any]:
+    a = g.aviso
+    v: dict[str, Any] = {
+        "id": g.id,
+        "url": a.url,
+        "titulo": a.titulo,
+        "empresa": a.empresa,
+        "plataforma": a.plataforma,
+        "modalidad": a.modalidad,
+        "ubicacion": a.ubicacion,
+        "origen": a.origen,
+        "cita": a.cita,
+        "stack": list(a.stack),
+        "sueldo": a.sueldo,
+        "publicadoEn": a.publicado_en.isoformat() if a.publicado_en else None,
+        "analizado": g.requisitos is not None,
+        "calce": g.calce.puntaje if g.calce else None,
+        "brechas": list(g.calce.brechas) if g.calce else [],
+        "postulacionId": g.postulacion_id,
+    }
+    if detalle:
+        v["texto"] = a.texto
+        v["cumple"] = list(g.calce.cumple) if g.calce else []
+        v["requisitos"] = [
+            {"nombre": r.nombre, "obligatorio": r.obligatorio, "anos": r.anos} for r in (g.requisitos or ())
+        ]
+    return v
+
 
 def crear_app(
     config: Config | None = None,
     verificador: VerificadorDeTokens | None = None,
     estado: ConsultaDeEstado | None = None,
     credenciales: Credenciales | None = None,
+    servicios: Servicios | None = None,
 ) -> FastAPI:
     cfg = config or cargar_config()
     ver = verificador or VerificadorDeTokens(cfg.nucleo_url)
     consulta = estado or RepositorioPostgresDeCorreos(crear_motor(cfg.ia_database_url))
     llavero = credenciales or Llavero()
+    _s: list[Servicios] = [servicios] if servicios else []
+
+    def srv() -> Servicios:
+        if not _s:
+            _s.append(Servicios(cfg, llavero))
+        return _s[0]
+
     app = FastAPI(
         title="Brecha · servicio con IA", version="1", docs_url="/docs", openapi_url="/openapi.json"
     )
@@ -89,6 +169,108 @@ def crear_app(
                 "un fragmento de hasta 4.000 caracteres va a OpenAI.",
                 "El resto del correo no sale de tu máquina.",
             ],
+        }
+
+    # ── Avisos, perfil y Preguntar (F2-09 a F2-12) ─────────────────────────────
+
+    @app.get("/api/ia/avisos")
+    def listar_avisos(
+        _: Annotated[str, Depends(con_token)],
+        texto: str | None = None,
+        modalidad: str | None = None,
+        plataforma: str | None = None,
+        calceMinimo: Annotated[int | None, Query(ge=0, le=100)] = None,
+        limite: Annotated[int, Query(ge=1, le=500)] = 200,
+    ) -> dict[str, Any]:
+        f = FiltrosDeAvisos(texto, modalidad, plataforma, calceMinimo, None, limite)
+        s = srv()
+        return {"items": [vista_aviso(g) for g in s.avisos.listar(f)], "conteo": s.avisos.contar()}
+
+    @app.get("/api/ia/avisos/{id}")
+    def ver_aviso(id: str, _: Annotated[str, Depends(con_token)]) -> dict[str, Any]:
+        g = srv().avisos.por_id(id)
+        if g is None:
+            raise HTTPException(404, {"codigo": "NO_ENCONTRADO", "mensaje": "No existe ese aviso"})
+        return vista_aviso(g, detalle=True)
+
+    @app.post("/api/ia/avisos", status_code=201)
+    def pegar_aviso(
+        cuerpo: AvisoPegado, tareas: BackgroundTasks, _: Annotated[str, Depends(con_token)]
+    ) -> dict[str, Any]:
+        try:
+            a = Aviso(
+                url=cuerpo.url.strip(),
+                titulo=cuerpo.titulo.strip(),
+                empresa=cuerpo.empresa.strip(),
+                plataforma=cuerpo.plataforma,
+                modalidad=cuerpo.modalidad,
+                origen="manual",
+                texto=cuerpo.texto.strip(),
+                stack=tuple(cuerpo.stack),
+                cita="Pegado a mano",
+            )
+        except AvisoInvalido as e:
+            raise HTTPException(400, {"codigo": "DATO_INVALIDO", "mensaje": str(e)}) from e
+        s = srv()
+        id, _nuevo = s.avisos.guardar(a)
+        tareas.add_task(s.procesar_avisos)
+        g = s.avisos.por_id(id)
+        assert g is not None
+        return vista_aviso(g, detalle=True)
+
+    @app.post("/api/ia/avisos/buscar")
+    def buscar_avisos(
+        cuerpo: Busqueda, tareas: BackgroundTasks, _: Annotated[str, Depends(con_token)]
+    ) -> dict[str, Any]:
+        s = srv()
+        r = s.buscar_getonboard([cuerpo.consulta.strip()], cuerpo.maximo)
+        if r["nuevos"]:
+            tareas.add_task(s.procesar_avisos)
+        return r
+
+    @app.post("/api/ia/avisos/{id}/vincular")
+    def vincular_aviso(id: str, cuerpo: Vinculo, _: Annotated[str, Depends(con_token)]) -> dict[str, Any]:
+        s = srv()
+        g = s.avisos.por_id(id)
+        if g is None:
+            raise HTTPException(404, {"codigo": "NO_ENCONTRADO", "mensaje": "No existe ese aviso"})
+        s.avisos.vincular(id, cuerpo.postulacionId)
+        try:
+            calce = g.calce.puntaje if g.calce else None
+            s.nucleo().vincular_aviso(cuerpo.postulacionId, id, calce / 100 if calce is not None else None)
+            s.avisos.marcar_vinculo_enviado(id, f"{cuerpo.postulacionId}:{calce}")
+        except NucleoNoDisponible as e:
+            raise HTTPException(503, {"codigo": "NUCLEO_NO_DISPONIBLE", "mensaje": str(e)}) from e
+        g2 = s.avisos.por_id(id)
+        assert g2 is not None
+        return vista_aviso(g2, detalle=True)
+
+    @app.get("/api/ia/perfil")
+    def ver_perfil(_: Annotated[str, Depends(con_token)]) -> dict[str, Any]:
+        p = srv().perfiles.perfil()
+        return {"herramientas": p.herramientas if p else {}, "anosTotales": p.anos_totales if p else 0}
+
+    @app.put("/api/ia/perfil")
+    def guardar_perfil(cuerpo: PerfilEntrada, _: Annotated[str, Depends(con_token)]) -> dict[str, Any]:
+        s = srv()
+        herramientas = {k.strip()[:80]: v for k, v in cuerpo.herramientas.items() if k.strip()}
+        s.perfiles.guardar(Perfil(herramientas, cuerpo.anosTotales))
+        n = s.recalcular_calces()
+        return {"herramientas": herramientas, "anosTotales": cuerpo.anosTotales, "recalculados": n}
+
+    @app.post("/api/ia/preguntas")
+    def preguntar(cuerpo: PreguntaEntrada, _: Annotated[str, Depends(con_token)]) -> dict[str, Any]:
+        s = srv()
+        if not s.hay_modelo():
+            raise HTTPException(503, {"codigo": "IA_NO_DISPONIBLE", "mensaje": "Falta la llave de OpenAI"})
+        r = s.preguntar(cuerpo.pregunta.strip())
+        if r.error:
+            raise HTTPException(503, {"codigo": "IA_NO_DISPONIBLE", "mensaje": r.error})
+        return {
+            "respuesta": r.respuesta.texto,
+            "citados": [vista_aviso(g) for g in r.avisos],
+            "descartados": len(r.respuesta.descartados),
+            "costoUsd": r.costo_usd,
         }
 
     return app

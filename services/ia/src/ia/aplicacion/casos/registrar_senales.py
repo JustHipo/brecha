@@ -58,7 +58,7 @@ class RegistrarSenales:
             conocidas = self.nucleo.postulaciones()
             for c in pendientes:
                 k = c.clasificacion
-                a = asociar(k.empresa, k.cargo, k.plataforma, conocidas)
+                a = asociar(k.empresa, k.cargo, k.plataforma, conocidas, c.remitente.rsplit("@", 1)[-1])
                 destino = next((p for p in conocidas if p.id == a.postulacion_id), None)
                 hacia = f"{destino.empresa} · {destino.titulo}" if destino else "bandeja"
                 sugerido = k.estado_sugerido or "sin cambio"

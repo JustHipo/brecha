@@ -6,6 +6,8 @@ export interface Reloj {
   ahora(): Date;
   /** La fecha de hoy en la zona horaria de la instancia. */
   hoy(): Fecha;
+  /** La fecha de un instante en la zona horaria de la instancia (un correo de las 22:00 en Chile es de ese día). */
+  fechaDe(instante: Date): Fecha;
 }
 
 /** Puerto del generador de identificadores (UUID v7). */

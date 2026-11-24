@@ -339,7 +339,7 @@ export class Postulacion extends AggregateRoot {
     if (senal.aplicada) throw new DatoInvalido('senalId', 'La señal ya está aplicada');
     if (!senal.estadoSugerido) throw new DatoInvalido('senalId', 'La señal no sugiere un estado');
     if (senal.estadoSugerido !== this.d.estado) {
-      this.cambiarEstado(senal.estadoSugerido, { motivo: senal.resumen, origen: 'senal' }, deps);
+      this.cambiarEstado(senal.estadoSugerido, this.transicionDesde(senal, deps.reloj), deps);
     }
     this.marcarSenalAplicada(senal.id, deps.reloj.ahora());
   }
@@ -561,7 +561,7 @@ export class Postulacion extends AggregateRoot {
   private intentarAplicar(senal: Senal, deps: Deps): boolean {
     try {
       if (senal.estadoSugerido !== this.d.estado) {
-        this.cambiarEstado(senal.estadoSugerido!, { motivo: senal.resumen, origen: 'senal' }, deps);
+        this.cambiarEstado(senal.estadoSugerido!, this.transicionDesde(senal, deps.reloj), deps);
       }
       this.marcarSenalAplicada(senal.id, deps.reloj.ahora());
       return true;
@@ -569,6 +569,26 @@ export class Postulacion extends AggregateRoot {
       if (e instanceof ErrorDeDominio) return false; // queda como sugerencia
       throw e;
     }
+  }
+
+  /**
+   * Una señal de «postulado» trae la evidencia de cuándo y por dónde: la fecha es el día en que llegó
+   * (nunca futura) y el canal, el portal de su plataforma (o la del aviso si no se supo),
+   * salvo que la postulación ya tenga los suyos.
+   */
+  private transicionDesde(senal: Senal, reloj: Reloj) {
+    if (senal.estadoSugerido !== 'postulado') return { motivo: senal.resumen, origen: 'senal' as const };
+    const dia = reloj.fechaDe(senal.recibidaEn);
+    const hoy = reloj.hoy();
+    return {
+      motivo: senal.resumen,
+      origen: 'senal' as const,
+      fechaPostulacion: this.d.fechaPostulacion ?? (dia > hoy ? hoy : dia),
+      canal: this.d.canal ?? {
+        tipo: 'portal' as const,
+        valor: senal.plataforma === 'otra' ? this.d.aviso.plataforma : senal.plataforma,
+      },
+    };
   }
 
   private marcarSenalAplicada(id: string, ahora: Date): void {
