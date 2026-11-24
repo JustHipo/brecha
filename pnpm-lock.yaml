@@ -167,6 +167,9 @@ importers:
       '@embedded-postgres/darwin-arm64':
         specifier: 17.12.0-beta.19
         version: 17.12.0-beta.19
+      '@embedded-postgres/windows-x64':
+        specifier: 17.12.0-beta.19
+        version: 17.12.0-beta.19
 
   packages/config:
     dependencies:
@@ -1215,6 +1218,12 @@ packages:
     engines: {node: '>=16'}
     cpu: [arm64]
     os: [darwin]
+
+  '@embedded-postgres/windows-x64@17.12.0-beta.19':
+    resolution: {integrity: sha512-BAbR0nRsyJZs/4wO7b5fyF3HsrhTevEo74zUr5nmFS+zX1s7MbrIOVSos0fGQoLNmpP1Ljj+Jik0B3JDz6xx9w==}
+    engines: {node: '>=16'}
+    cpu: [x64]
+    os: [win32]
 
   '@emnapi/core@1.4.5':
     resolution: {integrity: sha512-XsLw1dEOpkSX/WucdqUhPWP7hDxSvZiY+fsUC14h+FtQ2Ifni4znbBt8punRX+Uj2JG/uDb8nEHVKvrVlvdZ5Q==}
@@ -8118,6 +8127,9 @@ snapshots:
     optional: true
 
   '@embedded-postgres/darwin-arm64@17.12.0-beta.19':
+    optional: true
+
+  '@embedded-postgres/windows-x64@17.12.0-beta.19':
     optional: true
 
   '@emnapi/core@1.4.5':

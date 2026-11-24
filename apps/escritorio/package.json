@@ -2,7 +2,7 @@
   "name": "escritorio",
   "version": "0.1.0",
   "private": true,
-  "description": "Brecha como app de escritorio para macOS: vive en la barra de menú y levanta PostgreSQL, el núcleo y el servicio con IA en segundo plano (F3).",
+  "description": "Brecha como app de escritorio para macOS y Windows: vive en la barra de menú (o en la bandeja de Windows) y levanta PostgreSQL, el núcleo y el servicio con IA en segundo plano (F3).",
   "author": "Brecha",
   "main": "dist/main.js",
   "scripts": {
@@ -94,6 +94,7 @@
     "afterPack": "./scripts/despues-de-empaquetar.cjs"
   },
   "optionalDependencies": {
-    "@embedded-postgres/darwin-arm64": "17.12.0-beta.19"
+    "@embedded-postgres/darwin-arm64": "17.12.0-beta.19",
+    "@embedded-postgres/windows-x64": "17.12.0-beta.19"
   }
 }
