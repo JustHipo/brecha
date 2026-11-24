@@ -126,6 +126,16 @@ describe('ContactoDeRed', () => {
     expect(c.datos().postulacionIds).toEqual([]);
   });
 
+  it('sin perfil de LinkedIn se crea igual y el perfil se completa después, pero no se cambia por otro', () => {
+    const c = ContactoDeRed.crear({ nombre: 'Bruno Ficticio', empresa: 'Universidad Ficticia' }, deps);
+    expect(c.datos().perfilUrl).toBeUndefined();
+    c.actualizar({ perfilUrl: 'linkedin.com/in/bruno' }, deps.reloj);
+    expect(c.datos().perfilUrl).toBe('https://www.linkedin.com/in/bruno');
+    expect(() => c.actualizar({ perfilUrl: 'linkedin.com/in/otro' }, deps.reloj)).toThrow(DatoInvalido);
+    c.actualizar({ perfilUrl: 'https://www.linkedin.com/in/bruno/' }, deps.reloj);
+    expect(c.datos().perfilUrl).toBe('https://www.linkedin.com/in/bruno');
+  });
+
   it('el aviso por correo no cuenta dos veces un mensaje ya leído desde LinkedIn', () => {
     const c = nuevo();
     const real = {

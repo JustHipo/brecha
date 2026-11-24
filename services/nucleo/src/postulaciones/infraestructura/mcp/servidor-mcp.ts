@@ -2,6 +2,7 @@ import { McpServer, ResourceTemplate } from '@modelcontextprotocol/sdk/server/mc
 import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
 import { z } from 'zod';
 import { ErrorDeDominio } from '../../../compartido/dominio/error-de-dominio';
+import { PRIORIDADES } from '../../../compartido/dominio/evento-de-dominio';
 import { ESTADOS } from '../../dominio/estado';
 import { MODALIDADES, MONEDAS, PLATAFORMAS, TIPOS_DE_CANAL } from '../../dominio/objetos-valor/valores';
 import { FUENTES_DE_SENAL, TIPOS_DE_ENTREVISTA } from '../../dominio/partes';
@@ -10,6 +11,8 @@ import type { CasosDeRed } from '../../../red/aplicacion/casos-de-red';
 import { FILTROS_DE_RED } from '../../../red/aplicacion/casos-de-red';
 import { TIPOS_DE_INTERACCION } from '../../../red/dominio/contacto-de-red';
 import type { CasosDeUso } from '../casos';
+import type { CasosCsv } from '../../../csv/aplicacion/casos-csv';
+import { TIPOS_CSV } from '../../../csv/aplicacion/formato';
 
 const LIMITE_EXPORTAR = 50_000;
 const estado = z.enum(ESTADOS);
@@ -25,9 +28,19 @@ function ok(texto: string, datos?: unknown): CallToolResult {
 }
 
 function linea(
-  p: VistaDetalle | { empresa: string; titulo: string; estado: string; prioridad: string; id: string },
+  p:
+    | VistaDetalle
+    | {
+        empresa: string;
+        titulo: string;
+        estado: string;
+        prioridad: string;
+        id: string;
+        etiquetas?: string[];
+      },
 ) {
-  return `${p.empresa} · ${p.titulo} · ${p.estado} · prioridad ${p.prioridad} · id ${p.id}`;
+  const etiquetas = p.etiquetas?.length ? ` · #${p.etiquetas.join(' #')}` : '';
+  return `${p.empresa} · ${p.titulo} · ${p.estado} · prioridad ${p.prioridad}${etiquetas} · id ${p.id}`;
 }
 
 /** Corre un caso de uso y convierte los errores al mismo `codigo` que REST (ADR 0012). */
@@ -49,7 +62,7 @@ async function correr(f: () => Promise<CallToolResult>): Promise<CallToolResult>
 }
 
 /** Adaptador de entrada 2: MCP (PLAN §12.2). Las escrituras quedan con origen `ia`. */
-export function crearServidorMcp(casos: CasosDeUso, red?: CasosDeRed): McpServer {
+export function crearServidorMcp(casos: CasosDeUso, red?: CasosDeRed, csv?: CasosCsv): McpServer {
   const s = new McpServer(
     { name: 'brecha', version: '1.0.0' },
     {
@@ -67,11 +80,15 @@ export function crearServidorMcp(casos: CasosDeUso, red?: CasosDeRed): McpServer
     {
       title: 'Listar postulaciones',
       description:
-        'Lista postulaciones con filtros opcionales. Devuelve id, empresa, título, estado, prioridad y versión.',
+        'Lista postulaciones con filtros opcionales. Devuelve id, empresa, título, estado, prioridad, etiquetas y versión.',
       inputSchema: {
         estados: z.array(estado).optional(),
         plataformas: z.array(z.enum(PLATAFORMAS)).optional(),
-        prioridades: z.array(z.enum(['alta', 'media', 'baja'])).optional(),
+        prioridades: z.array(z.enum(PRIORIDADES)).optional(),
+        etiquetas: z
+          .array(z.string())
+          .optional()
+          .describe('Debe tener todas (se comparan en minúsculas y sin tildes)'),
         q: z.string().optional().describe('Texto en título o empresa'),
         limit: z.number().int().min(1).max(200).optional(),
         offset: z.number().int().min(0).optional(),
@@ -85,6 +102,21 @@ export function crearServidorMcp(casos: CasosDeUso, red?: CasosDeRed): McpServer
           `${r.total} postulaciones (mostrando ${r.items.length}):\n${r.items.map(linea).join('\n')}`,
           r,
         );
+      }),
+  );
+
+  s.registerTool(
+    'listar_etiquetas',
+    {
+      title: 'Listar etiquetas',
+      description: 'Etiquetas en uso con cuántas postulaciones tiene cada una, de la más usada a la menos.',
+      inputSchema: {},
+      annotations: lectura,
+    },
+    () =>
+      correr(async () => {
+        const r = await casos.etiquetas.ejecutar();
+        return ok(r.length ? r.map((x) => `#${x.etiqueta} (${x.total})`).join('\n') : 'Sin etiquetas', r);
       }),
   );
 
@@ -119,16 +151,23 @@ export function crearServidorMcp(casos: CasosDeUso, red?: CasosDeRed): McpServer
         estado: z.enum(['sin_decidir', 'por_postular', 'postulado']).optional(),
         fechaPostulacion: fecha.optional(),
         canal: canal.optional(),
+        stack: z.array(z.string()).optional().describe('Herramientas que pide el aviso'),
+        requisitos: z.string().optional().describe('Requisitos en texto libre'),
+        sueldoPublicado: z.string().optional().describe('Sueldo tal como lo publica el aviso'),
+        etiquetas: z.array(z.string()).optional(),
+        prioridad: z.enum(PRIORIDADES).optional().describe('Sin ella, la calcula el núcleo'),
       },
     },
     (a) =>
       correr(async () => {
-        const { estado: e, fechaPostulacion, canal: c, ...aviso } = a;
+        const { estado: e, fechaPostulacion, canal: c, etiquetas, prioridad, ...aviso } = a;
         const d = await casos.crear.ejecutar({
           aviso,
           ...(e ? { estado: e } : {}),
           ...(fechaPostulacion ? { fechaPostulacion } : {}),
           ...(c ? { canal: c } : {}),
+          ...(etiquetas ? { etiquetas } : {}),
+          ...(prioridad ? { prioridad } : {}),
           origen: 'ia',
         });
         return ok(`Creada: ${linea(d)}`, d);
@@ -164,7 +203,8 @@ export function crearServidorMcp(casos: CasosDeUso, red?: CasosDeRed): McpServer
     'editar_postulacion',
     {
       title: 'Editar postulación',
-      description: 'Edita canal, sueldo pretendido o cierre del aviso (null borra). Pide la versión actual.',
+      description:
+        'Edita canal, sueldo pretendido, cierre, etiquetas (reemplaza la lista), prioridad fijada, stack, requisitos o sueldo publicado (null borra o vuelve a la calculada). Pide la versión actual.',
       inputSchema: {
         id: z.string(),
         version: z.number().int(),
@@ -179,6 +219,11 @@ export function crearServidorMcp(casos: CasosDeUso, red?: CasosDeRed): McpServer
           .nullable()
           .optional(),
         cierre: fecha.nullable().optional(),
+        etiquetas: z.array(z.string()).optional().describe('La lista completa: reemplaza la anterior'),
+        prioridad: z.enum(PRIORIDADES).nullable().optional().describe('null vuelve a la calculada'),
+        stack: z.array(z.string()).optional(),
+        requisitos: z.string().nullable().optional(),
+        sueldoPublicado: z.string().nullable().optional(),
       },
     },
     (a) => correr(async () => ok('Editada', await casos.editar.ejecutar(a))),
@@ -420,6 +465,55 @@ export function crearServidorMcp(casos: CasosDeUso, red?: CasosDeRed): McpServer
   );
 
   if (red) registrarRed(s, red);
+  if (csv) {
+    s.registerTool(
+      'importar_csv',
+      {
+        title: 'Importar un CSV de postulaciones o contactos',
+        description:
+          'Importa el contenido de un CSV (UTF-8, coma, con encabezado) con el formato de Brecha; el tipo se reconoce por el encabezado. ' +
+          'Idempotente: una postulación con la misma URL o un contacto con el mismo perfil «ya estaba». Cada fila mala se informa con su línea y columna sin cortar las demás. ' +
+          'Postulaciones: titulo,empresa,url,plataforma,modalidad,ubicacion,cierre,estado,prioridad,fecha_postulacion,canal_tipo,canal_valor,correo_postulacion,sueldo_publicado,stack,requisitos,etiquetas,notas,motivo. ' +
+          'Contactos: nombre,perfil_url,titular,empresa,correo,url_postulacion,motivo,mensaje_sugerido. Importa primero las postulaciones y después los contactos.',
+        inputSchema: {
+          csv: z.string().describe('El contenido completo del archivo'),
+          tipo: z.enum(TIPOS_CSV).optional(),
+        },
+      },
+      (a) =>
+        correr(async () => {
+          const r = await csv.importar.ejecutar(a);
+          const malas = r.filas.filter((f) => f.resultado === 'error' || f.advertencias.length);
+          const detalle = malas
+            .map((f) =>
+              f.resultado === 'error'
+                ? `línea ${f.fila} · error en ${f.campo ?? 'la fila'}: ${f.mensaje}`
+                : `línea ${f.fila} · ${f.advertencias.join('; ')}`,
+            )
+            .join('\n');
+          return ok(
+            `${r.tipo}: ${r.creadas} creadas, ${r.yaEstaban} ya estaban, ${r.actualizadas} actualizadas, ${r.errores} con error, ${r.conAdvertencias} con advertencia.` +
+              (r.advertencias.length ? `\n${r.advertencias.join('\n')}` : '') +
+              (detalle ? `\n${detalle}` : ''),
+            { ...r, filas: malas },
+          );
+        }),
+    );
+
+    s.registerTool(
+      'exportar_csv',
+      {
+        title: 'Exportar postulaciones o contactos a CSV',
+        description:
+          'Todas las postulaciones o todos los contactos en el mismo formato que importar_csv, para que otra persona los importe en su Brecha.',
+        inputSchema: { tipo: z.enum(TIPOS_CSV) },
+        annotations: lectura,
+      },
+      ({ tipo }) =>
+        correr(async () => ({ content: [{ type: 'text', text: await csv.exportar.ejecutar(tipo) }] })),
+    );
+  }
+
   return s;
 }
 
@@ -476,10 +570,10 @@ function registrarRed(s: McpServer, red: CasosDeRed): void {
     {
       title: 'Registrar o actualizar un contacto de LinkedIn',
       description:
-        'Si el perfil (linkedin.com/in/…) ya está, actualiza nombre, titular y empresa. postulacionId lo liga a esa postulación.',
+        'Si el perfil (linkedin.com/in/…) ya está, actualiza nombre, titular y empresa. Sin perfil, el contacto se reconoce por nombre y empresa. postulacionId lo liga a esa postulación.',
       inputSchema: {
         nombre: z.string(),
-        perfilUrl: z.string(),
+        perfilUrl: z.string().optional().describe('linkedin.com/in/…; omítelo si la persona no tiene'),
         titular: z.string().optional(),
         empresa: z.string().optional(),
         postulacionId: z.string().optional(),
@@ -531,6 +625,7 @@ function registrarRed(s: McpServer, red: CasosDeRed): void {
       inputSchema: {
         id: z.string(),
         nombre: z.string().optional(),
+        perfilUrl: z.string().optional().describe('Completa el perfil de LinkedIn si no lo tenía'),
         titular: z.string().nullable().optional(),
         empresa: z.string().nullable().optional(),
         notas: z.string().nullable().optional(),

@@ -17,6 +17,7 @@ const ICONOS = {
   avisos: 'M4 7h16v12H4zM9 7V5h6v2M4 12h16',
   preguntar: 'M5 5h14v10H9l-4 4zM9 9h6M9 12h4',
   conexiones: 'M9 7V3M15 7V3M7 7h10v4a5 5 0 0 1-10 0zM12 16v5',
+  csv: 'M12 4v11M7 10l5 5 5-5M5 19h14',
   red: 'M9 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM3 20a6 6 0 0 1 12 0M16 4a3 3 0 0 1 0 6M18 14a5 5 0 0 1 3 6',
   ajustes:
     'M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z',
@@ -54,6 +55,7 @@ const PUNTOS = [
       @for (n of nav; track n.ruta) {
         <a
           [routerLink]="n.ruta"
+          [attr.data-tutorial]="n.ruta === '/importar' ? 'importar' : null"
           routerLinkActive="bg-white/[0.17] font-semibold"
           class="flex items-center gap-2.5 rounded-lg px-2.5 py-[7px] font-medium text-white no-underline hover:bg-white/10"
         >
@@ -250,6 +252,7 @@ export class Marco {
     { ruta: '/avisos', etiqueta: 'nav.avisos', icono: ICONOS.avisos },
     { ruta: '/preguntar', etiqueta: 'nav.preguntar', icono: ICONOS.preguntar },
     { ruta: '/conexiones', etiqueta: 'nav.conexiones', icono: ICONOS.conexiones },
+    { ruta: '/importar', etiqueta: 'nav.importar', icono: ICONOS.csv },
   ];
   protected readonly iconoAjustes = ICONOS.ajustes;
   protected readonly puntos = PUNTOS;

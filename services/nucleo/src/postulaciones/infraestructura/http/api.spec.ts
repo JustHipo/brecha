@@ -487,3 +487,76 @@ describe('rutas de postulaciones (F1-10b)', () => {
     expect(r.body.codigo).toBe('NO_ENCONTRADO');
   });
 });
+
+describe('etiquetas, prioridad fijada y aviso con stack (csv.md C1)', () => {
+  it('crea con etiquetas y stack, filtra en lista y tablero, y cuenta las etiquetas en uso', async () => {
+    const a = await crear({
+      aviso: { ...AVISO, stack: ['Python', 'MATLAB'], requisitos: 'Inglés', sueldoPublicado: 'CLP 150.000' },
+      etiquetas: ['Investigación', 'remoto'],
+    });
+    await crear({ aviso: { ...AVISO, url: 'https://ejemplo.test/2' }, etiquetas: ['remoto'] });
+    const d = await api().get(`/postulaciones/${a.id}`).expect(200);
+    expect(d.body.etiquetas).toEqual(['investigacion', 'remoto']);
+    expect(d.body.aviso).toMatchObject({
+      stack: ['Python', 'MATLAB'],
+      requisitos: 'Inglés',
+      sueldoPublicado: 'CLP 150.000',
+    });
+
+    const l = await api().get('/postulaciones?etiqueta=Investigacion').expect(200);
+    expect(l.body.items.map((i: { id: string }) => i.id)).toEqual([a.id]);
+    const ambas = await api().get('/postulaciones?etiqueta=remoto,investigación').expect(200);
+    expect(ambas.body.total).toBe(1);
+    expect((await api().get('/postulaciones?etiqueta=remoto').expect(200)).body.total).toBe(2);
+
+    const t = await api().get('/postulaciones/tablero?etiqueta=investigacion').expect(200);
+    const tarjetas = t.body.columnas.flatMap((c: { items: unknown[] }) => c.items);
+    expect(tarjetas).toHaveLength(1);
+    expect(tarjetas[0]).toMatchObject({ etiquetas: ['investigacion', 'remoto'], prioridadFijada: null });
+
+    const e = await api().get('/postulaciones/etiquetas').expect(200);
+    expect(e.body).toEqual([
+      { etiqueta: 'remoto', total: 2 },
+      { etiqueta: 'investigacion', total: 1 },
+    ]);
+  });
+
+  it('PATCH cambia etiquetas y prioridad; el filtro de prioridad respeta la fijada', async () => {
+    const p = await crear();
+    const r = await api()
+      .patch(`/postulaciones/${p.id}`, { version: p.version, etiquetas: ['práctica'], prioridad: 'alta' })
+      .expect(200);
+    expect(r.body).toMatchObject({ etiquetas: ['practica'], prioridad: 'alta', prioridadFijada: 'alta' });
+    expect((await api().get('/postulaciones?prioridad=alta').expect(200)).body.total).toBe(1);
+    expect((await api().get('/postulaciones?prioridad=media').expect(200)).body.total).toBe(0);
+
+    const r2 = await api()
+      .patch(`/postulaciones/${p.id}`, { version: r.body.version, prioridad: null })
+      .expect(200);
+    expect(r2.body).toMatchObject({ prioridad: 'media', prioridadFijada: null, etiquetas: ['practica'] });
+    expect((await api().get('/postulaciones?prioridad=media').expect(200)).body.total).toBe(1);
+
+    await api()
+      .patch(`/postulaciones/${p.id}`, { version: r2.body.version, prioridad: 'urgente' })
+      .expect(400);
+    await api()
+      .patch(`/postulaciones/${p.id}`, { version: r2.body.version, etiquetas: ['x'.repeat(41)] })
+      .expect(400);
+  });
+
+  it('una prioridad fijada no saca a una descartada de baja', async () => {
+    const p = await crear({ prioridad: 'alta' });
+    await api()
+      .post(`/postulaciones/${p.id}/transiciones`, {
+        a: 'descartado',
+        motivo: 'No me interesa',
+        origen: 'tablero',
+        version: p.version,
+      })
+      .expect(200);
+    const d = await api().get(`/postulaciones/${p.id}`).expect(200);
+    expect(d.body).toMatchObject({ prioridad: 'baja', prioridadFijada: 'alta' });
+    expect((await api().get('/postulaciones?prioridad=baja').expect(200)).body.total).toBe(1);
+    expect((await api().get('/postulaciones?prioridad=alta').expect(200)).body.total).toBe(0);
+  });
+});

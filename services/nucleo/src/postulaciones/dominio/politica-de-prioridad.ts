@@ -2,12 +2,17 @@ import type { Prioridad } from '../../compartido/dominio/evento-de-dominio';
 import { diasEntre, type Fecha } from '../../compartido/dominio/puertos';
 import type { EstadoPostulacion } from './estado';
 
-/** R12: la prioridad no se guarda, se calcula a partir del estado y del cierre del aviso. */
+/**
+ * R12: la prioridad se calcula a partir del estado y del cierre del aviso. Si la persona la fijó a mano
+ * (csv.md P2), manda mientras la postulación está abierta; las cerradas siguen en baja.
+ */
 export function calcularPrioridad(
   estado: EstadoPostulacion,
   cierre: Fecha | undefined,
   hoy: Fecha,
+  fijada?: Prioridad | null,
 ): Prioridad {
+  if (fijada && !['descartado', 'rechazado', 'aceptada'].includes(estado)) return fijada;
   switch (estado) {
     case 'postulado':
     case 'en_proceso':

@@ -6,7 +6,12 @@ from typing import Any
 
 import httpx
 
-from ia.aplicacion.puertos import NucleoNoDisponible, RespuestaDelNucleo, SenalParaNucleo
+from ia.aplicacion.puertos import (
+    AvisoDePostulacion,
+    NucleoNoDisponible,
+    RespuestaDelNucleo,
+    SenalParaNucleo,
+)
 from ia.dominio.asociacion import PostulacionConocida
 
 TERMINALES = {"rechazado", "aceptada", "descartado"}
@@ -81,6 +86,26 @@ class NucleoHttp:
         if d["destino"] == "bandeja":
             return RespuestaDelNucleo("bandeja", False, None)
         return RespuestaDelNucleo("postulacion", bool(d["senal"]["aplicada"]), d["postulacion"]["estado"])
+
+    def aviso_de(self, postulacion_id: str) -> AvisoDePostulacion | None:
+        r = self._pedir("GET", f"/postulaciones/{postulacion_id}")
+        if r.status_code == 404:
+            return None
+        if r.status_code != 200:
+            raise NucleoNoDisponible(f"ver postulación respondió {r.status_code}")
+        a = r.json()["aviso"]
+        return AvisoDePostulacion(
+            url=a["url"],
+            titulo=a["titulo"],
+            empresa=a["empresa"],
+            plataforma=a["plataforma"],
+            modalidad=a["modalidad"],
+            ubicacion=a.get("ubicacion") or None,
+            cierre=a.get("cierre"),
+            stack=tuple(a.get("stack") or ()),
+            requisitos=a.get("requisitos"),
+            sueldo_publicado=a.get("sueldoPublicado"),
+        )
 
     def vincular_aviso(self, postulacion_id: str, aviso_id: str, calce: float | None) -> None:
         cuerpo: dict[str, Any] = {"avisoId": aviso_id}

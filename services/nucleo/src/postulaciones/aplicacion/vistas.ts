@@ -19,6 +19,9 @@ export interface VistaResumen {
   diasAlCierre: number | null;
   estado: EstadoPostulacion;
   prioridad: Prioridad;
+  /** La que fijó la persona, o null si se calcula (R12). */
+  prioridadFijada: Prioridad | null;
+  etiquetas: string[];
   fechaPostulacion: Fecha | null;
   senalesNuevas: number;
   discrepanciasAbiertas: number;
@@ -100,7 +103,9 @@ export function aResumen(d: PostulacionDatos, reloj: Reloj): VistaResumen {
     cierre: d.aviso.cierre ?? null,
     diasAlCierre: diasAlCierre(d.aviso.cierre, reloj),
     estado: d.estado,
-    prioridad: calcularPrioridad(d.estado, d.aviso.cierre, reloj.hoy()),
+    prioridad: calcularPrioridad(d.estado, d.aviso.cierre, reloj.hoy(), d.prioridadFijada),
+    prioridadFijada: d.prioridadFijada ?? null,
+    etiquetas: d.etiquetas,
     fechaPostulacion: d.fechaPostulacion ?? null,
     senalesNuevas: d.senales.filter((s) => !s.aplicada).length,
     discrepanciasAbiertas: d.discrepancias.filter((x) => x.estado === 'abierta').length,

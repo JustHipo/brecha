@@ -20,7 +20,8 @@
     "bandejaPendientes": "({{n}} to review)",
     "red": "Network",
     "redPendientes": "({{n}} to reply)",
-    "ajustes": "Settings"
+    "ajustes": "Settings",
+    "importar": "Import and export"
   },
   "busqueda": {
     "abrir": "Search or run…",
@@ -33,7 +34,8 @@
     "crear": "Create an application",
     "idiomaEs": "Switch to Spanish",
     "idiomaEn": "Switch to English",
-    "cerrar": "Close"
+    "cerrar": "Close",
+    "importarCsv": "Import or export CSV"
   },
   "idioma": {
     "etiqueta": "Language",
@@ -220,7 +222,9 @@
     "ligarRed": "Link someone from your network",
     "ligado": "{{nombre}} is now linked to this application",
     "origen": "Source",
-    "cierre": "Closing date"
+    "cierre": "Closing date",
+    "prioridad": "Priority",
+    "prioridadAutomatica": "Automatic ({{p}})"
   },
   "resultados": {
     "pendiente": "Pending",
@@ -459,7 +463,8 @@
     "origenes": {
       "importado": "Imported",
       "getonboard": "Get on Board",
-      "manual": "Pasted by hand"
+      "manual": "Pasted by hand",
+      "postulacion": "From your application"
     },
     "verOriginal": "See original ad",
     "nuevaVentana": "opens in a new window",
@@ -606,7 +611,9 @@
       "sinResultados": "Nobody like that in your network.",
       "yaLigado": "Already linked",
       "nuevo": "Add someone new"
-    }
+    },
+    "sinPerfil": "No LinkedIn profile",
+    "agregarPerfil": "Add profile"
   },
   "ajustes": {
     "titulo": "Settings",
@@ -645,5 +652,71 @@
     "vigia": "The watcher checks your email every",
     "vigiaSinDato": "no data (the AI service is not responding)",
     "vigiaAyuda": "It is changed in the AI service configuration."
+  },
+  "csv": {
+    "titulo": "Import and export",
+    "intro": "Bring in your applications and LinkedIn contacts from a spreadsheet, or hand yours to someone else to import into their Brecha. Importing the same file twice leaves everything as it was.",
+    "importar": "Import a CSV",
+    "orden": "Import applications first and contacts second, so each contact is linked to its application.",
+    "importando": "Importing…",
+    "elegirArchivo": "Choose CSV file",
+    "formato": "UTF-8, comma separated, with a header row. The type is recognized from the header.",
+    "noSeImporto": "Nothing was imported.",
+    "resumen": {
+      "postulaciones": "Applications from {{archivo}}",
+      "contactos": "Contacts from {{archivo}}"
+    },
+    "conteos": {
+      "creadas": "new",
+      "yaEstaban": "already there",
+      "actualizadas": "updated",
+      "conAdvertencias": "with warnings",
+      "errores": "with errors"
+    },
+    "avisosEnProceso": "The job posts for these applications are being added to Job posts to compute your fit.",
+    "tablaFilas": "Rows with errors or warnings",
+    "columnas": {
+      "linea": "Line",
+      "resultado": "Result",
+      "fila": "Row",
+      "detalle": "Details"
+    },
+    "resultados": {
+      "error": "Error: not imported",
+      "creada": "Imported with a warning",
+      "ya_estaba": "Already there",
+      "actualizada": "Updated with a warning"
+    },
+    "verLista": "See the list",
+    "verRed": "See your network",
+    "exportar": "Export",
+    "exportarTexto": "Download all your applications or contacts in the same format used to import.",
+    "exportar_postulaciones": "Export applications",
+    "exportar_contactos": "Export contacts",
+    "plantillas": "Templates",
+    "plantillasTexto": "The header row plus two made-up example rows, to fill in your spreadsheet.",
+    "plantilla_postulaciones": "Applications template",
+    "plantilla_contactos": "Contacts template",
+    "importarCsv": "Import CSV",
+    "exportarCsv": "Export CSV",
+    "exportado": "Both files were downloaded"
+  },
+  "etiquetas": {
+    "filtro": "Tag",
+    "todas": "All",
+    "titulo": "Tags",
+    "quitar": "Remove the tag {{etiqueta}}",
+    "agregar": "Add tag"
+  },
+  "stack": {
+    "titulo": "Stack",
+    "falta": "missing",
+    "tienes": "you have it",
+    "deseable": "nice to have",
+    "sinStack": "This job post lists no tools.",
+    "requisitos": "Requirements",
+    "iaApagada": "The AI service is not running: once it is back you will see what you are missing.",
+    "sinPerfil": "Load your profile in Settings to see which tools you are missing.",
+    "porAnalizar": "Not compared with your profile yet: it shows up in a few minutes."
   }
 }

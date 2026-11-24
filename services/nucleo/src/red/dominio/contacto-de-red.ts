@@ -46,7 +46,8 @@ export interface Interaccion {
 export interface DatosContactoRed {
   id: string;
   nombre: string;
-  perfilUrl: string;
+  /** Sin perfil de LinkedIn el contacto se reconoce por nombre y empresa (csv.md, decisión de Juan del 24-nov). */
+  perfilUrl?: string;
   titular?: string;
   empresa?: string;
   conexion: EstadoDeConexion;
@@ -85,16 +86,20 @@ export class ContactoDeRed {
   private constructor(private d: DatosContactoRed) {}
 
   static crear(
-    p: { nombre: unknown; perfilUrl: unknown; titular?: unknown; empresa?: unknown },
+    p: { nombre: unknown; perfilUrl?: unknown; titular?: unknown; empresa?: unknown },
     deps: Deps,
   ): ContactoDeRed {
     const ahora = deps.reloj.ahora();
     const titular = opcional('titular', p.titular, 300);
     const empresa = opcional('empresa', p.empresa, 200);
+    const perfil =
+      p.perfilUrl === undefined || p.perfilUrl === null || p.perfilUrl === ''
+        ? undefined
+        : perfilNormalizado(p.perfilUrl);
     return new ContactoDeRed({
       id: deps.ids.nuevo(),
       nombre: textoObligatorio('nombre', p.nombre, 200),
-      perfilUrl: perfilNormalizado(p.perfilUrl),
+      ...(perfil ? { perfilUrl: perfil } : {}),
       ...(titular ? { titular } : {}),
       ...(empresa ? { empresa } : {}),
       conexion: 'ninguna',
@@ -126,10 +131,24 @@ export class ContactoDeRed {
   }
 
   actualizar(
-    p: { nombre?: unknown; titular?: unknown; empresa?: unknown; notas?: unknown; seguimiento?: unknown },
+    p: {
+      nombre?: unknown;
+      perfilUrl?: unknown;
+      titular?: unknown;
+      empresa?: unknown;
+      notas?: unknown;
+      seguimiento?: unknown;
+    },
     reloj: Reloj,
   ): void {
     if (p.nombre !== undefined) this.d.nombre = textoObligatorio('nombre', p.nombre, 200);
+    // El perfil se puede completar después, pero no cambiar por otro (es lo que identifica a la persona).
+    if (p.perfilUrl !== undefined && p.perfilUrl !== null && p.perfilUrl !== '') {
+      const perfil = perfilNormalizado(p.perfilUrl);
+      if (this.d.perfilUrl && this.d.perfilUrl !== perfil)
+        throw new DatoInvalido('perfilUrl', 'Este contacto ya tiene otro perfil de LinkedIn');
+      this.d.perfilUrl = perfil;
+    }
     for (const [campo, max] of [
       ['titular', 300],
       ['empresa', 200],
@@ -259,6 +278,8 @@ export class ContactoDeRed {
 export interface RedRepositorio {
   porId(id: string): Promise<ContactoDeRed | null>;
   porPerfil(perfilUrl: string): Promise<ContactoDeRed | null>;
+  /** Contacto sin perfil de LinkedIn con ese nombre y empresa (sin distinguir mayúsculas). */
+  sinPerfil(nombre: string, empresa?: string): Promise<ContactoDeRed | null>;
   todos(): Promise<ContactoDeRed[]>;
   guardar(c: ContactoDeRed): Promise<void>;
 }

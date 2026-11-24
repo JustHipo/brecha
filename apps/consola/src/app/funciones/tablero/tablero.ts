@@ -18,7 +18,7 @@ import { Avisos } from '../../nucleo/avisos';
 import { Formato } from '../../nucleo/idioma/idioma';
 import { Transiciones } from '../postulacion/transiciones';
 import { Tarjeta } from './tarjeta';
-import { ABIERTOS, CERRADOS, TableroStore } from './tablero.store';
+import { ABIERTOS, CERRADOS, SIN_FILTROS, TableroStore } from './tablero.store';
 
 /** Tablero (ui.md §4.2, F1-13): columnas por estado, arrastrar con validación y «Mover a…» con teclado. */
 @Component({
@@ -92,6 +92,25 @@ import { ABIERTOS, CERRADOS, TableroStore } from './tablero.store';
             </button>
           }
         </div>
+        @if (store.etiquetasEnUso().length) {
+          <label class="flex items-center gap-1.5 text-[12.5px] text-tinta-suave">
+            <span>{{ 'etiquetas.filtro' | transloco }}</span>
+            <select
+              data-filtro-etiqueta
+              class="h-8 rounded-full border border-linea bg-superficie px-2.5 text-tinta"
+              (change)="filtrarEtiqueta($any($event.target).value)"
+            >
+              <option value="" [selected]="!store.filtros().etiquetas.length">
+                {{ 'etiquetas.todas' | transloco }}
+              </option>
+              @for (e of store.etiquetasEnUso(); track e) {
+                <option [value]="e" [selected]="store.filtros().etiquetas.includes(e)">
+                  #{{ e }}
+                </option>
+              }
+            </select>
+          </label>
+        }
         @if (store.hayFiltros()) {
           <button hlmBtn variant="ghost" size="sm" type="button" (click)="limpiar()">
             {{ 'tablero.limpiarFiltros' | transloco }}
@@ -157,6 +176,9 @@ import { ABIERTOS, CERRADOS, TableroStore } from './tablero.store';
                     (change)="importar($event)"
                   />
                 </label>
+                <a hlmBtn variant="outline" routerLink="/importar">{{
+                  'csv.importarCsv' | transloco
+                }}</a>
                 <a hlmBtn routerLink="/postulaciones/nueva">{{ 'nav.nueva' | transloco }}</a>
               </div>
             </div>
@@ -356,6 +378,10 @@ export class TableroPagina {
     this.store.filtros.update((f) => ({ ...f, q }));
   }
 
+  protected filtrarEtiqueta(e: string): void {
+    this.store.filtros.update((f) => ({ ...f, etiquetas: e ? [e] : [] }));
+  }
+
   protected alternarPrioridad(p: string): void {
     this.store.filtros.update((f) => ({
       ...f,
@@ -366,7 +392,7 @@ export class TableroPagina {
   }
 
   protected limpiar(): void {
-    this.store.filtros.set({ plataformas: [], prioridades: [], q: '' });
+    this.store.filtros.set(SIN_FILTROS);
   }
 
   protected async importar(e: Event): Promise<void> {

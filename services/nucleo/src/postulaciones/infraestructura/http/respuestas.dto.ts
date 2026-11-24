@@ -46,6 +46,14 @@ export class AvisoDto {
   @ApiPropertyOptional({ format: 'date' }) cierre?: string;
   @ApiPropertyOptional() avisoId?: string;
   @ApiPropertyOptional() calce?: number;
+  @ApiPropertyOptional({ type: [String] }) stack?: string[];
+  @ApiPropertyOptional() requisitos?: string;
+  @ApiPropertyOptional() sueldoPublicado?: string;
+}
+
+export class EtiquetaEnUsoDto {
+  @ApiProperty() etiqueta!: string;
+  @ApiProperty() total!: number;
 }
 
 export class CanalDto {
@@ -135,6 +143,14 @@ export class ResumenPostulacionDto {
   diasAlCierre!: number | null;
   @ApiProperty(estado) estado!: string;
   @ApiProperty({ enum: PRIORIDADES, enumName: 'Prioridad' }) prioridad!: string;
+  @ApiProperty({
+    enum: PRIORIDADES,
+    enumName: 'Prioridad',
+    nullable: true,
+    description: 'La que fijó la persona; null si la calcula el núcleo',
+  })
+  prioridadFijada!: string | null;
+  @ApiProperty({ type: [String] }) etiquetas!: string[];
   @ApiProperty({ type: String, format: 'date', nullable: true }) fechaPostulacion!: string | null;
   @ApiProperty({ description: 'Señales sin aplicar' }) senalesNuevas!: number;
   @ApiProperty() discrepanciasAbiertas!: number;

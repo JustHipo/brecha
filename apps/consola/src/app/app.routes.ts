@@ -61,6 +61,10 @@ export const routes: Routes = [
           import('./funciones/conexiones/conexiones').then((m) => m.ConexionesPagina),
       },
       {
+        path: 'importar',
+        loadComponent: () => import('./funciones/csv/csv').then((m) => m.CsvPagina),
+      },
+      {
         path: 'ajustes',
         loadComponent: () => import('./funciones/ajustes/ajustes').then((m) => m.AjustesPagina),
       },

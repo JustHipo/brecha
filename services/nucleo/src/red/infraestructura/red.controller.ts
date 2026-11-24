@@ -24,10 +24,14 @@ const err = (status: number, d: string) => ApiResponse({ status, description: d,
 
 export class ContactoRedEntradaDto {
   @ApiProperty({ maxLength: 200 }) @IsString() @MaxLength(200) nombre!: string;
-  @ApiProperty({ maxLength: 500, description: 'linkedin.com/in/…' })
+  @ApiPropertyOptional({
+    maxLength: 500,
+    description: 'linkedin.com/in/…; sin perfil, el contacto se reconoce por nombre y empresa',
+  })
+  @IsOptional()
   @IsString()
   @MaxLength(500)
-  perfilUrl!: string;
+  perfilUrl?: string;
   @ApiPropertyOptional({ maxLength: 300 }) @IsOptional() @IsString() @MaxLength(300) titular?: string;
   @ApiPropertyOptional({ maxLength: 200 }) @IsOptional() @IsString() @MaxLength(200) empresa?: string;
   @ApiPropertyOptional({ description: 'Liga el contacto a esta postulación' })
@@ -51,6 +55,14 @@ export class InteraccionEntradaDto {
 
 export class EditarContactoRedDto {
   @ApiPropertyOptional({ maxLength: 200 }) @IsOptional() @IsString() @MaxLength(200) nombre?: string;
+  @ApiPropertyOptional({
+    maxLength: 500,
+    description: 'Completa el perfil de LinkedIn de un contacto que no lo tenía',
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  perfilUrl?: string;
   @ApiPropertyOptional({ maxLength: 300, nullable: true, type: String })
   @IsOptional()
   @ValidateIf((_, v) => v !== null)
@@ -97,7 +109,7 @@ export class InteraccionDto {
 export class ContactoRedDto {
   @ApiProperty() id!: string;
   @ApiProperty() nombre!: string;
-  @ApiProperty() perfilUrl!: string;
+  @ApiProperty({ nullable: true, type: String }) perfilUrl!: string | null;
   @ApiProperty({ nullable: true, type: String }) titular!: string | null;
   @ApiProperty({ nullable: true, type: String }) empresa!: string | null;
   @ApiProperty({ enum: ESTADOS_DE_CONEXION, enumName: 'EstadoDeConexion' }) conexion!: string;
@@ -124,6 +136,7 @@ export class ContactoRedDetalleDto extends ContactoRedDto {
 
 export class ContactoRedRegistradoDto extends ContactoRedDetalleDto {
   @ApiPropertyOptional() nuevo?: boolean;
+  @ApiPropertyOptional({ description: 'false si ya estaba igual' }) cambiado?: boolean;
   @ApiPropertyOptional() agregada?: boolean;
 }
 

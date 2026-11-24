@@ -4,6 +4,7 @@ import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import text
 
+from ia.aplicacion.puertos import AvisoDePostulacion
 from ia.dominio.asociacion import PostulacionConocida
 from ia.entradas.api import crear_app
 from ia.entradas.servicios import Servicios
@@ -134,3 +135,25 @@ def test_un_cuerpo_invalido_responde_con_la_forma_del_nucleo(entorno) -> None:  
 def test_acepta_la_consola_abierta_como_127(entorno) -> None:  # type: ignore[no-untyped-def]
     cliente, _ = entorno
     assert cliente.get("/api/ia/salud", headers={"origin": "http://127.0.0.1:4200"}).status_code == 200
+
+
+def test_procesar_trae_los_avisos_de_las_postulaciones_con_su_stack(entorno) -> None:  # type: ignore[no-untyped-def]
+    cliente, nucleo = entorno
+    nucleo.avisos["p9"] = AvisoDePostulacion(
+        url="https://ejemplo.test/x",
+        titulo="Práctica en instrumentación",
+        empresa="Ficticia",
+        plataforma="sitio_empresa",
+        modalidad="presencial",
+        ubicacion="Valparaíso",
+        cierre=None,
+        stack=("Python", "LabVIEW"),
+        requisitos=None,
+        sueldo_publicado=None,
+    )
+    cliente.put("/api/ia/perfil", json={"herramientas": {"Python": 1}, "anosTotales": 1}, headers=H)
+    assert cliente.post("/api/ia/avisos/procesar", headers=H).status_code == 202
+    [a] = cliente.get("/api/ia/avisos", headers=H).json()["items"]
+    assert a["origen"] == "postulacion" and a["postulacionId"] == "p9"
+    assert (a["calce"], a["brechas"]) == (50, ["LabVIEW"])
+    assert cliente.post("/api/ia/avisos/procesar").status_code == 401

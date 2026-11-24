@@ -1,15 +1,18 @@
+from dataclasses import replace
 from datetime import UTC, datetime
 
 from ia.aplicacion.casos.avisos import (
     AnalizarAvisos,
+    AnalizarSinModelo,
     BuscarAvisos,
     ImportarAvisos,
     IndexarAvisos,
     Preguntar,
     RecalcularCalces,
+    TraerAvisosDelNucleo,
     VincularConPostulaciones,
 )
-from ia.aplicacion.puertos import ErrorDeModelo
+from ia.aplicacion.puertos import AvisoDePostulacion, ErrorDeModelo, NucleoNoDisponible
 from ia.dominio.asociacion import PostulacionConocida
 from ia.dominio.aviso import Aviso
 from ia.dominio.calce import Perfil
@@ -159,3 +162,98 @@ def test_preguntar_por_calce_ordena_por_calce() -> None:
     r = Preguntar(m, m, repo, Trazas(), lambda: AHORA, PRECIOS, 0.02).ejecutar("¿Cuál me calza mejor?")
     assert r.respuesta.citados[0] in {a, b}
     assert repo.d[b].calce is not None and repo.d[b].calce.puntaje == 100
+
+
+# ── Avisos de las postulaciones del núcleo (docs/diseno/csv.md §5) ─────────────
+
+
+def aviso_nucleo(n: int, stack: tuple[str, ...] = (), requisitos: str | None = None) -> AvisoDePostulacion:
+    return AvisoDePostulacion(
+        url=f"https://ejemplo.test/p/{n}",
+        titulo=f"Práctica {n}",
+        empresa="Ficticia",
+        plataforma="otra",
+        modalidad="presencial",
+        ubicacion="Valparaíso",
+        cierre="2026-12-15",
+        stack=stack,
+        requisitos=requisitos,
+        sueldo_publicado="CLP 150.000",
+    )
+
+
+def conocida(n: int) -> PostulacionConocida:
+    return PostulacionConocida(
+        f"p{n}", "Ficticia", f"Práctica {n}", "otra", True, f"https://ejemplo.test/p/{n}"
+    )
+
+
+def test_traer_avisos_crea_solo_los_que_faltan_y_es_idempotente() -> None:
+    repo = AvisosEnMemoria()
+    repo.guardar(replace(aviso(1), url="https://ejemplo.test/p/1?utm_source=x"))
+    nucleo = NucleoFalso(
+        [conocida(1), conocida(2), conocida(3)],
+        {"p2": aviso_nucleo(2, ("Python", "MATLAB"), "Inglés intermedio"), "p3": aviso_nucleo(3)},
+    )
+    r = TraerAvisosDelNucleo(repo, nucleo).ejecutar()
+    assert (r.nuevos, r.error) == (2, None)
+    assert nucleo.pedidos == ["p2", "p3"]  # p1 ya estaba por URL: no se pide
+    nuevo = next(g for g in repo.d.values() if g.aviso.url.endswith("/p/2"))
+    assert nuevo.aviso.origen == "postulacion"
+    assert nuevo.aviso.stack == ("Python", "MATLAB")
+    assert nuevo.aviso.texto == "Inglés intermedio"
+    assert nuevo.aviso.sueldo == "CLP 150.000"
+    assert TraerAvisosDelNucleo(repo, nucleo).ejecutar().nuevos == 0
+    assert len(repo.d) == 3
+
+
+def test_el_stack_cuenta_como_requisitos_sin_llamar_al_modelo() -> None:
+    repo = AvisosEnMemoria()
+    TraerAvisosDelNucleo(
+        repo, NucleoFalso([conocida(1)], {"p1": aviso_nucleo(1, ("Python", "LabVIEW"))})
+    ).ejecutar()
+    modelo = ModeloFalso()
+    perfil = Perfil({"Python": 1}, 1)
+    AnalizarAvisos(modelo, repo, PerfilFijo(perfil), Trazas(), lambda: AHORA, PRECIOS).ejecutar()
+    assert modelo.llamadas == 0
+    [g] = repo.d.values()
+    assert [r.nombre for r in g.requisitos or ()] == ["Python", "LabVIEW"]
+    assert g.calce is not None
+    assert (g.calce.puntaje, g.calce.brechas, g.calce.cumple) == (50, ("LabVIEW",), ("Python",))
+
+
+def test_con_requisitos_en_texto_el_modelo_completa_y_manda_el_stack() -> None:
+    repo = AvisosEnMemoria()
+    datos = aviso_nucleo(1, ("Python",), "Manejo de Docker, deseable AWS y Python")
+    TraerAvisosDelNucleo(repo, NucleoFalso([conocida(1)], {"p1": datos})).ejecutar()
+    modelo = ModeloFalso()
+    AnalizarAvisos(modelo, repo, PerfilFijo(PERFIL), Trazas(), lambda: AHORA, PRECIOS).ejecutar()
+    assert modelo.llamadas == 1
+    [g] = repo.d.values()
+    assert [(r.nombre, r.obligatorio) for r in g.requisitos or ()] == [
+        ("Python", True),
+        ("Docker", True),
+        ("AWS", False),
+    ]
+
+
+def test_sin_modelo_las_postulaciones_igual_tienen_calce_y_los_demas_esperan() -> None:
+    repo = AvisosEnMemoria()
+    otro, _ = repo.guardar(aviso(9))
+    TraerAvisosDelNucleo(
+        repo, NucleoFalso([conocida(1)], {"p1": aviso_nucleo(1, ("Python",), "Texto que no se analiza")})
+    ).ejecutar()
+    r = AnalizarSinModelo(repo, PerfilFijo(Perfil({"Python": 2}, 2))).ejecutar()
+    assert r.analizados == 1
+    assert repo.d[otro].requisitos is None
+    propio = next(g for g in repo.d.values() if g.aviso.origen == "postulacion")
+    assert propio.calce is not None and propio.calce.puntaje == 100
+
+
+def test_traer_avisos_con_el_nucleo_caido_lo_informa() -> None:
+    class Caido(NucleoFalso):
+        def postulaciones(self) -> list[PostulacionConocida]:
+            raise NucleoNoDisponible("sin conexión")
+
+    r = TraerAvisosDelNucleo(AvisosEnMemoria(), Caido([])).ejecutar()
+    assert r.error == "sin conexión"
