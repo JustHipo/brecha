@@ -31,6 +31,14 @@ for (const d of ['dist', join('prisma', 'migrations')]) {
   cpSync(join(repo, 'services', 'nucleo', d), join(nucleo, d), { recursive: true });
 }
 for (const d of ['src', 'test', 'coverage']) rmSync(join(nucleo, d), { recursive: true, force: true });
+// `pnpm deploy` deja al workspace creyendo que le faltan dependencias: se reconcilia sin preguntar.
+const reconciliar = () =>
+  execFileSync('pnpm', ['install', '--frozen-lockfile'], {
+    cwd: repo,
+    stdio: 'inherit',
+    env: { ...process.env, CI: 'true' },
+  });
+reconciliar();
 
 const ia = join(repo, 'services', 'ia', 'dist', 'brecha-ia', 'brecha-ia');
 const consola = join(repo, 'apps', 'consola', 'dist', 'consola', 'browser', 'index.html');
@@ -43,4 +51,10 @@ for (const [nombre, ruta] of [
 
 correr('pnpm', ['exec', 'tsc', '-p', 'tsconfig.json'], aqui);
 correr('pnpm', ['exec', 'electron-builder', '--mac', 'dmg', '--arm64', '--publish', 'never'], aqui);
+// `pnpm deploy` deja al workspace creyendo que le faltan dependencias: se reconcilia sin preguntar.
+execFileSync('pnpm', ['install', '--frozen-lockfile'], {
+  cwd: repo,
+  stdio: 'inherit',
+  env: { ...process.env, CI: 'true' },
+});
 console.log(`\nListo: ${join(aqui, 'empaquetado', 'app')}`);

@@ -1,5 +1,5 @@
 import { existsSync, mkdirSync } from 'node:fs';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
 import {
   argumentosDePostgres,
   claves,
@@ -108,7 +108,12 @@ export class Servicios {
     await esperarHttp(`http://127.0.0.1:${PUERTOS.nucleo}/api/v1/salud`);
     nucleo.marcarListo();
 
-    const envIa = { ...comun, IA_DATABASE_URL: urlIa(k), IA_PUERTO: String(PUERTOS.ia) };
+    const envIa = {
+      ...comun,
+      ...certificados(this.r.ia),
+      IA_DATABASE_URL: urlIa(k),
+      IA_PUERTO: String(PUERTOS.ia),
+    };
     const iaApi = this.agregar({
       nombre: 'ia-api',
       comando: this.r.ia,
@@ -138,7 +143,14 @@ export class Servicios {
       execFile(
         this.r.ia,
         ['migrar'],
-        { env: { ...comun, IA_DATABASE_URL: urlIa(k), IA_DATABASE_URL_MIGRAR: urlIa(k) } },
+        {
+          env: {
+            ...comun,
+            ...certificados(this.r.ia),
+            IA_DATABASE_URL: urlIa(k),
+            IA_DATABASE_URL_MIGRAR: urlIa(k),
+          },
+        },
         (e, salida, errores) => {
           this.registro.escribir('ia-migrar', `${salida}\n${errores}`);
           if (e) falla(new Error(`Las migraciones de la IA fallaron (ver ia-migrar.log)`));
@@ -174,4 +186,13 @@ export async function esperarHttp(url: string, intentos = 60): Promise<void> {
     await new Promise((r) => setTimeout(r, 500));
   }
   throw new Error(`${url} no respondió en 30 segundos`);
+}
+
+/**
+ * El Python empaquetado no ve los certificados raíz de macOS: sin esto, el IMAP de Gmail falla con
+ * CERTIFICATE_VERIFY_FAILED. Se usan los de certifi, que vienen dentro del binario.
+ */
+export function certificados(ia: string): NodeJS.ProcessEnv {
+  const archivo = join(dirname(ia), '_internal', 'certifi', 'cacert.pem');
+  return existsSync(archivo) && !process.env.SSL_CERT_FILE ? { SSL_CERT_FILE: archivo } : {};
 }
