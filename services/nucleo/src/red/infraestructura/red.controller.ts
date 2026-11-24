@@ -6,6 +6,7 @@ import {
   ApiOperation,
   ApiProperty,
   ApiPropertyOptional,
+  ApiQuery,
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
@@ -147,6 +148,9 @@ export class RedController {
 
   @Get()
   @ApiOperation({ operationId: 'listarRed', summary: 'Contactos con lo que está pendiente primero' })
+  @ApiQuery({ name: 'filtro', required: false, enum: FILTROS_DE_RED })
+  @ApiQuery({ name: 'texto', required: false })
+  @ApiQuery({ name: 'postulacionId', required: false })
   @ApiOkResponse({ type: ListaDeRedDto })
   @err(400, 'VALIDACION')
   listar(

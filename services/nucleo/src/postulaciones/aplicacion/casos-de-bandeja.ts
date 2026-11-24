@@ -50,7 +50,12 @@ export class RecibirSenal {
   async ejecutar(e: EntradaSenalRecibida): Promise<ResultadoRecepcion> {
     const { postulacionId, remitente, asunto, empresaDetectada, cargoDetectado, ...senal } = e;
     if (postulacionId) {
-      const r = await new RegistrarSenal(this.c).ejecutar({ id: postulacionId, ...senal });
+      const r = await new RegistrarSenal(this.c).ejecutar({
+        id: postulacionId,
+        ...senal,
+        ...(remitente ? { remitente } : {}),
+        ...(asunto ? { asunto } : {}),
+      });
       return { destino: 'postulacion', ...r };
     }
     if (senal.referenciaExterna && (await this.c.bandeja.referenciaUsada(senal.referenciaExterna))) {

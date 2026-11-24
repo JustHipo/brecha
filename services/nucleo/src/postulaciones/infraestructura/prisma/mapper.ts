@@ -100,6 +100,8 @@ export function filaADatos(f: FilaCompleta): PostulacionDatos {
       confianza: Number(s.confianza),
       recibidaEn: s.recibidaEn,
       ...(s.referenciaExterna ? { referenciaExterna: s.referenciaExterna } : {}),
+      ...(s.remitente ? { remitente: s.remitente } : {}),
+      ...(s.asunto ? { asunto: s.asunto } : {}),
       aplicada: s.aplicada,
     })),
     discrepancias: f.discrepancias.map((d): Discrepancia => ({
@@ -163,6 +165,8 @@ export const senalAFila = (postulacionId: string, s: Senal) => ({
   estadoSugerido: s.estadoSugerido ?? null,
   confianza: s.confianza,
   referenciaExterna: s.referenciaExterna ?? null,
+  remitente: s.remitente ?? null,
+  asunto: s.asunto ?? null,
   recibidaEn: s.recibidaEn,
   aplicada: s.aplicada,
 });

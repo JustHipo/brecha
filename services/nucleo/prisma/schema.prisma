@@ -70,6 +70,8 @@ model Senal {
   estadoSugerido    String?      @map("estado_sugerido")
   confianza         Decimal      @db.Decimal(4, 3)
   referenciaExterna String?      @unique @map("referencia_externa")
+  remitente         String?
+  asunto            String?
   recibidaEn        DateTime     @map("recibida_en") @db.Timestamptz(3)
   aplicada          Boolean      @default(false)
   postulacion       Postulacion? @relation(fields: [postulacionId], references: [id], onDelete: Cascade)

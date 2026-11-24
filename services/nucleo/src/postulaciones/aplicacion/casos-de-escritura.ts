@@ -127,6 +127,8 @@ export class RegistrarSenal {
     confianza: number;
     recibidaEn?: Date;
     referenciaExterna?: string;
+    remitente?: string;
+    asunto?: string;
   }): Promise<{ senal: Senal; postulacion: VistaDetalle }> {
     const [aplicarSeguras, umbral] = await Promise.all([
       this.c.ajustes.aplicarSenalesSeguras(),

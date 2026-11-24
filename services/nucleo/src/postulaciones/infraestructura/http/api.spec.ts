@@ -169,6 +169,25 @@ describe('señales como comando y Bandeja (F2-04)', () => {
       .post('/senales', { ...SENAL, postulacionId: p.id, confianza: 0.95 })
       .expect(201);
     expect(alta.body).toMatchObject({ senal: { aplicada: true }, postulacion: { estado: 'entrevista' } });
+    const conRemitente = await conToken(servicio())
+      .post('/senales', {
+        ...SENAL,
+        postulacionId: p.id,
+        referenciaExterna: '<r1@x>',
+        remitente: 'seleccion@ficticia.test',
+        asunto: 'Invitación a entrevista',
+      })
+      .expect(201);
+    expect(conRemitente.body.senal).toMatchObject({
+      remitente: 'seleccion@ficticia.test',
+      asunto: 'Invitación a entrevista',
+    });
+    const ficha = await api().get(`/postulaciones/${p.id}`).expect(200);
+    expect(
+      ficha.body.senales.find((s: { referenciaExterna?: string }) => s.referenciaExterna === '<r1@x>'),
+    ).toMatchObject({
+      remitente: 'seleccion@ficticia.test',
+    });
     await conToken(servicio())
       .post('/senales', { ...SENAL, postulacionId: '00000000-0000-7000-8000-000000000000' })
       .expect(404);

@@ -1703,15 +1703,22 @@
         "parameters": [
           {
             "name": "filtro",
-            "required": true,
+            "required": false,
             "in": "query",
             "schema": {
+              "enum": [
+                "todos",
+                "responder",
+                "esperando",
+                "solicitudes",
+                "seguimiento"
+              ],
               "type": "string"
             }
           },
           {
             "name": "texto",
-            "required": true,
+            "required": false,
             "in": "query",
             "schema": {
               "type": "string"
@@ -1719,7 +1726,7 @@
           },
           {
             "name": "postulacionId",
-            "required": true,
+            "required": false,
             "in": "query",
             "schema": {
               "type": "string"
@@ -2834,6 +2841,14 @@
           },
           "referenciaExterna": {
             "type": "string"
+          },
+          "remitente": {
+            "type": "string",
+            "description": "Quién la mandó (correos)"
+          },
+          "asunto": {
+            "type": "string",
+            "description": "Asunto del correo"
           },
           "aplicada": {
             "type": "boolean"

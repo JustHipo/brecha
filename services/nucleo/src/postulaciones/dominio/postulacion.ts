@@ -80,6 +80,8 @@ export interface DatosSenal {
   confianza: number;
   recibidaEn?: Date;
   referenciaExterna?: string;
+  remitente?: string;
+  asunto?: string;
 }
 
 export interface DatosEntrevista {
@@ -303,6 +305,8 @@ export class Postulacion extends AggregateRoot {
       confianza: datos.confianza,
       recibidaEn: datos.recibidaEn ?? ahora,
       ...(referencia ? { referenciaExterna: referencia } : {}),
+      ...(datos.remitente?.trim() ? { remitente: datos.remitente.trim().slice(0, 320) } : {}),
+      ...(datos.asunto?.trim() ? { asunto: datos.asunto.trim().slice(0, 500) } : {}),
       aplicada: false,
     };
     this.d.senales.push(senal);

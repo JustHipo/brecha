@@ -42,6 +42,9 @@ export interface Senal {
   readonly confianza: number;
   readonly recibidaEn: Date;
   readonly referenciaExterna?: string;
+  /** Quién la mandó y el asunto (correos): para saber con quién hablas en cada postulación. */
+  readonly remitente?: string;
+  readonly asunto?: string;
   readonly aplicada: boolean;
 }
 

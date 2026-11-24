@@ -657,6 +657,10 @@ export interface components {
             /** Format: date-time */
             recibidaEn: string;
             referenciaExterna?: string;
+            /** @description Quién la mandó (correos) */
+            remitente?: string;
+            /** @description Asunto del correo */
+            asunto?: string;
             aplicada: boolean;
         };
         /** @enum {string} */
@@ -2182,10 +2186,10 @@ export interface operations {
     };
     listarRed: {
         parameters: {
-            query: {
-                filtro: string;
-                texto: string;
-                postulacionId: string;
+            query?: {
+                filtro?: "todos" | "responder" | "esperando" | "solicitudes" | "seguimiento";
+                texto?: string;
+                postulacionId?: string;
             };
             header?: never;
             path?: never;

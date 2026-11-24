@@ -701,6 +701,12 @@ interface Etapa {
                           }
                         </span>
                         <span class="text-[#3C3632]">{{ s.resumen }}</span>
+                        @if (s.remitente || s.asunto) {
+                          <span class="text-xs text-tinta-suave" data-remitente
+                            >{{ s.remitente }}{{ s.remitente && s.asunto ? ' · ' : ''
+                            }}{{ s.asunto ? '«' + s.asunto + '»' : '' }}</span
+                          >
+                        }
                         <span class="flex items-center gap-2">
                           <span class="text-xs text-tinta-suave"
                             >{{ formato.fechaHora(s.recibidaEn) }} ·

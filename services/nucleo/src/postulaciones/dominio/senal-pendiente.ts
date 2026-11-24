@@ -107,6 +107,8 @@ export class SenalPendiente {
       recibidaEn: d.recibidaEn,
       ...(d.estadoSugerido ? { estadoSugerido: d.estadoSugerido } : {}),
       ...(d.referenciaExterna ? { referenciaExterna: d.referenciaExterna } : {}),
+      ...(d.remitente ? { remitente: d.remitente } : {}),
+      ...(d.asunto ? { asunto: d.asunto } : {}),
     };
   }
 

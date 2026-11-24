@@ -100,6 +100,8 @@ export class SenalDto {
   @ApiProperty({ minimum: 0, maximum: 1 }) confianza!: number;
   @ApiProperty({ format: 'date-time' }) recibidaEn!: string;
   @ApiPropertyOptional() referenciaExterna?: string;
+  @ApiPropertyOptional({ description: 'Quién la mandó (correos)' }) remitente?: string;
+  @ApiPropertyOptional({ description: 'Asunto del correo' }) asunto?: string;
   @ApiProperty() aplicada!: boolean;
 }
 
