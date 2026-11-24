@@ -203,6 +203,6 @@ Rama `arriendos` desde `brecha-junta`, fases A1 a A7 con pruebas en cada una (co
 
 **Verificado ejecutando:** lint, tipos, pruebas y build de los cuatro paquetes; 411 pruebas del núcleo; pruebas del servicio con IA; 10 e2e nuevas con axe (selector, flujo, importar con el servicio con IA simulado, mapas); esquemas de OpenAI convertidos al formato estricto sin llamar a la API.
 
-**No verificado:** llamadas reales a OpenAI con los prompts nuevos (sin correos reales de arriendo todavía, P8); el fondo de OpenFreeMap y Nominatim desde la app (las pruebas usan fondo liso y respuestas grabadas); Windows; la app empaquetada con estos cambios.
+**No verificado:** llamadas reales a OpenAI con los prompts nuevos (sin correos reales de arriendo todavía, P8); el fondo de OpenFreeMap y Nominatim desde la app (las pruebas usan fondo liso y respuestas grabadas); Windows.
 
 **Pendiente de Juan:** elegir el color de Arriendos (hoy un verde provisorio, `styles.css`).
