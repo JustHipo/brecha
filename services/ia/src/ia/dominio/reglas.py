@@ -80,6 +80,30 @@ PALABRAS_DEBILES: tuple[str, ...] = (
     "applied to",
     "reclutador",
     "recruiter",
+    # Invitaciones de calendario (una llamada o entrevista agendada por Google Calendar, Outlook o Calendly).
+    "invitation:",
+    "invitación:",
+    "updated invitation",
+    "invitación actualizada",
+    "google meet",
+    "meet.google.com",
+    "zoom.us/j",
+    "teams.microsoft.com",
+    "calendly",
+)
+
+# Correo de uso personal: un dominio de estos no dice de qué empresa es el remitente.
+DOMINIOS_GENERICOS: tuple[str, ...] = (
+    "gmail.com",
+    "googlemail.com",
+    "outlook.com",
+    "hotmail.com",
+    "live.com",
+    "yahoo.com",
+    "icloud.com",
+    "me.com",
+    "proton.me",
+    "protonmail.com",
 )
 
 # Asuntos de avisos masivos (alertas de empleo, boletines): no son evidencia de una postulación.

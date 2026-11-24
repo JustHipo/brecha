@@ -8,7 +8,7 @@ verifica lo que eligió el modelo y guarda la decisión para el registro.
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Protocol
+from typing import Protocol, runtime_checkable
 
 from ia.aplicacion.puertos import (
     ColaDeClasificacion,
@@ -156,6 +156,11 @@ class _ConHilos(Protocol):
     def del_hilo(self, message_ids: tuple[str, ...]) -> tuple[str, ...]: ...
 
 
+@runtime_checkable
+class _ConDominios(Protocol):
+    def postulaciones_del_dominio(self, dominio: str) -> tuple[str, ...]: ...
+
+
 def clasificar_con_contexto(
     modelo: ModeloDeLenguaje,
     nucleo: FuenteDeContexto,
@@ -166,6 +171,8 @@ def clasificar_con_contexto(
 ) -> tuple[Clasificacion, Uso, DecisionGuardada]:
     """Candidatas por código, contexto del núcleo, modelo y verificación (pasos.md §5.1 a §5.3)."""
     del_hilo = hilos.del_hilo(tuple(x for x in (c.en_respuesta_a, *c.referencias) if x))
+    dominio = c.remitente.rsplit("@", 1)[-1].lower()
+    del_dominio = hilos.postulaciones_del_dominio(dominio) if isinstance(hilos, _ConDominios) else ()
     lista = candidatas(
         empresa=None,
         cargo=None,
@@ -174,6 +181,7 @@ def clasificar_con_contexto(
         textos=(c.asunto, c.fragmento, *c.enlaces),
         conocidas=conocidas,
         del_hilo=del_hilo,
+        del_dominio=del_dominio,
     )
     contextos = nucleo.contexto([x.id for x in lista]) if lista else []
     lista_modelo = para_modelo(contextos)

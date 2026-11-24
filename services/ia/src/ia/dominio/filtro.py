@@ -33,10 +33,12 @@ def plataforma_por_dominio(dominio: str) -> str | None:
     return None
 
 
-def filtrar(correo: CorreoLeido) -> ResultadoFiltro:
+def filtrar(correo: CorreoLeido, dominios_conocidos: frozenset[str] = frozenset()) -> ResultadoFiltro:
     """Decide si el correo es sobre una postulación. Nunca pasa la publicidad.
 
     - Desde una plataforma o un sistema de selección: pasa con cualquier palabra (los sistemas, siempre).
+    - Desde un dominio que ya escribió por una postulación (`dominios_conocidos`): pasa si no es masivo,
+      aunque no traiga palabras (una invitación de calendario de la misma persona que te invitó).
     - Desde otro remitente: pasa con una palabra fuerte, o con una débil si no es masivo.
     """
     publicidad = _contiene(correo.asunto, reglas.ASUNTOS_DE_PUBLICIDAD)
@@ -58,6 +60,8 @@ def filtrar(correo: CorreoLeido) -> ResultadoFiltro:
         return ResultadoFiltro(False, plataforma, "plataforma sin palabras de proceso")
     if fuerte:
         return ResultadoFiltro(True, None, f"palabra fuerte: {fuerte}")
+    if correo.dominio in dominios_conocidos and not correo.masivo:
+        return ResultadoFiltro(True, None, "remitente que ya escribió por una postulación")
     if debil and not correo.masivo:
         return ResultadoFiltro(True, None, f"palabra en correo personal: {debil}")
     if debil:

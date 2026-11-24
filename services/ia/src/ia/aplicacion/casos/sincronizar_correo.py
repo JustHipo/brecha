@@ -8,6 +8,7 @@ from datetime import datetime, timedelta
 from ia.aplicacion.puertos import (
     ColaDeRed,
     CorreoGuardado,
+    CorreosConocidos,
     LectorDeCorreo,
     PuntoDeLectura,
     RepositorioDeCorreos,
@@ -54,10 +55,11 @@ class SincronizarCorreo:
             desde_uid = punto.ultimo_uid if punto.uidvalidity == validez else None
             desde_fecha = (cuando - timedelta(days=self.dias_primera_vez)).date()
             ultimo = desde_uid
+            dominios = dominios_de(self.repo)
             for c in self.lector.nuevos(desde_uid, desde_fecha):
                 r.leidos += 1
                 ultimo = max(ultimo or 0, c.uid)
-                destino, plataforma = ingresar(self.repo, c)
+                destino, plataforma = ingresar(self.repo, c, dominios)
                 if destino == "repetido":
                     r.repetidos += 1
                 elif destino in {"filtrado", "red"}:
@@ -74,7 +76,14 @@ class SincronizarCorreo:
         return r
 
 
-def ingresar(repo: RepositorioDeCorreos, c: CorreoLeido) -> tuple[str, str | None]:
+def dominios_de(repo: RepositorioDeCorreos) -> frozenset[str]:
+    """Dominios que ya escribieron por una postulación: sus correos pasan el filtro sin palabras."""
+    return repo.dominios_conocidos() if isinstance(repo, CorreosConocidos) else frozenset()
+
+
+def ingresar(
+    repo: RepositorioDeCorreos, c: CorreoLeido, dominios: frozenset[str] = frozenset()
+) -> tuple[str, str | None]:
     """Un correo leído entra a la base: repetido, filtrado (sin asunto ni fragmento) o por clasificar.
 
     Lo usan el vigía y `ia probar-correo` (correos de prueba en archivos, sin tocar el punto de lectura).
@@ -96,7 +105,7 @@ def ingresar(repo: RepositorioDeCorreos, c: CorreoLeido) -> tuple[str, str | Non
             )
         )
         return "red", "linkedin"
-    f = filtrar(c)
+    f = filtrar(c, dominios)
     if not f.pasa:
         repo.guardar(
             CorreoGuardado(
@@ -110,22 +119,60 @@ def ingresar(repo: RepositorioDeCorreos, c: CorreoLeido) -> tuple[str, str | Non
             )
         )
         return "filtrado", f.plataforma
+    repo.guardar(por_clasificar(c, f.plataforma, f.motivo))
+    return "pendiente", f.plataforma
+
+
+def por_clasificar(c: CorreoLeido, plataforma: str | None, motivo: str) -> CorreoGuardado:
     # Los enlaces quedan en la base local y al modelo le llega «[enlace N]» (D54).
     texto, enlaces = marcar_enlaces(fragmento(c.texto), c.dominio)
-    repo.guardar(
-        CorreoGuardado(
-            c.message_id,
-            c.uid,
-            c.remitente,
-            c.recibido_en,
-            EstadoDeCorreo.PENDIENTE,
-            f.plataforma,
-            f.motivo,
-            asunto=c.asunto[:500],
-            fragmento=texto,
-            en_respuesta_a=c.en_respuesta_a,
-            referencias=c.referencias,
-            enlaces=tuple(enlaces),
-        )
+    return CorreoGuardado(
+        c.message_id,
+        c.uid,
+        c.remitente,
+        c.recibido_en,
+        EstadoDeCorreo.PENDIENTE,
+        plataforma,
+        motivo,
+        asunto=c.asunto[:500],
+        fragmento=texto,
+        en_respuesta_a=c.en_respuesta_a,
+        referencias=c.referencias,
+        enlaces=tuple(enlaces),
     )
-    return "pendiente", f.plataforma
+
+
+@dataclass
+class ResumenDeRelectura:
+    leidos: int = 0
+    reabiertos: int = 0
+    detalle: list[str] = field(default_factory=list)
+
+
+class ReleerFiltrados:
+    """Vuelve a leer del correo los mensajes que el filtro descartó y deja en cola los que ahora pasan.
+
+    Un correo filtrado no guarda asunto ni texto, así que hay que leerlo de nuevo (solo lectura, D25).
+    """
+
+    def __init__(
+        self, lector: LectorDeCorreo, repo: RepositorioDeCorreos, ahora: Callable[[], datetime]
+    ) -> None:
+        self.lector = lector
+        self.repo = repo
+        self.ahora = ahora
+
+    def ejecutar(self, dias: int) -> ResumenDeRelectura:
+        r = ResumenDeRelectura()
+        if not isinstance(self.repo, CorreosConocidos):
+            return r
+        dominios = self.repo.dominios_conocidos()
+        for c in self.lector.nuevos(None, (self.ahora() - timedelta(days=dias)).date()):
+            r.leidos += 1
+            if self.repo.estado_de(c.message_id) != EstadoDeCorreo.FILTRADO.value or leer_aviso(c):
+                continue
+            f = filtrar(c, dominios)
+            if f.pasa and self.repo.reabrir(por_clasificar(c, f.plataforma, f.motivo)):
+                r.reabiertos += 1
+                r.detalle.append(f"{c.remitente} · {c.asunto[:80]} ({f.motivo})")
+        return r

@@ -115,3 +115,39 @@ def test_hilo_enlaces_y_decision_ida_y_vuelta(repo: RepositorioPostgresDeCorreos
     repo.marcar_enviado("<a@x>", ("p1", "p2"))
     assert repo.del_hilo(("<a@x>", "<otro@x>")) == ("p1", "p2")
     assert repo.del_hilo(()) == ()
+
+
+def test_remitentes_conocidos_y_releer(repo: RepositorioPostgresDeCorreos) -> None:
+    from ia.dominio.clasificacion import Clasificacion
+
+    def guardado(mid: str, remitente: str, estado: EstadoDeCorreo) -> CorreoGuardado:
+        return CorreoGuardado(
+            mid, 1, remitente, datetime(2026, 11, 24, tzinfo=UTC), estado, None, "m", "a", "t"
+        )
+
+    repo.guardar(guardado("<s@fs>", "svalencia@fullstacklabs.co", EstadoDeCorreo.PENDIENTE))
+    repo.guardar(guardado("<p@g>", "persona@gmail.com", EstadoDeCorreo.PENDIENTE))
+    k = Clasificacion(True, "otra", "FullStack", None, "entrevista", "r", 0.9)
+    repo.marcar_clasificado("<s@fs>", k, "m")
+    repo.marcar_clasificado("<p@g>", k, "m")
+    repo.marcar_enviado("<s@fs>", ("fs",))
+    repo.marcar_enviado("<p@g>", ("otra",))
+    assert repo.dominios_conocidos() == frozenset({"fullstacklabs.co"})
+    assert repo.postulaciones_del_dominio("FullStackLabs.co") == ("fs",)
+    assert repo.postulaciones_del_dominio("gmail.com") == ()
+
+    repo.guardar(
+        CorreoGuardado(
+            "<j@fs>",
+            2,
+            "jcorrea@fullstacklabs.co",
+            datetime(2026, 11, 24, tzinfo=UTC),
+            EstadoDeCorreo.FILTRADO,
+            None,
+            "x",
+        )
+    )
+    assert repo.estado_de("<j@fs>") == "filtrado" and repo.estado_de("<no@x>") is None
+    nuevo = guardado("<j@fs>", "jcorrea@fullstacklabs.co", EstadoDeCorreo.PENDIENTE)
+    assert repo.reabrir(nuevo) and not repo.reabrir(nuevo)
+    assert [c.message_id for c in repo.pendientes(10)] == ["<j@fs>"]

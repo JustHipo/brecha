@@ -5,7 +5,8 @@ Subcomandos:
 - `vigia`: el vigía del correo y los avisos (`--comprobar` solo revisa que todo se importe).
 - `migrar`: `alembic upgrade head` con las migraciones que van dentro del ejecutable.
 - `comprobar`: importa todo lo que el servicio usa al correr y sale (0 si está completo).
-- `credenciales`, `avisos`, `perfil`, `preguntar`, `probar-correo`, `red`, `evaluar` y `pasos`: la CLI `ia`.
+- `credenciales`, `avisos`, `perfil`, `preguntar`, `probar-correo`, `red`, `evaluar`, `pasos` y
+  `correo`: la CLI `ia`.
 
 Funciona igual desde el código (`uv run brecha-ia ...`) y empaquetado con PyInstaller.
 """
@@ -31,6 +32,7 @@ COMANDOS_DE_LA_CLI = (
     "red",
     "evaluar",
     "pasos",
+    "correo",
 )
 SALIDA_CONFIG_INVALIDA = 78  # EX_CONFIG de sysexits.h: la app distingue "falta configuración" de un fallo
 
@@ -164,6 +166,7 @@ def _parser() -> argparse.ArgumentParser:
         ("red", "Traer los avisos de LinkedIn del correo a tu red"),
         ("evaluar", "Medir la clasificación y Preguntar contra los umbrales de D30"),
         ("pasos", "Crear los pasos pendientes de los correos ya leídos"),
+        ("correo", "Releer los correos que el filtro descartó en los últimos días"),
     ):
         sub.add_parser(nombre, help=f"{ayuda} (brecha-ia {nombre} --help)")
     return parser
