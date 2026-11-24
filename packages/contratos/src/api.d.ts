@@ -1675,7 +1675,7 @@ export interface components {
          */
         PendienteDeRed: "responder" | "esperando";
         /** @enum {string} */
-        TipoDeInteraccion: "solicitud_enviada" | "solicitud_recibida" | "solicitud_aceptada" | "solicitud_rechazada" | "solicitud_retirada" | "mensaje_enviado" | "mensaje_recibido" | "nota";
+        TipoDeInteraccion: "solicitud_enviada" | "solicitud_recibida" | "solicitud_aceptada" | "solicitud_rechazada" | "solicitud_retirada" | "mensaje_enviado" | "mensaje_recibido" | "conversacion_cerrada" | "nota";
         /** @enum {string} */
         OrigenDeRed: "consola" | "ia" | "correo";
         InteraccionDto: {

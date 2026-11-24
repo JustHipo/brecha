@@ -6322,6 +6322,7 @@
           "solicitud_retirada",
           "mensaje_enviado",
           "mensaje_recibido",
+          "conversacion_cerrada",
           "nota"
         ]
       },

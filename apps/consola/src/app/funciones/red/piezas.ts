@@ -67,5 +67,6 @@ export function iconoInteraccion(tipo: string): string {
   if (tipo === 'mensaje_recibido') return '↙';
   if (tipo === 'mensaje_enviado') return '↗';
   if (tipo === 'nota') return '✎';
+  if (tipo === 'conversacion_cerrada') return '✓';
   return '⇄';
 }

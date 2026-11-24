@@ -20,6 +20,7 @@ import { ContactoStore, momentoDe } from './red.store';
 const TIPOS: TipoDeInteraccion[] = [
   'mensaje_recibido',
   'mensaje_enviado',
+  'conversacion_cerrada',
   'solicitud_enviada',
   'solicitud_recibida',
   'solicitud_aceptada',
@@ -95,6 +96,18 @@ const TARJETA =
                 <span class="flex flex-wrap items-center gap-3">
                   <b-conexion-red [conexion]="d.conexion" />
                   <b-pendiente-red [contacto]="d" />
+                  @if (d.pendiente === 'responder' && d.conexion !== 'solicitud_recibida') {
+                    <button
+                      hlmBtn
+                      variant="outline"
+                      size="sm"
+                      type="button"
+                      [disabled]="store.ocupado()"
+                      (click)="cerrarConversacion()"
+                    >
+                      {{ 'red.detalle.cerrarConversacion' | transloco }}
+                    </button>
+                  }
                 </span>
               </div>
               @if (d.perfilUrl) {
@@ -412,6 +425,16 @@ export class ContactoRedPagina {
     this.interaccion.reset({ tipo: v.tipo, resumen: '', fecha: '' });
     if (r.agregada === false) this.avisos.aviso('red.detalle.repetida');
     else this.avisos.exito('red.detalle.registrada');
+  }
+
+  /** La otra persona se despidió y no hace falta contestar: sale de «por responder» hasta que vuelva a escribir. */
+  protected async cerrarConversacion(): Promise<void> {
+    const r = await this.store.interaccion({
+      tipo: 'conversacion_cerrada',
+      resumen: this.t.translate('red.detalle.conversacionCerradaResumen'),
+    });
+    if (r.ok) this.avisos.exito('red.detalle.conversacionCerrada');
+    else this.avisos.error(r.error);
   }
 
   protected async vincular(d: ContactoRedDetalle): Promise<void> {

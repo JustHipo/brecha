@@ -24,6 +24,7 @@ export const TIPOS_DE_INTERACCION = [
   'solicitud_retirada',
   'mensaje_enviado',
   'mensaje_recibido',
+  'conversacion_cerrada',
   'nota',
 ] as const;
 export type TipoDeInteraccion = (typeof TIPOS_DE_INTERACCION)[number];
@@ -255,12 +256,19 @@ export class ContactoDeRed {
     this.d.actualizadoEn = reloj.ahora();
   }
 
-  /** Te toca responder si lo último fue suyo (un mensaje o una solicitud que te mandó); esperas si fue tuyo. */
+  /**
+   * Te toca responder si lo último fue suyo (un mensaje o una solicitud que te mandó); esperas si fue tuyo.
+   * Una conversación cerrada (una despedida que no pide respuesta) no deja nada pendiente hasta el próximo mensaje.
+   */
   pendiente(): Pendiente {
     if (this.d.conexion === 'solicitud_recibida') return 'responder';
     const ultimo = [...this.d.interacciones]
       .reverse()
-      .find((i) => i.tipo === 'mensaje_enviado' || i.tipo === 'mensaje_recibido');
+      .find(
+        (i) =>
+          i.tipo === 'mensaje_enviado' || i.tipo === 'mensaje_recibido' || i.tipo === 'conversacion_cerrada',
+      );
+    if (ultimo?.tipo === 'conversacion_cerrada') return null;
     if (ultimo?.tipo === 'mensaje_recibido') return 'responder';
     if (ultimo?.tipo === 'mensaje_enviado') return 'esperando';
     return this.d.conexion === 'solicitud_enviada' ? 'esperando' : null;

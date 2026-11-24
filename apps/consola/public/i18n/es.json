@@ -609,6 +609,7 @@
       "solicitud_retirada": "Solicitud retirada",
       "mensaje_enviado": "Le escribiste",
       "mensaje_recibido": "Te escribió",
+      "conversacion_cerrada": "Conversación cerrada",
       "nota": "Nota"
     },
     "origen": {
@@ -643,7 +644,10 @@
       "notas": "Notas",
       "notasEjemplo": "Lo que quieres recordar de esta persona",
       "guardarNotas": "Guardar notas",
-      "guardado": "Cambios guardados"
+      "guardado": "Cambios guardados",
+      "cerrarConversacion": "Cerrar conversación",
+      "conversacionCerradaResumen": "Conversación cerrada: no hace falta contestar",
+      "conversacionCerrada": "Conversación cerrada: ya no aparece por responder"
     },
     "nuevo": {
       "titulo": "Agregar contacto de LinkedIn",

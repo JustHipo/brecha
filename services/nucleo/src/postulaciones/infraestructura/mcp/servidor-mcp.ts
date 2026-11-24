@@ -646,7 +646,9 @@ function registrarRed(s: McpServer, red: CasosDeRed, casos: CasosDeUso): void {
       description:
         'Por id o por perfilUrl (con nombre crea el contacto si no existe). No se repite: la misma referenciaExterna, ' +
         'o el mismo tipo y resumen el mismo día, se ignoran. Las solicitudes cambian el estado de la conexión. ' +
-        'Resume el mensaje en una línea; no copies textos largos ni datos sensibles.',
+        'Resume el mensaje en una línea; no copies textos largos ni datos sensibles. ' +
+        'conversacion_cerrada: la otra persona se despidió y no hace falta contestar; saca al contacto de ' +
+        '«por responder» hasta el próximo mensaje. Úsala solo si la persona lo dice.',
       inputSchema: {
         id: z.string().optional(),
         perfilUrl: z.string().optional(),
