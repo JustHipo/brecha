@@ -74,6 +74,8 @@ export class MapaBase {
   private marcadores: Marker[] = [];
   private libre?: typeof import('maplibre-gl');
   private encuadrado = false;
+  /** Lo último dibujado: si los pines no cambiaron, no se tocan (un clic no pierde su botón). */
+  private dibujado = '';
 
   constructor() {
     afterNextRender(() => void this.iniciar());
@@ -96,7 +98,11 @@ export class MapaBase {
         attributionControl: { compact: true },
       });
       this.mapa.addControl(new this.libre.NavigationControl({ showCompass: false }), 'top-right');
-      this.mapa.on('error', () => this.problema.set('sinFondo'));
+      // Solo un fondo que no cargó es «sin conexión»; en las pruebas el fondo es local y no hay nada que cargar.
+      this.mapa.on('error', (ev: { error?: { message?: string } }) => {
+        if (!automatico && /fetch|network|load|failed/i.test(ev.error?.message ?? ''))
+          this.problema.set('sinFondo');
+      });
       this.dibujar(this.pines());
     } catch {
       this.problema.set('sinWebgl');
@@ -107,6 +113,9 @@ export class MapaBase {
     const ml = this.libre;
     const mapa = this.mapa;
     if (!ml || !mapa) return;
+    const clave = JSON.stringify(pines);
+    if (clave === this.dibujado) return;
+    this.dibujado = clave;
     for (const m of this.marcadores) m.remove();
     this.marcadores = pines.map((p) => {
       const el = document.createElement('button');

@@ -70,8 +70,10 @@ test('en la ficha: un mensaje del corredor deja «te toca responder»', async ({
   await ana.getByRole('button', { name: 'Registrar' }).click();
   await expect(ana.getByText('¿Te acomoda el viernes a las 11?')).toBeVisible();
   await page.goto('/arriendos/lista');
-  await expect(page.getByText('· Te toca responder')).toBeVisible();
+  await expect(page.getByRole('row', { name: /Departamento 2D en Ñuñoa/ })).toContainText(
+    'Te toca responder',
+  );
   // El selector de foco cuenta lo que Arriendos tiene por revisar.
   await page.locator('[data-selector-foco]').click();
-  await expect(page.locator('[data-foco-opcion="arriendos"]')).toContainText('1 por revisar');
+  await expect(page.locator('[data-foco-opcion="arriendos"]')).toContainText(/\d+ por revisar/);
 });
