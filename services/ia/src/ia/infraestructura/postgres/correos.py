@@ -7,7 +7,7 @@ from dataclasses import asdict
 from datetime import UTC, datetime
 from typing import Any
 
-from sqlalchemy import Engine, func, null, select, update
+from sqlalchemy import ColumnElement, Engine, func, null, select, update
 from sqlalchemy.dialects.postgresql import insert
 
 from ia.aplicacion.puertos import (
@@ -21,10 +21,12 @@ from ia.aplicacion.puertos import (
     PuntoDeLectura,
     Traza,
 )
+from ia.dominio.asociacion import normalizar_empresa
 from ia.dominio.clasificacion import Clasificacion
 from ia.dominio.correo import EstadoDeCorreo
 from ia.dominio.linkedin import AvisoDeLinkedin
-from ia.infraestructura.postgres.tablas import aviso_red, clasificacion, correo, estado_vigia, traza
+from ia.dominio.reglas import DOMINIOS_GENERICOS
+from ia.infraestructura.postgres.tablas import aviso, aviso_red, clasificacion, correo, estado_vigia, traza
 
 
 def decision_desde_dict(d: Any) -> DecisionGuardada | None:
@@ -151,6 +153,71 @@ class RepositorioPostgresDeCorreos:
             )
             for f in filas
         ]
+
+    # ── Remitentes conocidos: el filtro y las candidatas por dominio ─────────────
+
+    def _dominio(self) -> ColumnElement[str]:
+        return func.lower(func.split_part(correo.c.remitente, "@", 2))
+
+    def dominios_conocidos(self) -> frozenset[str]:
+        """Dominios que ya mandaron un correo de una postulación (no los de correo personal)."""
+        with self.motor.connect() as c:
+            filas = c.execute(
+                select(self._dominio().label("d"))
+                .join(clasificacion, clasificacion.c.message_id == correo.c.message_id)
+                .where(clasificacion.c.resultado["es_postulacion"].astext == "true")
+                .distinct()
+            ).all()
+        return frozenset(f.d for f in filas if f.d and f.d not in DOMINIOS_GENERICOS)
+
+    def empresas_conocidas(self) -> frozenset[str]:
+        """Las empresas de tus postulaciones (todas entran al inventario de avisos, D45), normalizadas."""
+        with self.motor.connect() as c:
+            filas = c.execute(
+                select(aviso.c.empresa).where(aviso.c.postulacion_id.is_not(None)).distinct()
+            ).all()
+        return frozenset(e for f in filas if (e := normalizar_empresa(f.empresa)))
+
+    def postulaciones_del_dominio(self, dominio: str) -> tuple[str, ...]:
+        """Las postulaciones a las que ya fueron correos de ese dominio (no los de correo personal)."""
+        d = dominio.lower()
+        if d in DOMINIOS_GENERICOS:
+            return ()
+        with self.motor.connect() as c:
+            filas = c.execute(
+                select(clasificacion.c.postulacion_ids, clasificacion.c.postulacion_id)
+                .join(correo, clasificacion.c.message_id == correo.c.message_id)
+                .where(self._dominio() == d)
+            ).all()
+        ids = [
+            i for f in filas for i in (f.postulacion_ids or ([f.postulacion_id] if f.postulacion_id else []))
+        ]
+        return tuple(dict.fromkeys(ids))
+
+    def estado_de(self, message_id: str) -> str | None:
+        with self.motor.connect() as c:
+            fila = c.execute(select(correo.c.estado).where(correo.c.message_id == message_id)).first()
+        return fila.estado if fila else None
+
+    def reabrir(self, g: CorreoGuardado) -> bool:
+        """Un correo filtrado que ahora pasa vuelve a la cola, con su asunto y su fragmento."""
+        with self.motor.begin() as c:
+            r = c.execute(
+                update(correo)
+                .where(correo.c.message_id == g.message_id, correo.c.estado == EstadoDeCorreo.FILTRADO.value)
+                .values(
+                    estado=EstadoDeCorreo.PENDIENTE.value,
+                    plataforma=g.plataforma,
+                    motivo=g.motivo[:200],
+                    asunto=g.asunto,
+                    fragmento=g.fragmento,
+                    intentos=0,
+                    en_respuesta_a=g.en_respuesta_a[:998] if g.en_respuesta_a else None,
+                    referencias=list(g.referencias)[-20:] if g.referencias else null(),
+                    enlaces=list(g.enlaces) if g.enlaces else null(),
+                )
+            )
+        return r.rowcount == 1
 
     def del_hilo(self, message_ids: tuple[str, ...]) -> tuple[str, ...]:
         """Las postulaciones de los correos de este hilo que ya se asociaron (regla segura, pasos.md §5.1)."""

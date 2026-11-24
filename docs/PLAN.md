@@ -311,6 +311,8 @@ Cada fase termina con un checkpoint: la revisas, la pruebas y decides si seguimo
 - **P3 · Consola ✅:** barra azul y **Hecho** con **Deshacer** en la tarjeta (también en Cerradas), chip de filtro, sección **Proceso** en la ficha con **+ Paso**, diálogo de cerrar con «Descartar estos pasos», bandeja con «Pide» y asociar a varias. Probado en una Brecha de desarrollo aparte (puertos 4310 y 4210, base de pruebas) y con Playwright y axe.
 - **P4 · Evaluación y cierre ✅:** `ia evaluar` mide pasos (≥ 80 % detectados, máximo 1 inventado) y asociación a varias; 4 correos inventados nuevos en `datos/ejemplo/eval/correos.json`. Falta correrla con tu llave y tu set real.
 
+- **Arreglo del 24-nov (PR #11):** la invitación de Google Calendar de FullStack quedó en el filtro (sin palabras clave y desde un dominio que el filtro no conocía). Ahora pasa un correo de un dominio que ya escribió por una postulación y lo liga a esa postulación (regla segura si es una sola); una invitación de calendario pasa solo si el dominio del remitente o el texto confirman una empresa de tus postulaciones (no todas las reuniones son de postulaciones); `brecha-ia correo releer --dias N` vuelve a leer los filtrados y los clasifica; y el ejecutable deja pasar `pasos` y `correo`.
+
 **Archivos modificados (P1):**
 | Archivo | Cambio |
 |---|---|

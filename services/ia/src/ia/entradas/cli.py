@@ -331,6 +331,47 @@ def red(args: argparse.Namespace, llavero: Credenciales) -> int:
     return 0
 
 
+def correo(args: argparse.Namespace, llavero: Credenciales) -> int:
+    """Releer: los correos que el filtro descartó en los últimos días vuelven a pasar por el filtro de hoy.
+
+    Los que ahora pasan se clasifican y se registran al tiro, como en una vuelta del vigía.
+    """
+    from ia.aplicacion.casos.clasificar_pendientes import ClasificarPendientes
+    from ia.aplicacion.casos.registrar_senales import RegistrarSenales
+    from ia.aplicacion.casos.sincronizar_correo import ReleerFiltrados
+    from ia.aplicacion.puertos import TipoDeCredencial
+    from ia.entradas.servicios import ahora
+    from ia.infraestructura.imap import LectorImap
+    from ia.infraestructura.postgres.correos import RepositorioPostgresDeCorreos
+
+    s = _servicios(llavero)
+    repo = RepositorioPostgresDeCorreos(s.motor)
+    lector = LectorImap(
+        llavero.obtener(TipoDeCredencial.CORREO_USUARIO) or "",
+        llavero.obtener(TipoDeCredencial.CORREO_CLAVE) or "",
+    )
+    r = ReleerFiltrados(lector, repo, ahora).ejecutar(args.dias)
+    print(f"Releídos {r.leidos} correos de los últimos {args.dias} días: {r.reabiertos} vuelven a la cola.")
+    for d in r.detalle:
+        print(f"  · {d}")
+    if not r.reabiertos:
+        return 0
+    if not s.hay_modelo():
+        print("Falta la llave de OpenAI: quedan en cola para el vigía.", file=sys.stderr)
+        return 1
+    nucleo = s.nucleo_http()
+    k = ClasificarPendientes(s.modelo(), repo, s.trazas, ahora, s.precios, nucleo=nucleo).ejecutar()
+    print(f"Clasificados: {k.clasificados} ({k.con_paso} con un paso pedido), USD {k.costo_usd:.5f}")
+    g = RegistrarSenales(nucleo, repo).ejecutar()
+    for d in g.detalle:
+        print(f"  · {d}")
+    print(f"Señales: {g.a_postulacion} a postulaciones, {g.a_bandeja} a la bandeja, {g.repetidas} repetidas.")
+    if k.error or g.error:
+        print(k.error or g.error, file=sys.stderr)
+        return 1
+    return 0
+
+
 def pasos(args: argparse.Namespace, llavero: Credenciales) -> int:
     """Pasos pendientes (pasos.md §5.7): vuelve a mirar los correos leídos y crea los pasos que pidieron."""
     from ia.aplicacion.casos.reprocesar_pasos import ReprocesarPasos
@@ -383,6 +424,9 @@ def main(argv: list[str] | None = None, llavero: Credenciales | None = None) -> 
     ev = sub.add_parser("evaluar", help="Medir la clasificación y Preguntar contra los umbrales de D30")
     ev.add_argument("--correos", help="set de correos (JSON)")
     ev.add_argument("--preguntas", help="set de preguntas (JSON)")
+    co = sub.add_parser("correo", help="Releer los correos que el filtro descartó en los últimos días")
+    co.add_argument("accion", choices=["releer"])
+    co.add_argument("--dias", type=int, default=3)
     ps = sub.add_parser("pasos", help="Crear los pasos pendientes de los correos ya leídos")
     ps.add_argument("accion", choices=["reprocesar"])
     ps.add_argument("--dias", type=int, default=30)
@@ -409,6 +453,8 @@ def main(argv: list[str] | None = None, llavero: Credenciales | None = None) -> 
                 return red(args, ll)
             case "pasos":
                 return pasos(args, ll)
+            case "correo":
+                return correo(args, ll)
     except KeyboardInterrupt:
         print("\nCancelado.", file=sys.stderr)
         return 130

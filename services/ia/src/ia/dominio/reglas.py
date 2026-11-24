@@ -82,6 +82,34 @@ PALABRAS_DEBILES: tuple[str, ...] = (
     "recruiter",
 )
 
+# Invitaciones de calendario (Google Calendar, Outlook, Calendly, Zoom). No todas son de postulaciones:
+# pasan solo si el remitente o el texto confirman una empresa de tus postulaciones (ver filtro.py).
+INVITACIONES_DE_CALENDARIO: tuple[str, ...] = (
+    "invitation:",
+    "invitación:",
+    "updated invitation",
+    "invitación actualizada",
+    "google meet",
+    "meet.google.com",
+    "zoom.us/j",
+    "teams.microsoft.com",
+    "calendly",
+)
+
+# Correo de uso personal: un dominio de estos no dice de qué empresa es el remitente.
+DOMINIOS_GENERICOS: tuple[str, ...] = (
+    "gmail.com",
+    "googlemail.com",
+    "outlook.com",
+    "hotmail.com",
+    "live.com",
+    "yahoo.com",
+    "icloud.com",
+    "me.com",
+    "proton.me",
+    "protonmail.com",
+)
+
 # Asuntos de avisos masivos (alertas de empleo, boletines): no son evidencia de una postulación.
 ASUNTOS_DE_PUBLICIDAD: tuple[str, ...] = (
     "empleos recomendados",

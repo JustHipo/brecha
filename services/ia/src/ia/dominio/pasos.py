@@ -77,6 +77,7 @@ def candidatas(
     textos: tuple[str, ...],
     conocidas: list[PostulacionConocida],
     del_hilo: tuple[str, ...] = (),
+    del_dominio: tuple[str, ...] = (),
     maximo: int = MAXIMO_CANDIDATAS,
 ) -> list[Candidata]:
     """Hasta `maximo` candidatas, abiertas o cerradas (J6), las seguras primero.
@@ -94,6 +95,12 @@ def candidatas(
     for p in conocidas:
         if p.id in del_hilo and p.id not in por_id:
             por_id[p.id] = Candidata(p, "mismo hilo", 1.0, segura=True)
+    # El dominio del remitente ya escribió por una postulación: si es una sola, va ahí (regla segura);
+    # si fueron varias (la misma empresa por varios cargos), son candidatas y el modelo elige.
+    unica = len(set(del_dominio)) == 1
+    for p in conocidas:
+        if p.id in del_dominio and p.id not in por_id:
+            por_id[p.id] = Candidata(p, "mismo dominio que un correo de esa postulación", 1.0, unica, True)
 
     nombre_empresa = empresa or empresa_del_ats(dominio_remitente)
     e = normalizar_empresa(nombre_empresa) if nombre_empresa else ""
@@ -124,8 +131,8 @@ def candidatas(
             otras.append(Candidata(p, "cargo", pc))
     # Entre iguales, primero las abiertas: el mismo cargo publicado de nuevo suele ser el que sigue en curso.
     otras.sort(key=lambda x: (-x.puntaje, not x.postulacion.activa))
-    seguras = list(por_id.values())
-    return (seguras + otras)[: max(maximo, len(seguras))]
+    primero = sorted(por_id.values(), key=lambda x: not x.segura)
+    return (primero + otras)[: max(maximo, len(primero))]
 
 
 @dataclass(frozen=True)
