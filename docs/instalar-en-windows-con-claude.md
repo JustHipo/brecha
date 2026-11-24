@@ -33,7 +33,7 @@ Pasos:
 
 
 3. Instalar: ábreme la carpeta Descargas y pídeme que haga doble clic en Brecha-Setup. Si aparece «Windows ha protegido su PC», explícame que sale porque la app no está firmada y que debo elegir «Más información» y después «Ejecutar de todos modos». Se instala solo para mi usuario, sin pedir clave de administrador, y Brecha se abre sola al terminar. Avísame que la instalación tarda unos 3 minutos y que la barra se queda quieta cerca del 65 % un buen rato (copia unos 29 mil archivos): no está colgada.
-   Revisa: que exista $env:LOCALAPPDATA\Programs\Brecha\Brecha.exe y que respondan http://127.0.0.1:4300/api/v1/salud y http://127.0.0.1:4400/api/ia/salud (puede tardar hasta un minuto la primera vez). Si no responden, lee los registros en $env:APPDATA\Brecha\logs (app.log, postgres.log, nucleo.log, ia-api.log) y mándale a «windows» las últimas 30 líneas de los que tengan errores, sin contraseñas.
+   Revisa: que exista $env:LOCALAPPDATA\Programs\Brecha\Brecha.exe y que respondan http://127.0.0.1:4300/api/v1/salud y http://127.0.0.1:4400/api/ia/salud (la primera vez puede tardar 2 o 3 minutos: Windows revisa los archivos nuevos). Si no responden, lee los registros en $env:APPDATA\Brecha\logs (app.log, postgres.log, nucleo.log, ia-api.log) y mándale a «windows» las últimas 30 líneas de los que tengan errores, sin contraseñas.
    Muéstrame dónde quedó el icono de Brecha (bandeja del sistema, al lado del reloj o en la flecha «^»): clic abre la ventana, clic derecho el menú.
 
 

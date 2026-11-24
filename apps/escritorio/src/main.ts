@@ -74,6 +74,14 @@ function abrir(ruta = '/tablero'): void {
       return { action: 'deny' };
     });
     ventana.once('ready-to-show', () => ventana?.show());
+    // Si la ventana abre antes de que el núcleo responda (el primer arranque puede tardar), reintenta sola
+    // en vez de quedar en blanco.
+    ventana.webContents.on('did-fail-load', (_e, _codigo, _descripcion, url, principal) => {
+      if (!principal || !url.startsWith(URL_CONSOLA)) return;
+      setTimeout(() => {
+        if (ventana && !ventana.isDestroyed()) void ventana.loadURL(url);
+      }, 2_000);
+    });
     // BRECHA_CAPTURA=archivo.png: guarda cómo se ve la ventana (para verificar la app sin mirarla).
     if (process.env.BRECHA_CAPTURA) {
       ventana.webContents.on('did-finish-load', () =>

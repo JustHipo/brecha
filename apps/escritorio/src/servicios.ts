@@ -168,7 +168,9 @@ export class Servicios {
       listoTras: 4_000,
     });
     nucleo.iniciar();
-    await esperarHttp(`http://127.0.0.1:${PUERTOS.nucleo}/api/v1/salud`);
+    // El primer arranque en un Windows recién instalado puede tardar más de un minuto: el antivirus revisa
+    // los ~29 mil archivos la primera vez que se cargan. Se espera hasta 5 minutos.
+    await esperarHttp(`http://127.0.0.1:${PUERTOS.nucleo}/api/v1/salud`, 600);
     nucleo.marcarListo();
 
     const envIa = {
@@ -193,7 +195,7 @@ export class Servicios {
       listoTras: 5_000,
     }).iniciar();
     try {
-      await esperarHttp(`http://127.0.0.1:${PUERTOS.ia}/api/ia/salud`, 40);
+      await esperarHttp(`http://127.0.0.1:${PUERTOS.ia}/api/ia/salud`, 240);
       iaApi.marcarListo();
     } catch {
       // La IA no es indispensable: el núcleo y la consola funcionan sin ella y el supervisor la sigue intentando.
@@ -290,7 +292,7 @@ export async function esperarHttp(url: string, intentos = 60): Promise<void> {
     }
     await new Promise((r) => setTimeout(r, 500));
   }
-  throw new Error(`${url} no respondió en 30 segundos`);
+  throw new Error(`${url} no respondió en ${Math.round(intentos / 2)} segundos`);
 }
 
 /**
