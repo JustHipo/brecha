@@ -340,6 +340,13 @@ def crear_app(
             tareas.add_task(s.procesar_avisos)
         return r
 
+    @app.post("/api/ia/avisos/procesar", status_code=202)
+    def procesar_avisos(tareas: BackgroundTasks, _: Annotated[str, Depends(con_token)]) -> dict[str, bool]:
+        """Trae del núcleo los avisos de las postulaciones nuevas (por ejemplo, recién importadas por CSV),
+        los analiza y liga, sin esperar la vuelta del vigía (docs/diseno/csv.md §5)."""
+        tareas.add_task(srv().procesar_avisos)
+        return {"encolado": True}
+
     @app.post("/api/ia/avisos/{id}/vincular")
     def vincular_aviso(id: str, cuerpo: Vinculo, _: Annotated[str, Depends(con_token)]) -> dict[str, Any]:
         s = srv()

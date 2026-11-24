@@ -3,10 +3,11 @@
 import re
 from collections.abc import Callable
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import date, datetime
 
 from ia.aplicacion.puertos import (
     AnalizadorDeAvisos,
+    AvisoDePostulacion,
     AvisoGuardado,
     AvisoParaResponder,
     Embeddings,
@@ -23,7 +24,7 @@ from ia.aplicacion.puertos import (
     Uso,
 )
 from ia.dominio.aviso import Aviso, AvisoInvalido
-from ia.dominio.calce import calcular_calce
+from ia.dominio.calce import Requisito, calcular_calce, normalizar
 from ia.dominio.clasificacion import costo_usd
 from ia.dominio.respuesta import NO_ENCONTRE, Respuesta, verificar_citas
 
@@ -131,6 +132,96 @@ class BuscarAvisos:
         return r
 
 
+# ── Avisos de las postulaciones del núcleo (docs/diseno/csv.md §5) ─────────────
+
+ORIGEN_POSTULACION = "postulacion"
+CITA_POSTULACION = "Desde tu postulación"
+
+
+def aviso_desde_postulacion(a: AvisoDePostulacion) -> Aviso:
+    cierre = None
+    if a.cierre:
+        try:
+            cierre = date.fromisoformat(a.cierre)
+        except ValueError:
+            cierre = None
+    return Aviso(
+        url=a.url,
+        titulo=a.titulo,
+        empresa=a.empresa,
+        plataforma=a.plataforma,
+        modalidad=a.modalidad,
+        origen=ORIGEN_POSTULACION,
+        texto=(a.requisitos or "").strip(),
+        ubicacion=a.ubicacion,
+        stack=a.stack,
+        sueldo=a.sueldo_publicado,
+        cierre=cierre,
+        cita=CITA_POSTULACION,
+    )
+
+
+@dataclass
+class ResumenDeTraidos:
+    nuevos: int = 0
+    invalidos: list[str] = field(default_factory=list)
+    error: str | None = None
+
+
+class TraerAvisosDelNucleo:
+    """Toda postulación del núcleo entra al inventario de avisos (pedido de Juan, csv.md P4).
+
+    Si no hay un aviso con su URL, se crea con la foto que guarda el núcleo. Así las importadas por CSV
+    tienen análisis, calce y búsqueda igual que las demás. Idempotente por URL.
+    """
+
+    def __init__(self, repo: RepositorioDeAvisos, nucleo: EnlaceConNucleo) -> None:
+        self.repo = repo
+        self.nucleo = nucleo
+
+    def ejecutar(self) -> ResumenDeTraidos:
+        r = ResumenDeTraidos()
+        try:
+            conocidas = {
+                url_normalizada(g.aviso.url) for g in self.repo.listar(FiltrosDeAvisos(limite=100_000))
+            }
+            for p in self.nucleo.postulaciones():
+                if not p.url or url_normalizada(p.url) in conocidas:
+                    continue
+                datos = self.nucleo.aviso_de(p.id)
+                if datos is None:
+                    continue
+                try:
+                    aviso = aviso_desde_postulacion(datos)
+                except AvisoInvalido as e:
+                    r.invalidos.append(f"{p.id}: {e}")
+                    continue
+                if self.repo.guardar(aviso)[1]:
+                    r.nuevos += 1
+                conocidas.add(url_normalizada(p.url))
+        except NucleoNoDisponible as e:
+            r.error = str(e)
+        return r
+
+
+def requisitos_del_stack(stack: tuple[str, ...]) -> list[Requisito]:
+    """Lo que la persona anotó en `stack` cuenta como requisito obligatorio, sin años (csv.md P4)."""
+    vistos: set[str] = set()
+    salida: list[Requisito] = []
+    for h in stack:
+        clave = normalizar(h)
+        if h.strip() and clave not in vistos:
+            vistos.add(clave)
+            salida.append(Requisito(h.strip(), True))
+    return salida
+
+
+def juntar_requisitos(del_stack: list[Requisito], del_modelo: list[Requisito]) -> list[Requisito]:
+    """Manda lo que escribió la persona; el modelo solo agrega lo que no estaba (deseables y años)."""
+    claves = {normalizar(r.nombre) for r in del_stack}
+    return del_stack + [r for r in del_modelo if normalizar(r.nombre) not in claves]
+
+
 # ── F2-10: análisis, calce y vínculo con la postulación ────────────────────────
 
 
@@ -166,8 +257,16 @@ class AnalizarAvisos(_ConTrazas):
         perfil = self.perfiles.perfil()
         r.sin_perfil = perfil is None
         for g in self.repo.sin_analizar(self.limite):
+            del_stack = requisitos_del_stack(g.aviso.stack) if g.aviso.origen == ORIGEN_POSTULACION else []
+            if g.aviso.origen == ORIGEN_POSTULACION and not g.aviso.texto.strip():
+                # Sin requisitos en texto no hay nada que pedirle al modelo: el stack basta y no cuesta nada.
+                calce = calcular_calce(perfil, del_stack) if perfil else None
+                self.repo.guardar_analisis(g.id, del_stack, calce, "stack")
+                r.analizados += 1
+                continue
             try:
                 requisitos, uso = self.analizador.analizar_aviso(g.aviso)
+                requisitos = juntar_requisitos(del_stack, requisitos)
             except ErrorDeModelo as e:
                 self._fallo("analizar_aviso", e)
                 if e.detiene:
@@ -178,6 +277,29 @@ class AnalizarAvisos(_ConTrazas):
             r.costo_usd = round(r.costo_usd + self._ok("analizar_aviso", uso), 6)
             calce = calcular_calce(perfil, requisitos) if perfil else None
             self.repo.guardar_analisis(g.id, requisitos, calce, uso.modelo)
+            r.analizados += 1
+        return r
+
+
+class AnalizarSinModelo:
+    """Sin llave del proveedor, los avisos de las postulaciones igual tienen calce con su stack (csv.md P4).
+    Los demás avisos esperan al modelo."""
+
+    def __init__(self, repo: RepositorioDeAvisos, perfiles: RepositorioDePerfil, limite: int = 500) -> None:
+        self.repo = repo
+        self.perfiles = perfiles
+        self.limite = limite
+
+    def ejecutar(self) -> ResumenDeAnalisis:
+        r = ResumenDeAnalisis()
+        perfil = self.perfiles.perfil()
+        r.sin_perfil = perfil is None
+        for g in self.repo.sin_analizar(self.limite):
+            if g.aviso.origen != ORIGEN_POSTULACION:
+                continue
+            requisitos = requisitos_del_stack(g.aviso.stack)
+            calce = calcular_calce(perfil, requisitos) if perfil else None
+            self.repo.guardar_analisis(g.id, requisitos, calce, "stack")
             r.analizados += 1
         return r
 

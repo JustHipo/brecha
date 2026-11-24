@@ -107,14 +107,13 @@ El contrato (`packages/contratos/openapi.json`) se regenera; el CI lo revisa.
 
 ## 5. Servicio con IA: stack con calce
 
-El núcleo no llama al servicio con IA (hoy es al revés y así se queda). El servicio con IA ya lista las postulaciones del núcleo en cada vuelta (`VincularConPostulaciones`); se agrega un paso antes:
+El núcleo no llama al servicio con IA (hoy es al revés y así se queda). En cada vuelta de `procesar_avisos` (vigía cada 15 minutos, o `POST /api/ia/avisos/procesar` que la consola llama después de importar):
 
-1. **`TraerAvisosDelNucleo`**: por cada postulación sin aviso en Mercado con esa URL (P4: todas entran al inventario), crea un `Aviso` con origen nuevo `importado_csv` (cita «Importado desde CSV»), `stack` de la columna y `texto` = requisitos (o el stack si no hay requisitos). Idempotente por URL.
-2. **Requisitos** (P4): las herramientas del `stack` entran directo como requisitos obligatorios sin años, sin llamar al modelo; si además hay `requisitos` en texto y hay llave de OpenAI, el análisis de hoy los completa (deseables y años) y se juntan, mandando lo que escribió la persona.
+1. **`TraerAvisosDelNucleo`**: lista las postulaciones del núcleo y, por cada una sin aviso en el inventario con esa URL (normalizada), pide su foto (`GET /postulaciones/:id`, `EnlaceConNucleo.aviso_de`) y crea un `Aviso` con origen nuevo `postulacion` (cita «Desde tu postulación»): `stack` de la postulación, `texto` = requisitos, `sueldo` = sueldo publicado. P4: entran **todas** las postulaciones, traigan o no stack, para que tengan seguimiento y búsqueda igual que las demás. Idempotente por URL.
+2. **Requisitos** (P4) para los avisos de origen `postulacion`: el `stack` entra directo como requisitos obligatorios sin años. Sin texto de requisitos no se llama al modelo. Con texto y con llave de OpenAI, el análisis de hoy agrega lo que falta (deseables y años) y manda lo que escribió la persona (`juntar_requisitos`). Sin llave, `AnalizarSinModelo` deja el calce con el stack (y no vuelve a analizar si después se carga la llave).
 3. El calce y el vínculo con la postulación siguen igual (`calcular_calce`, `VincularConPostulaciones`, `PATCH …/aviso`).
-4. La consola, después de importar, llama `POST /api/ia/avisos/procesar` (nuevo, sin esperar el resultado) para que no haya que esperar la vuelta del vigía. Si la API de IA no responde, el vigía lo hace en su vuelta siguiente.
 
-`NucleoHttp.postulaciones()` lee `aviso.stack` y `aviso.requisitos` de la lista (se suman a la vista de lista del núcleo).
+Límite conocido: si después se edita el stack de la postulación en el núcleo, el aviso del inventario no se actualiza solo.
 
 ## 6. Ida y vuelta (exportar e importar)
 
