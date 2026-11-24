@@ -13,6 +13,11 @@ import { TIPOS_DE_INTERACCION } from '../../../red/dominio/contacto-de-red';
 import type { CasosDeUso } from '../casos';
 import type { CasosCsv } from '../../../csv/aplicacion/casos-csv';
 import { TIPOS_CSV } from '../../../csv/aplicacion/formato';
+import type { CasosDeArriendos } from '../../../arriendos/aplicacion/casos';
+import {
+  INSTRUCCIONES_ARRIENDOS,
+  registrarHerramientasDeArriendos,
+} from '../../../arriendos/infraestructura/mcp-arriendos';
 
 const LIMITE_EXPORTAR = 50_000;
 const estado = z.enum(ESTADOS);
@@ -62,7 +67,12 @@ async function correr(f: () => Promise<CallToolResult>): Promise<CallToolResult>
 }
 
 /** Adaptador de entrada 2: MCP (PLAN §12.2). Las escrituras quedan con origen `ia`. */
-export function crearServidorMcp(casos: CasosDeUso, red?: CasosDeRed, csv?: CasosCsv): McpServer {
+export function crearServidorMcp(
+  casos: CasosDeUso,
+  red?: CasosDeRed,
+  csv?: CasosCsv,
+  arriendos?: CasosDeArriendos,
+): McpServer {
   const s = new McpServer(
     { name: 'brecha', version: '1.0.0' },
     {
@@ -70,9 +80,11 @@ export function crearServidorMcp(casos: CasosDeUso, red?: CasosDeRed, csv?: Caso
         'Brecha sigue postulaciones de empleo. Los estados válidos y sus saltos los decide el núcleo: usa ver_postulacion para ver transicionesPosibles. ' +
         'Para pasar a postulado hacen falta fechaPostulacion y canal; rechazado y descartado piden motivo. Registrar una señal nunca cambia el estado por sí sola. ' +
         'Tu red de LinkedIn (contactos, solicitudes y mensajes) se lleva con listar_red, registrar_contacto_red, registrar_interaccion_red y editar_contacto_red: ' +
-        'LinkedIn no tiene API, así que la revisas desde el navegador de la persona y registras aquí, ligando cada contacto a sus postulaciones.',
+        'LinkedIn no tiene API, así que la revisas desde el navegador de la persona y registras aquí, ligando cada contacto a sus postulaciones.' +
+        (arriendos ? ` ${INSTRUCCIONES_ARRIENDOS}` : ''),
     },
   );
+  if (arriendos) registrarHerramientasDeArriendos(s, arriendos);
   const lectura = { readOnlyHint: true, openWorldHint: false };
 
   s.registerTool(
