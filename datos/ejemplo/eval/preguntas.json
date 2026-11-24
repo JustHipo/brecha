@@ -1,0 +1,18 @@
+{
+  "_nota": "Set inventado para probar Preguntar (F2-14): avisos ficticios y las URL que la respuesta debería citar.",
+  "avisos": [
+    { "url": "https://avisos.example/1", "titulo": "Backend NestJS Semi Senior", "empresa": "Norte Datos", "modalidad": "remoto", "stack": ["NestJS", "TypeScript", "PostgreSQL"], "texto": "Buscamos backend con NestJS y PostgreSQL, 100 % remoto en Chile. Sueldo USD 2500." },
+    { "url": "https://avisos.example/2", "titulo": "Desarrollador Python Django", "empresa": "Río Logística", "modalidad": "hibrido", "stack": ["Python", "Django", "AWS"], "texto": "Python con Django para logística, híbrido en Santiago, 3 días en oficina." },
+    { "url": "https://avisos.example/3", "titulo": "Frontend Angular", "empresa": "Lago Software", "modalidad": "remoto", "stack": ["Angular", "RxJS", "TypeScript"], "texto": "Frontend con Angular y RxJS, remoto para LATAM." },
+    { "url": "https://avisos.example/4", "titulo": "Data Engineer", "empresa": "Cumbre Pagos", "modalidad": "presencial", "stack": ["Python", "Airflow", "BigQuery"], "texto": "Ingeniería de datos con Airflow y BigQuery, presencial en Providencia." },
+    { "url": "https://avisos.example/5", "titulo": "Full Stack Node y React", "empresa": "Faro Digital", "modalidad": "remoto", "stack": ["Node.js", "React", "MongoDB"], "texto": "Full stack con Node.js y React, remoto. Deseable NestJS." },
+    { "url": "https://avisos.example/6", "titulo": "Ingeniero DevOps", "empresa": "Pampa Cloud", "modalidad": "hibrido", "stack": ["Kubernetes", "Terraform", "AWS"], "texto": "DevOps con Kubernetes, Terraform y AWS, híbrido." }
+  ],
+  "casos": [
+    { "id": "q1", "pregunta": "¿Qué avisos piden NestJS?", "esperados": ["https://avisos.example/1"] },
+    { "id": "q2", "pregunta": "¿Hay avisos de Python?", "esperados": ["https://avisos.example/2", "https://avisos.example/4"] },
+    { "id": "q3", "pregunta": "¿Qué avisos de frontend con Angular hay?", "esperados": ["https://avisos.example/3"] },
+    { "id": "q4", "pregunta": "¿Qué avisos piden Kubernetes o Terraform?", "esperados": ["https://avisos.example/6"] },
+    { "id": "q5", "pregunta": "¿Qué avisos usan React?", "esperados": ["https://avisos.example/5"] }
+  ]
+}

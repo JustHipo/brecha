@@ -194,6 +194,84 @@ def probar_correo(args: argparse.Namespace, llavero: Credenciales) -> int:
     return 0 if not g.error and not k.error else 1
 
 
+def evaluar(args: argparse.Namespace, llavero: Credenciales) -> int:
+    """F2-14: corre los sets contra el modelo configurado y falla si no llega a los umbrales de D30."""
+    from ia.aplicacion.casos.avisos import IndexarAvisos, Preguntar
+    from ia.aplicacion.casos.evaluar import (
+        CasoDeCorreo,
+        CasoDePregunta,
+        EvaluarCorreos,
+        EvaluarPreguntas,
+        RespuestaEvaluada,
+    )
+    from ia.dominio.asociacion import PostulacionConocida
+    from ia.dominio.aviso import Aviso
+    from ia.entradas.servicios import ahora
+    from ia.infraestructura.memoria import AvisosEnMemoria
+
+    s = _servicios(llavero)
+    if not s.hay_modelo():
+        print("Falta la llave de OpenAI.", file=sys.stderr)
+        return 1
+    modelo = s.modelo()
+    ok = True
+    if args.correos:
+        d = json.loads(Path(args.correos).read_text(encoding="utf-8"))
+        conocidas = [
+            PostulacionConocida(p["id"], p["empresa"], p["titulo"], p["plataforma"], p.get("activa", True))
+            for p in d["postulaciones"]
+        ]
+        casos = [
+            CasoDeCorreo(
+                c["id"], c["remitente"], c["asunto"], c["texto"], c.get("estado"), c.get("postulacion")
+            )
+            for c in d["casos"]
+        ]
+        rc = EvaluarCorreos(modelo, conocidas).ejecutar(casos)
+        print(
+            f"Correos: {rc.casos} casos · estado {rc.tasa_estado:.0%} (mínimo 80 %) · "
+            f"asociación {rc.tasa_asociacion:.0%} (mínimo 75 %) · "
+            f"falsos rechazos {rc.falsos_rechazos} (máximo 1)"
+            f" → {'PASA' if rc.pasa else 'NO PASA'}"
+        )
+        for f in rc.fallos:
+            print(f"  · {f}")
+        ok = ok and rc.pasa
+    if args.preguntas:
+        d = json.loads(Path(args.preguntas).read_text(encoding="utf-8"))
+        repo = AvisosEnMemoria()
+        for a in d["avisos"]:
+            repo.guardar(
+                Aviso(
+                    a["url"],
+                    a["titulo"],
+                    a["empresa"],
+                    "otra",
+                    a.get("modalidad", "no_indica"),
+                    "manual",
+                    a["texto"],
+                    stack=tuple(a.get("stack", [])),
+                )
+            )
+        IndexarAvisos(modelo, repo, s.trazas, ahora, s.cfg.openai_precio_embeddings).ejecutar()
+        p = Preguntar(modelo, modelo, repo, s.trazas, ahora, s.precios, s.cfg.openai_precio_embeddings)
+
+        def preguntar(texto: str) -> RespuestaEvaluada:
+            r = p.ejecutar(texto)
+            return RespuestaEvaluada(r.avisos, len(r.respuesta.descartados))
+
+        casos_p = [CasoDePregunta(c["id"], c["pregunta"], tuple(c["esperados"])) for c in d["casos"]]
+        rp = EvaluarPreguntas(preguntar).ejecutar(casos_p)
+        print(
+            f"Preguntas: {rp.casos} casos · avisos esperados {rp.recall:.0%} (mínimo 70 %) · "
+            f"citas válidas {rp.tasa_citas_validas:.0%} (100 %) → {'PASA' if rp.pasa else 'NO PASA'}"
+        )
+        for f in rp.fallos:
+            print(f"  · {f}")
+        ok = ok and rp.pasa
+    return 0 if ok else 1
+
+
 def main(argv: list[str] | None = None, llavero: Credenciales | None = None) -> int:
     parser = argparse.ArgumentParser(prog="ia", description="Herramientas del servicio con IA de Brecha")
     sub = parser.add_subparsers(dest="comando", required=True)
@@ -207,6 +285,9 @@ def main(argv: list[str] | None = None, llavero: Credenciales | None = None) -> 
     pe.add_argument("archivo", nargs="?")
     pr = sub.add_parser("preguntar", help="Preguntar sobre tus avisos")
     pr.add_argument("pregunta", nargs="+")
+    ev = sub.add_parser("evaluar", help="Medir la clasificación y Preguntar contra los umbrales de D30")
+    ev.add_argument("--correos", help="set de correos (JSON)")
+    ev.add_argument("--preguntas", help="set de preguntas (JSON)")
     pc = sub.add_parser("probar-correo", help="Pasar correos de prueba (.eml) por el camino del vigía")
     pc.add_argument("archivos", nargs="+", help="archivos .eml o carpetas con .eml")
     args = parser.parse_args(argv)
@@ -223,6 +304,8 @@ def main(argv: list[str] | None = None, llavero: Credenciales | None = None) -> 
                 return preguntar(args, ll)
             case "probar-correo":
                 return probar_correo(args, ll)
+            case "evaluar":
+                return evaluar(args, ll)
     except KeyboardInterrupt:
         print("\nCancelado.", file=sys.stderr)
         return 130

@@ -9,7 +9,7 @@ import {
 } from '@angular/core';
 import { FormControl, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
-import { map } from 'rxjs';
+import { firstValueFrom, map } from 'rxjs';
 import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
 import type {
   CambioDeEstado,
@@ -24,15 +24,24 @@ import type {
 import { HlmButton } from '@brecha/ui/button';
 import { HlmInput } from '@brecha/ui/input';
 import { HlmTextarea } from '@brecha/ui/textarea';
-import { Api } from '../../nucleo/api/api.service';
+import { Api, type ContactoRed, type ContactoRedEntrada } from '../../nucleo/api/api.service';
 import { Avisos } from '../../nucleo/avisos';
 import { Formato } from '../../nucleo/idioma/idioma';
 import { Avatar, EtiquetaPlataforma, PuntoPrioridad } from '../../compartido/piezas';
+import { CitaAviso, InsigniaCalce } from '../avisos/piezas';
+import {
+  DialogoElegirContacto,
+  DialogoNuevoContacto,
+  lineaDeContacto,
+  type Eleccion,
+} from '../red/dialogos';
+import { ConexionRed, PendienteRed } from '../red/piezas';
+import { RedStore } from '../red/red.store';
 import { DialogoContacto } from './dialogos/contacto';
 import { Dialogos } from './dialogos/dialogos.service';
 import { DialogoEntrevista } from './dialogos/entrevista';
 import { DialogoSenal } from './dialogos/senal';
-import { FichaStore } from './ficha.store';
+import { FichaStore, type InteraccionDeContacto } from './ficha.store';
 import { Transiciones } from './transiciones';
 
 const EMBUDO: EstadoPostulacion[] = [
@@ -49,6 +58,7 @@ const AVANCE: EstadoPostulacion[] = ['postulado', 'en_proceso', 'entrevista', 'o
 type Elemento =
   | { tipo: 'cambio'; fecha: string; c: CambioDeEstado }
   | { tipo: 'senal'; fecha: string; s: Senal }
+  | { tipo: 'linkedin'; fecha: string; m: InteraccionDeContacto }
   | { tipo: 'nota'; fecha: string; texto: string }
   | { tipo: 'entrevista'; fecha: string; texto: string };
 
@@ -72,6 +82,10 @@ interface Etapa {
     Avatar,
     EtiquetaPlataforma,
     PuntoPrioridad,
+    InsigniaCalce,
+    CitaAviso,
+    PendienteRed,
+    ConexionRed,
   ],
   providers: [FichaStore],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -183,6 +197,197 @@ interface Etapa {
               }
 
               <section
+                aria-labelledby="ficha-resumen"
+                class="flex flex-col gap-3 rounded-[14px] border border-linea bg-fondo px-4 py-3.5 shadow-tarjeta"
+                data-resumen
+              >
+                <h2 id="ficha-resumen" class="m-0 flex items-center font-sans text-sm font-bold">
+                  <span class="flex-1">{{ 'ficha.deUnVistazo' | transloco }}</span>
+                  @if (!editando()) {
+                    <button
+                      hlmBtn
+                      variant="ghost"
+                      size="xs"
+                      type="button"
+                      (click)="empezarEdicion(d)"
+                    >
+                      {{ 'ficha.editar' | transloco }}
+                    </button>
+                  }
+                </h2>
+                @if (editando()) {
+                  <form
+                    [formGroup]="edicion"
+                    (ngSubmit)="guardarEdicion(d)"
+                    class="flex flex-col gap-2 rounded-[10px] border border-linea px-3 py-2.5"
+                  >
+                    <label class="flex flex-col gap-1 text-[12.5px]"
+                      >{{ 'ficha.canal' | transloco }}
+                      <span class="flex gap-2">
+                        <select
+                          formControlName="canalTipo"
+                          class="h-9 rounded-md border border-linea bg-fondo px-2"
+                        >
+                          @for (c of canales; track c) {
+                            <option [value]="c">{{ 'canales.' + c | transloco }}</option>
+                          }
+                        </select>
+                        <input hlmInput class="flex-1" formControlName="canalValor" />
+                      </span>
+                    </label>
+                    <label class="flex flex-col gap-1 text-[12.5px]"
+                      >{{ 'ficha.sueldo' | transloco }}
+                      <span class="flex gap-2">
+                        <input
+                          hlmInput
+                          type="number"
+                          min="0"
+                          class="flex-1"
+                          formControlName="monto"
+                        />
+                        <select
+                          formControlName="moneda"
+                          class="h-9 rounded-md border border-linea bg-fondo px-2"
+                        >
+                          <option value="CLP">CLP</option>
+                          <option value="USD">USD</option>
+                        </select>
+                      </span>
+                    </label>
+                    <label class="flex flex-col gap-1 text-[12.5px]"
+                      >{{ 'nueva.cierre' | transloco }}
+                      <input hlmInput type="date" formControlName="cierre" />
+                    </label>
+                    <div class="flex justify-end gap-2">
+                      <button
+                        hlmBtn
+                        variant="outline"
+                        size="sm"
+                        type="button"
+                        (click)="editando.set(false)"
+                      >
+                        {{ 'ficha.cancelar' | transloco }}
+                      </button>
+                      <button hlmBtn size="sm" type="submit">
+                        {{ 'ficha.guardar' | transloco }}
+                      </button>
+                    </div>
+                  </form>
+                } @else {
+                  <dl
+                    class="m-0 grid grid-cols-[130px_minmax(0,1fr)] gap-x-3 gap-y-1.5 2xl:grid-cols-[130px_minmax(0,1fr)_130px_minmax(0,1fr)]"
+                  >
+                    <dt class="text-tinta-suave">{{ 'ficha.comoPostulaste' | transloco }}</dt>
+                    <dd class="m-0 font-semibold">
+                      {{
+                        d.canal
+                          ? ('canales.' + d.canal.tipo | transloco) + ' · ' + d.canal.valor
+                          : ('ficha.sinPostular' | transloco)
+                      }}
+                    </dd>
+                    <dt class="text-tinta-suave">{{ 'ficha.fechaPostulacion' | transloco }}</dt>
+                    <dd class="m-0">
+                      {{
+                        d.fechaPostulacion
+                          ? formato.fechaCorta(d.fechaPostulacion)
+                          : ('ficha.sinDato' | transloco)
+                      }}
+                    </dd>
+                    <dt class="text-tinta-suave">{{ 'ficha.aviso' | transloco }}</dt>
+                    <dd class="m-0">
+                      <a
+                        [href]="d.url"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        class="font-semibold text-acento underline-offset-2 hover:underline"
+                        >{{
+                          'ficha.abrirAviso'
+                            | transloco: { plataforma: ('plataformas.' + d.plataforma | transloco) }
+                        }}
+                        ↗<span class="solo-lector">
+                          ({{ 'avisos.nuevaVentana' | transloco }})</span
+                        ></a
+                      >
+                    </dd>
+                    <dt class="text-tinta-suave">{{ 'nueva.plataforma' | transloco }}</dt>
+                    <dd class="m-0"><b-plataforma [plataforma]="d.plataforma" /></dd>
+                    <dt class="text-tinta-suave">{{ 'nueva.modalidad' | transloco }}</dt>
+                    <dd class="m-0">{{ 'modalidades.' + d.aviso.modalidad | transloco }}</dd>
+                    <dt class="text-tinta-suave">{{ 'nueva.ubicacion' | transloco }}</dt>
+                    <dd class="m-0">{{ d.aviso.ubicacion || ('ficha.sinDato' | transloco) }}</dd>
+                    <dt class="text-tinta-suave">{{ 'ficha.cierre' | transloco }}</dt>
+                    <dd
+                      class="m-0"
+                      [class.text-error]="d.diasAlCierre !== null && d.diasAlCierre < 0"
+                    >
+                      {{
+                        d.cierre
+                          ? ('ficha.cierra' | transloco: { fecha: formato.fechaCorta(d.cierre) })
+                          : ('ficha.sinCierre' | transloco)
+                      }}
+                    </dd>
+                    <dt class="text-tinta-suave">{{ 'ficha.sueldo' | transloco }}</dt>
+                    <dd class="m-0">
+                      {{
+                        d.sueldoPretendido
+                          ? formato.monto(d.sueldoPretendido.monto, d.sueldoPretendido.moneda)
+                          : ('ficha.sinDato' | transloco)
+                      }}
+                    </dd>
+                    @if (store.avisoIa(); as a) {
+                      <dt class="text-tinta-suave">{{ 'ficha.sueldoPublicado' | transloco }}</dt>
+                      <dd class="m-0">{{ a.sueldo || ('ficha.sueldoNoPublicado' | transloco) }}</dd>
+                      <dt class="text-tinta-suave">{{ 'ficha.calce' | transloco }}</dt>
+                      <dd class="m-0"><b-calce [calce]="a.calce" [analizado]="a.analizado" /></dd>
+                    }
+                  </dl>
+                  @switch (store.estadoAvisoIa()) {
+                    @case ('listo') {
+                      @if (store.avisoIa(); as a) {
+                        <div
+                          class="flex flex-col gap-1.5 border-t border-linea pt-2.5"
+                          data-analisis
+                        >
+                          <p class="m-0 text-[12.5px]">
+                            <span class="font-semibold text-aviso-tinta"
+                              >{{ 'avisos.brechas' | transloco }}:</span
+                            >
+                            {{
+                              a.brechas.length
+                                ? a.brechas.join(', ')
+                                : ('avisos.sinBrechas' | transloco)
+                            }}
+                          </p>
+                          <b-cita [aviso]="a" />
+                        </div>
+                      }
+                    }
+                    @case ('apagada') {
+                      <p
+                        class="m-0 border-t border-linea pt-2.5 text-[12.5px] text-tinta-suave"
+                        data-analisis
+                      >
+                        {{ 'ficha.analisisApagado' | transloco }}
+                      </p>
+                    }
+                    @case ('error') {
+                      <p
+                        class="m-0 border-t border-linea pt-2.5 text-[12.5px] text-tinta-suave"
+                        data-analisis
+                      >
+                        {{ 'ficha.analisisError' | transloco }}
+                      </p>
+                    }
+                    @case ('sin_aviso') {
+                      <p class="m-0 border-t border-linea pt-2.5 text-[12.5px] text-tinta-suave">
+                        {{ 'ficha.sinAnalisis' | transloco }}
+                      </p>
+                    }
+                  }
+                }
+              </section>
+
+              <section
                 [attr.aria-label]="'ficha.etapas' | transloco"
                 class="rounded-[14px] border border-[#ECE7DF] bg-superficie p-1.5"
               >
@@ -223,160 +428,98 @@ interface Etapa {
                 }
               </section>
 
-              <div class="grid grid-cols-2 gap-4">
-                <section class="flex flex-col gap-2">
-                  <h2 class="m-0 font-sans text-sm font-bold">{{ 'ficha.aviso' | transloco }}</h2>
-                  <a
-                    [href]="d.url"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    class="flex items-center gap-2.5 rounded-[10px] border border-linea px-3 py-2.5 text-tinta no-underline hover:bg-superficie"
-                  >
-                    <span class="flex-1"
-                      >{{
-                        'ficha.abrirAviso'
-                          | transloco: { plataforma: ('plataformas.' + d.plataforma | transloco) }
-                      }}
-                      ↗</span
+              <section class="flex flex-col gap-2" aria-labelledby="ficha-con-quien" data-con-quien>
+                <h2 id="ficha-con-quien" class="m-0 font-sans text-sm font-bold">
+                  {{ 'ficha.conQuienHablas' | transloco }}
+                </h2>
+                @if (store.errorRed(); as e) {
+                  <p class="m-0 text-[12.5px] text-aviso-tinta" role="status">
+                    {{ 'ficha.redNoDisponible' | transloco }}
+                  </p>
+                }
+                <ul class="m-0 flex list-none flex-col gap-1.5 p-0">
+                  @for (c of store.red(); track c.id) {
+                    <li
+                      class="flex flex-wrap items-center gap-3 rounded-[10px] border border-linea px-3 py-2"
+                      [attr.data-contacto-red]="c.id"
                     >
-                    @if (d.cierre) {
-                      <span class="text-tinta-suave">{{
-                        'ficha.cierra' | transloco: { fecha: formato.fechaCorta(d.cierre) }
-                      }}</span>
-                    }
-                  </a>
-                  <span class="text-[12.5px] text-tinta-suave"
-                    >{{ 'modalidades.' + d.aviso.modalidad | transloco }}
-                    @if (d.aviso.ubicacion) {
-                      · {{ d.aviso.ubicacion }}
-                    }
-                  </span>
-                </section>
-                <section class="flex flex-col gap-2">
-                  <h2 class="m-0 flex items-center font-sans text-sm font-bold">
-                    <span class="flex-1">{{ 'ficha.postulacion' | transloco }}</span>
-                    @if (!editando()) {
-                      <button
-                        hlmBtn
-                        variant="ghost"
-                        size="xs"
-                        type="button"
-                        (click)="empezarEdicion(d)"
-                      >
-                        {{ 'ficha.editar' | transloco }}
-                      </button>
-                    }
-                  </h2>
-                  @if (editando()) {
-                    <form
-                      [formGroup]="edicion"
-                      (ngSubmit)="guardarEdicion(d)"
-                      class="flex flex-col gap-2 rounded-[10px] border border-linea px-3 py-2.5"
-                    >
-                      <label class="flex flex-col gap-1 text-[12.5px]"
-                        >{{ 'ficha.canal' | transloco }}
-                        <span class="flex gap-2">
-                          <select
-                            formControlName="canalTipo"
-                            class="h-9 rounded-md border border-linea bg-fondo px-2"
-                          >
-                            @for (c of canales; track c) {
-                              <option [value]="c">{{ 'canales.' + c | transloco }}</option>
-                            }
-                          </select>
-                          <input hlmInput class="flex-1" formControlName="canalValor" />
-                        </span>
-                      </label>
-                      <label class="flex flex-col gap-1 text-[12.5px]"
-                        >{{ 'ficha.sueldo' | transloco }}
-                        <span class="flex gap-2">
-                          <input
-                            hlmInput
-                            type="number"
-                            min="0"
-                            class="flex-1"
-                            formControlName="monto"
-                          />
-                          <select
-                            formControlName="moneda"
-                            class="h-9 rounded-md border border-linea bg-fondo px-2"
-                          >
-                            <option value="CLP">CLP</option>
-                            <option value="USD">USD</option>
-                          </select>
-                        </span>
-                      </label>
-                      <label class="flex flex-col gap-1 text-[12.5px]"
-                        >{{ 'nueva.cierre' | transloco }}
-                        <input hlmInput type="date" formControlName="cierre" />
-                      </label>
-                      <div class="flex justify-end gap-2">
-                        <button
-                          hlmBtn
-                          variant="outline"
-                          size="sm"
-                          type="button"
-                          (click)="editando.set(false)"
+                      <b-avatar [empresa]="c.nombre" [tamano]="28" />
+                      <span class="flex min-w-0 flex-1 flex-col gap-px">
+                        <a
+                          [routerLink]="['/red', c.id]"
+                          class="font-semibold text-tinta underline-offset-2 hover:underline"
+                          >{{ c.nombre }}</a
                         >
-                          {{ 'ficha.cancelar' | transloco }}
-                        </button>
-                        <button hlmBtn size="sm" type="submit">
-                          {{ 'ficha.guardar' | transloco }}
-                        </button>
-                      </div>
-                    </form>
-                  } @else {
-                    <dl
-                      class="m-0 grid grid-cols-[110px_minmax(0,1fr)] gap-x-2.5 gap-y-1 rounded-[10px] border border-linea px-3 py-2.5"
-                    >
-                      <dt class="text-tinta-suave">{{ 'ficha.canal' | transloco }}</dt>
-                      <dd class="m-0">
-                        {{
-                          d.canal
-                            ? ('canales.' + d.canal.tipo | transloco) + ' · ' + d.canal.valor
-                            : ('ficha.sinDato' | transloco)
-                        }}
-                      </dd>
-                      <dt class="text-tinta-suave">{{ 'ficha.fechaPostulacion' | transloco }}</dt>
-                      <dd class="m-0">
-                        {{
-                          d.fechaPostulacion
-                            ? formato.fechaCorta(d.fechaPostulacion)
-                            : ('ficha.sinDato' | transloco)
-                        }}
-                      </dd>
-                      <dt class="text-tinta-suave">{{ 'ficha.sueldo' | transloco }}</dt>
-                      <dd class="m-0">
-                        {{
-                          d.sueldoPretendido
-                            ? formato.monto(d.sueldoPretendido.monto, d.sueldoPretendido.moneda)
-                            : ('ficha.sinDato' | transloco)
-                        }}
-                      </dd>
-                    </dl>
+                        <span class="truncate text-[12.5px] text-tinta-suave"
+                          >{{ 'plataformas.linkedin' | transloco
+                          }}{{ lineaRed(c) ? ' · ' + lineaRed(c) : '' }}</span
+                        >
+                        @if (c.ultimaInteraccion; as u) {
+                          <span class="truncate text-[12.5px] text-[#3C3632]"
+                            >{{ 'red.tipos.' + u.tipo | transloco }}: {{ u.resumen }} ·
+                            {{ formato.fechaCorta(u.ocurridaEn) }}</span
+                          >
+                        }
+                      </span>
+                      <b-pendiente-red [contacto]="c" />
+                      <b-conexion-red [conexion]="c.conexion" />
+                      <a
+                        [href]="c.perfilUrl"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        class="text-[12.5px] font-semibold text-acento underline-offset-2 hover:underline"
+                        >{{ 'red.verPerfil' | transloco
+                        }}<span class="solo-lector">
+                          ({{ c.nombre }}, {{ 'avisos.nuevaVentana' | transloco }})</span
+                        ></a
+                      >
+                    </li>
                   }
-                </section>
-              </div>
-
-              <section class="flex flex-col gap-2">
-                <h2 class="m-0 font-sans text-sm font-bold">{{ 'ficha.contactos' | transloco }}</h2>
-                <div class="flex flex-wrap gap-2">
                   @for (c of d.contactos; track c.id) {
-                    <span
-                      class="inline-flex h-[34px] items-center gap-2 rounded-full border border-linea px-3"
+                    <li
+                      class="flex flex-wrap items-center gap-3 rounded-[10px] border border-linea px-3 py-2"
                     >
-                      <b-avatar [empresa]="c.nombre" [tamano]="22" />{{ c.nombre }}
-                      @if (c.rol) {
-                        · {{ c.rol }}
-                      }
+                      <b-avatar [empresa]="c.nombre" [tamano]="28" />
+                      <span class="flex min-w-0 flex-1 flex-col gap-px">
+                        <span class="font-semibold">{{ c.nombre }}</span>
+                        @if (c.rol) {
+                          <span class="truncate text-[12.5px] text-tinta-suave">{{ c.rol }}</span>
+                        }
+                      </span>
                       @if (c.email) {
-                        <a [href]="'mailto:' + c.email" class="text-acento">{{ c.email }}</a>
+                        <a [href]="'mailto:' + c.email" class="text-[12.5px] text-acento">{{
+                          c.email
+                        }}</a>
                       }
-                    </span>
+                      @if (c.linkedin) {
+                        <a
+                          [href]="enlace(c.linkedin)"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          class="text-[12.5px] font-semibold text-acento underline-offset-2 hover:underline"
+                          >{{ 'red.verPerfil' | transloco
+                          }}<span class="solo-lector">
+                            ({{ c.nombre }}, {{ 'avisos.nuevaVentana' | transloco }})</span
+                          ></a
+                        >
+                      }
+                    </li>
                   }
+                  @if (!store.red().length && !d.contactos.length) {
+                    <li class="text-tinta-suave">{{ 'ficha.nadieTodavia' | transloco }}</li>
+                  }
+                </ul>
+                <div class="flex flex-wrap gap-2">
                   <button
                     type="button"
-                    class="h-[34px] rounded-full border border-dashed border-[#D8D1C6] px-3 text-tinta-suave"
+                    class="h-[34px] rounded-full border border-dashed border-[#D8D1C6] px-3 text-tinta-suave hover:text-tinta"
+                    (click)="ligarRed()"
+                  >
+                    + {{ 'ficha.ligarRed' | transloco }}
+                  </button>
+                  <button
+                    type="button"
+                    class="h-[34px] rounded-full border border-dashed border-[#D8D1C6] px-3 text-tinta-suave hover:text-tinta"
                     (click)="agregarContacto()"
                   >
                     + {{ 'ficha.agregarContacto' | transloco }}
@@ -531,13 +674,21 @@ interface Etapa {
                         [class.border-linea]="s.aplicada || !s.estadoSugerido"
                         [attr.data-senal]="s.id"
                       >
-                        <span class="flex items-center gap-2">
+                        <span
+                          class="flex flex-wrap items-center gap-2"
+                          [attr.data-fuente]="s.fuente"
+                        >
                           <span
-                            class="grid size-[22px] place-items-center rounded-full bg-[var(--plat-trabajando-fondo)] text-[11px] text-[var(--plat-trabajando-tinta)]"
+                            class="grid size-[22px] place-items-center rounded-full text-[11px]"
+                            [class]="claseFuente(s.fuente)"
                             aria-hidden="true"
-                            >✉</span
+                            >{{ iconoFuente(s.fuente) }}</span
                           >
-                          <strong>{{ 'fuentes.' + s.fuente | transloco }}</strong>
+                          <strong
+                            ><span class="solo-lector">{{ 'ficha.origen' | transloco }}: </span
+                            >{{ 'fuentes.' + s.fuente | transloco }}</strong
+                          >
+                          <b-plataforma [plataforma]="s.plataforma" />
                           @if (s.estadoSugerido) {
                             <span
                               class="ml-auto rounded-full bg-[#FDE7E2] px-2 py-px text-[11.5px] font-semibold text-[#A33A1F]"
@@ -575,6 +726,37 @@ interface Etapa {
                             </button>
                           }
                         </span>
+                      </div>
+                    }
+                    @case ('linkedin') {
+                      @let m = $any(x.e).m;
+                      <div
+                        class="flex flex-col gap-1.5 rounded-[12px] border border-linea bg-fondo p-3"
+                        data-linkedin
+                      >
+                        <span class="flex flex-wrap items-center gap-2">
+                          <span
+                            class="grid size-[22px] place-items-center rounded-full bg-[var(--plat-linkedin-fondo)] text-[11px] font-bold text-[var(--plat-linkedin-tinta)]"
+                            aria-hidden="true"
+                            >in</span
+                          >
+                          <strong
+                            ><span class="solo-lector">{{ 'ficha.origen' | transloco }}: </span
+                            >{{ 'plataformas.linkedin' | transloco }}</strong
+                          >
+                          <span class="text-tinta-suave">{{
+                            'red.tipos.' + m.i.tipo | transloco
+                          }}</span>
+                        </span>
+                        <span class="whitespace-pre-line text-[#3C3632]">{{ m.i.resumen }}</span>
+                        <span class="text-xs text-tinta-suave"
+                          >{{ formato.fechaHora(m.i.ocurridaEn) }} ·
+                          <a
+                            [routerLink]="['/red', m.contacto.id]"
+                            class="text-tinta-suave underline underline-offset-2 hover:text-tinta"
+                            >{{ m.contacto.nombre }}</a
+                          ></span
+                        >
                       </div>
                     }
                     @case ('nota') {
@@ -616,6 +798,7 @@ export class FichaPagina {
   private readonly dialogos = inject(Dialogos);
   private readonly transiciones = inject(Transiciones);
   private readonly t = inject(TranslocoService);
+  private readonly redStore = inject(RedStore);
 
   protected readonly pestanas = ['actividad', 'senales', 'notas'] as const;
   protected readonly pestana = signal<(typeof this.pestanas)[number]>('actividad');
@@ -686,6 +869,11 @@ export class FichaPagina {
         : []),
       ...(p !== 'notas'
         ? d.senales.map((s): Elemento => ({ tipo: 'senal', fecha: s.recibidaEn, s }))
+        : []),
+      ...(p !== 'notas'
+        ? this.store
+            .conversaciones()
+            .map((m): Elemento => ({ tipo: 'linkedin', fecha: m.i.ocurridaEn, m }))
         : []),
       ...(p !== 'senales'
         ? d.notas.map((n): Elemento => ({ tipo: 'nota', fecha: n.creadaEn, texto: n.texto }))
@@ -776,6 +964,64 @@ export class FichaPagina {
       titulo: d.titulo,
     });
     if (r) await this.intentar(() => this.store.ejecutar((p) => this.api.agregarContacto(p.id, r)));
+  }
+
+  protected lineaRed(c: ContactoRed): string {
+    return lineaDeContacto(c);
+  }
+
+  /** Un perfil guardado sin protocolo («linkedin.com/in/…») se abre igual. */
+  protected enlace(url: string): string {
+    return /^https?:\/\//i.test(url) ? url : `https://${url}`;
+  }
+
+  protected iconoFuente(fuente: string): string {
+    return (
+      ({ correo: '✉', plataforma: '◎', manual: '✎', ia: '✦' } as Record<string, string>)[fuente] ??
+      '•'
+    );
+  }
+
+  protected claseFuente(fuente: string): string {
+    if (fuente === 'correo')
+      return 'bg-[var(--plat-trabajando-fondo)] text-[var(--plat-trabajando-tinta)]';
+    if (fuente === 'ia')
+      return 'bg-[var(--plat-getonboard-fondo)] text-[var(--plat-getonboard-tinta)]';
+    if (fuente === 'plataforma')
+      return 'bg-[var(--plat-linkedin-fondo)] text-[var(--plat-linkedin-tinta)]';
+    return 'bg-superficie text-tinta-suave';
+  }
+
+  /** Ligar a alguien de tu red, o agregar a alguien nuevo ya ligado a esta postulación. */
+  protected async ligarRed(): Promise<void> {
+    const d = this.store.detalle()!;
+    const e = await this.dialogos.abrir<Eleccion, object>(DialogoElegirContacto, {
+      empresa: d.empresa,
+      titulo: d.titulo,
+      ligados: this.store.red().map((c) => c.id),
+    });
+    if (!e) return;
+    if (e.tipo === 'existente') {
+      await this.intentar(async () => {
+        await firstValueFrom(this.api.editarContactoRed(e.contacto.id, { vincular: d.id }));
+        this.avisos.exito('ficha.ligado', { nombre: e.contacto.nombre });
+        await this.store.cargarRed();
+        void this.redStore.cargar(true);
+      });
+      return;
+    }
+    const nuevo = await this.dialogos.abrir<ContactoRedEntrada, object>(DialogoNuevoContacto, {
+      postulacionId: d.id,
+      empresa: d.empresa,
+    });
+    if (!nuevo) return;
+    const r = await this.redStore.registrar(nuevo);
+    if (!r.ok) {
+      this.avisos.error(r.error);
+      return;
+    }
+    this.avisos.exito('ficha.ligado', { nombre: r.valor.nombre });
+    await this.store.cargarRed();
   }
 
   protected async registrarSenal(): Promise<void> {

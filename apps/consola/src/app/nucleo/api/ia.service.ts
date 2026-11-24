@@ -127,6 +127,19 @@ export interface Respuesta {
   costoUsd: number;
 }
 
+/** Qué credenciales hay guardadas. Los secretos nunca vuelven: solo el usuario enmascarado. */
+export interface Credenciales {
+  correo: { configurado: boolean; usuario: string | null };
+  openai: { configurado: boolean };
+}
+
+export interface CredencialGuardada {
+  configurado: boolean;
+  usuario?: string | null;
+}
+
+export type TipoDeCredencial = 'correo' | 'openai';
+
 export const BASE_IA = '/api/ia';
 
 /** Cliente delgado de la API de IA. Usa el mismo token que el núcleo (la API lo verifica allá). */
@@ -136,6 +149,20 @@ export class Ia {
 
   conexiones() {
     return this.http.get<Conexiones>(`${BASE_IA}/conexiones`);
+  }
+
+  // Credenciales (Ajustes): la API las prueba antes de guardarlas y nunca las devuelve.
+  credenciales() {
+    return this.http.get<Credenciales>(`${BASE_IA}/credenciales`);
+  }
+  guardarCorreo(usuario: string, clave: string) {
+    return this.http.put<CredencialGuardada>(`${BASE_IA}/credenciales/correo`, { usuario, clave });
+  }
+  guardarOpenai(llave: string) {
+    return this.http.put<CredencialGuardada>(`${BASE_IA}/credenciales/openai`, { llave });
+  }
+  borrarCredencial(tipo: TipoDeCredencial) {
+    return this.http.delete<void>(`${BASE_IA}/credenciales/${tipo}`);
   }
 
   perfil() {

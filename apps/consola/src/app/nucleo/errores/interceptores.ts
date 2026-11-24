@@ -50,8 +50,9 @@ export const erroresInterceptor: HttpInterceptorFn = (req, next) => {
 };
 
 /**
- * Errores de la API de IA. Sin cuerpo `{codigo}` y con 0, 500, 502, 503 o 504 es que el servicio
- * está apagado (el proxy responde sin cuerpo). Un 422 de FastAPI trae `detail` y no `codigo`.
+ * Errores de la API de IA: responde `{codigo, mensaje, campo}` como el núcleo (la validación es un
+ * 400 `VALIDACION`). Sin cuerpo `{codigo}` y con 0, 500, 502, 503 o 504 es que el servicio está
+ * apagado (el proxy responde sin cuerpo); un 400 o 422 sin `codigo` se toma como `VALIDACION`.
  * Un 401 de la IA no cierra la sesión: puede ser el Host o el Origin, no el token.
  */
 function errorDeIa(

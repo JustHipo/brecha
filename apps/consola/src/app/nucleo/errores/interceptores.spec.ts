@@ -89,7 +89,7 @@ describe('interceptores', () => {
     await expect(q).rejects.toMatchObject({ codigo: 'IA_APAGADA' });
   });
 
-  it('la API de IA con codigo lo respeta (IA_NO_DISPONIBLE) y un 422 de FastAPI es VALIDACION', async () => {
+  it('la API de IA con codigo lo respeta (IA_NO_DISPONIBLE) y un 422 sin codigo es VALIDACION', async () => {
     const p = firstValueFrom(http.post('/api/ia/preguntas', {}));
     ctrl
       .expectOne('/api/ia/preguntas')
@@ -103,6 +103,37 @@ describe('interceptores', () => {
       .expectOne('/api/ia/preguntas')
       .flush({ detail: [{ loc: ['body', 'pregunta'] }] }, { status: 422, statusText: 'x' });
     await expect(q).rejects.toMatchObject({ codigo: 'VALIDACION' });
+  });
+
+  it('la validación de la API de IA llega como 400 VALIDACION con su campo', async () => {
+    const p = firstValueFrom(http.post('/api/ia/avisos', {}));
+    ctrl
+      .expectOne('/api/ia/avisos')
+      .flush(
+        { codigo: 'VALIDACION', mensaje: 'Field required', campo: 'titulo' },
+        { status: 400, statusText: 'x' },
+      );
+    await expect(p).rejects.toMatchObject({
+      codigo: 'VALIDACION',
+      status: 400,
+      campo: 'titulo',
+      clave: 'errores.VALIDACION',
+    });
+  });
+
+  it('una credencial que no pasa la prueba trae el mensaje del servidor', async () => {
+    const p = firstValueFrom(http.put('/api/ia/credenciales/openai', { llave: 'sk-x' }));
+    ctrl
+      .expectOne('/api/ia/credenciales/openai')
+      .flush(
+        { codigo: 'CREDENCIAL_INVALIDA', mensaje: 'OpenAI rechazó la llave', campo: 'llave' },
+        { status: 400, statusText: 'x' },
+      );
+    await expect(p).rejects.toMatchObject({
+      codigo: 'CREDENCIAL_INVALIDA',
+      message: 'OpenAI rechazó la llave',
+      campo: 'llave',
+    });
   });
 
   it('un 401 de la API de IA no cierra la sesión (puede ser el Host o el Origin)', async () => {

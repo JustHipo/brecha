@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { RouterLink } from '@angular/router';
 import { TranslocoPipe } from '@jsverse/transloco';
 import { HlmButton } from '@brecha/ui/button';
 import { HlmInput } from '@brecha/ui/input';
@@ -18,12 +19,12 @@ const TARJETA =
   'flex flex-col gap-3 rounded-[12px] border border-linea bg-fondo px-5 py-4 shadow-tarjeta';
 
 /**
- * Conexiones (f2.md §8): correo, OpenAI, qué sale de tu máquina y tu perfil. Las credenciales no se
- * escriben aquí en F2: si faltan, se muestra el comando para guardarlas (`uv run ia credenciales`).
+ * Conexiones (f2.md §8): correo, OpenAI, qué sale de tu máquina y tu perfil. Las credenciales se
+ * guardan en Ajustes: si faltan, se enlaza ahí.
  */
 @Component({
   selector: 'b-conexiones',
-  imports: [TranslocoPipe, HlmButton, HlmInput],
+  imports: [RouterLink, TranslocoPipe, HlmButton, HlmInput],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: { class: 'flex flex-col gap-4 px-6 pt-[22px] pb-10' },
   template: `
@@ -96,12 +97,14 @@ const TARJETA =
             </dd>
           </dl>
           @if (!c.correo.configurado) {
-            <div class="rounded-[10px] bg-superficie px-3 py-2.5">
-              <p class="m-0 mb-1 text-[12.5px] text-tinta-suave">
-                {{ 'conexiones.comando' | transloco }}
-              </p>
-              <code class="block font-mono text-[12.5px]">uv run ia credenciales correo</code>
-            </div>
+            <p class="m-0 rounded-[10px] bg-superficie px-3 py-2.5 text-[12.5px]">
+              {{ 'conexiones.faltaCredencial' | transloco }}
+              <a
+                routerLink="/ajustes"
+                class="font-semibold text-acento underline-offset-2 hover:underline"
+                >{{ 'conexiones.irAjustes' | transloco }}</a
+              >
+            </p>
           }
         </section>
 
@@ -141,12 +144,14 @@ const TARJETA =
             </dd>
           </dl>
           @if (!c.ia.configurado) {
-            <div class="rounded-[10px] bg-superficie px-3 py-2.5">
-              <p class="m-0 mb-1 text-[12.5px] text-tinta-suave">
-                {{ 'conexiones.comando' | transloco }}
-              </p>
-              <code class="block font-mono text-[12.5px]">uv run ia credenciales openai</code>
-            </div>
+            <p class="m-0 rounded-[10px] bg-superficie px-3 py-2.5 text-[12.5px]">
+              {{ 'conexiones.faltaCredencial' | transloco }}
+              <a
+                routerLink="/ajustes"
+                class="font-semibold text-acento underline-offset-2 hover:underline"
+                >{{ 'conexiones.irAjustes' | transloco }}</a
+              >
+            </p>
           }
         </section>
 

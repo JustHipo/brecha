@@ -1,5 +1,7 @@
 {
-  "app": { "nombre": "Brecha" },
+  "app": {
+    "nombre": "Brecha"
+  },
   "nav": {
     "secciones": "Sections",
     "tablero": "Board",
@@ -15,7 +17,10 @@
     "avisos": "Job ads",
     "preguntar": "Ask",
     "conexiones": "Connections",
-    "bandejaPendientes": "({{n}} to review)"
+    "bandejaPendientes": "({{n}} to review)",
+    "red": "Network",
+    "redPendientes": "({{n}} to reply)",
+    "ajustes": "Settings"
   },
   "busqueda": {
     "abrir": "Search or run…",
@@ -30,7 +35,11 @@
     "idiomaEn": "Switch to English",
     "cerrar": "Close"
   },
-  "idioma": { "etiqueta": "Language", "es": "ES", "en": "EN" },
+  "idioma": {
+    "etiqueta": "Language",
+    "es": "ES",
+    "en": "EN"
+  },
   "estados": {
     "sin_decidir": "Undecided",
     "por_postular": "To apply",
@@ -52,8 +61,18 @@
     "sitio_empresa": "Company site",
     "otra": "Other"
   },
-  "modalidades": { "remoto": "Remote", "hibrido": "Hybrid", "presencial": "On-site", "no_indica": "Not stated" },
-  "prioridad": { "alta": "High priority", "media": "Medium priority", "baja": "Low priority", "etiqueta": "Priority" },
+  "modalidades": {
+    "remoto": "Remote",
+    "hibrido": "Hybrid",
+    "presencial": "On-site",
+    "no_indica": "Not stated"
+  },
+  "prioridad": {
+    "alta": "High priority",
+    "media": "Medium priority",
+    "baja": "Low priority",
+    "etiqueta": "Priority"
+  },
   "origenes": {
     "tablero": "board",
     "formulario": "form",
@@ -61,8 +80,18 @@
     "senal": "signal",
     "importacion": "import"
   },
-  "fuentes": { "correo": "Email", "plataforma": "Platform", "manual": "Manual", "ia": "AI" },
-  "canales": { "portal": "Portal", "email": "Email", "formulario": "Form", "referido": "Referral" },
+  "fuentes": {
+    "correo": "Email",
+    "plataforma": "Platform",
+    "manual": "Manual",
+    "ia": "AI"
+  },
+  "canales": {
+    "portal": "Portal",
+    "email": "Email",
+    "formulario": "Form",
+    "referido": "Referral"
+  },
   "tablero": {
     "titulo": "My applications",
     "resumen": "{{total}} in total · {{abiertas}} open",
@@ -144,7 +173,6 @@
     "aviso": "Posting",
     "abrirAviso": "Open the posting on {{plataforma}}",
     "cierra": "Closes on {{fecha}}",
-    "postulacion": "Application",
     "canal": "Channel",
     "fechaPostulacion": "Applied on",
     "sueldo": "Asked salary",
@@ -152,7 +180,6 @@
     "editar": "Edit",
     "guardar": "Save",
     "cancelar": "Cancel",
-    "contactos": "Contacts",
     "agregarContacto": "Add contact",
     "entrevistas": "Interviews",
     "sinEntrevistas": "No interviews scheduled",
@@ -176,10 +203,37 @@
     "noEncontrada": "This application does not exist.",
     "resueltaConfirmada": "You kept your move",
     "resueltaCorregida": "State corrected",
-    "discrepanciaCerrada": "Discrepancy {{estado}}"
+    "discrepanciaCerrada": "Discrepancy {{estado}}",
+    "deUnVistazo": "At a glance",
+    "comoPostulaste": "How you applied",
+    "sinPostular": "Not applied yet",
+    "sinCierre": "No closing date",
+    "sueldoPublicado": "Published salary",
+    "sueldoNoPublicado": "The posting does not say",
+    "calce": "Match",
+    "analisisApagado": "The posting analysis (published salary, match and gaps) is not available: the AI service is not responding.",
+    "analisisError": "The posting analysis could not be loaded.",
+    "sinAnalisis": "This posting does not come from Postings: it has no match or gap analysis.",
+    "conQuienHablas": "Who you are talking to",
+    "redNoDisponible": "Your LinkedIn network for this application could not be loaded.",
+    "nadieTodavia": "Nobody is linked to this application yet.",
+    "ligarRed": "Link someone from your network",
+    "ligado": "{{nombre}} is now linked to this application",
+    "origen": "Source",
+    "cierre": "Closing date"
   },
-  "resultados": { "pendiente": "Pending", "avanza": "Moves on", "no_avanza": "Does not move on", "cancelada": "Cancelled" },
-  "entrevistas": { "rrhh": "HR", "tecnica": "Technical", "caso": "Case", "final": "Final" },
+  "resultados": {
+    "pendiente": "Pending",
+    "avanza": "Moves on",
+    "no_avanza": "Does not move on",
+    "cancelada": "Cancelled"
+  },
+  "entrevistas": {
+    "rrhh": "HR",
+    "tecnica": "Technical",
+    "caso": "Case",
+    "final": "Final"
+  },
   "nueva": {
     "titulo": "New application",
     "tituloCargo": "Role",
@@ -279,8 +333,9 @@
     "campo": "Field: {{campo}}",
     "IA_NO_DISPONIBLE": "The AI is not available right now.",
     "NUCLEO_NO_DISPONIBLE": "The AI service could not reach the core.",
-    "DATO_INVALIDO": "Check the ad details: one of them is not valid.",
-    "IA_APAGADA": "The AI service is not answering: it is off or it crashed."
+    "IA_APAGADA": "The AI service is not answering: it is off or it crashed.",
+    "CREDENCIAL_INVALIDA": "The credential did not pass the test.",
+    "PROHIBIDO": "Credentials can only be changed from the console."
   },
   "ia": {
     "cargando": "Checking the AI…",
@@ -336,7 +391,6 @@
     "nunca": "Not yet",
     "ultimoError": "Last error",
     "sinErrores": "No errors",
-    "comando": "Credentials are not typed in the console. Run this in a terminal, from services/ia:",
     "cargando": "Loading connections…",
     "salida": "What leaves your machine",
     "correo": {
@@ -370,7 +424,9 @@
       "guardar": "Save profile",
       "sinGuardar": "There are unsaved changes",
       "guardado": "Profile saved: {{n}} ads recomputed their match"
-    }
+    },
+    "faltaCredencial": "The credential is missing.",
+    "irAjustes": "Save it in Settings"
   },
   "avisos": {
     "titulo": "Job ads",
@@ -445,5 +501,147 @@
     "etiqueta": "Your question",
     "ayuda": "{{n}} of {{max}} characters · Enter sends, Shift+Enter adds a line",
     "enviar": "Ask"
+  },
+  "red": {
+    "titulo": "Network",
+    "resumen": "{{total}} people · {{conectados}} connected · {{porResponder}} waiting for your reply",
+    "nuevoBoton": "Add contact",
+    "filtrosEtiqueta": "Filter contacts",
+    "filtros": {
+      "responder": "To reply",
+      "esperando": "Waiting",
+      "solicitudes": "Requests",
+      "seguimiento": "Follow-up due",
+      "todos": "All"
+    },
+    "buscar": "Search by name, company or headline",
+    "lista": "Contacts",
+    "cargando": "Loading your network…",
+    "sinResultados": "Nobody matches this filter.",
+    "vaciaTitulo": "Your LinkedIn network shows up here",
+    "vaciaTexto": "LinkedIn has no API, so Claude keeps this list up to date via MCP from your browser: when it checks your messages and requests, it records who wrote to you, who you owe a reply and which application it relates to.",
+    "vaciaComo": "Ask Claude to \"check my LinkedIn messages and update my network\", or add someone by hand.",
+    "verPerfil": "LinkedIn profile",
+    "sinInteracciones": "No messages yet",
+    "seguimiento": "Follow up on {{fecha}}",
+    "seguimientoVencido": "Follow-up due since {{fecha}}",
+    "conexion": {
+      "ninguna": "Not connected",
+      "solicitud_enviada": "Request sent",
+      "solicitud_recibida": "Request received",
+      "conectados": "Connected",
+      "rechazada": "Request declined",
+      "retirada": "Request withdrawn"
+    },
+    "pendiente": {
+      "responder": "Your turn to reply",
+      "esperando": "Waiting for a reply for {{n}} days",
+      "esperandoUno": "Waiting for a reply for 1 day",
+      "esperandoHoy": "Waiting for a reply since today"
+    },
+    "tipos": {
+      "solicitud_enviada": "You sent a request",
+      "solicitud_recibida": "Sent you a request",
+      "solicitud_aceptada": "Request accepted",
+      "solicitud_rechazada": "Request declined",
+      "solicitud_retirada": "Request withdrawn",
+      "mensaje_enviado": "You wrote",
+      "mensaje_recibido": "Wrote to you",
+      "nota": "Note"
+    },
+    "origen": {
+      "consola": "from the console",
+      "ia": "recorded by Claude"
+    },
+    "detalle": {
+      "noEncontrado": "This contact does not exist.",
+      "registrar": "Record something that happened",
+      "tipo": "What happened",
+      "fecha": "Date (optional)",
+      "resumen": "Summary",
+      "resumenEjemplo": "E.g.: asked for my CV and email to schedule",
+      "agregar": "Record",
+      "registrada": "Recorded in the conversation",
+      "repetida": "That was already recorded",
+      "interacciones": "Conversation",
+      "postulaciones": "Linked applications",
+      "postulacion": "Application",
+      "sinPostulaciones": "Not linked to any application yet.",
+      "vincular": "Link to an application",
+      "vincularTitulo": "Link to an application",
+      "vinculada": "Linked to {{postulacion}}",
+      "desvincular": "Unlink",
+      "desvincularDe": "Unlink from {{postulacion}}",
+      "desvinculada": "Unlinked from {{postulacion}}",
+      "seguimiento": "Follow-up",
+      "seguimientoAyuda": "A date to write again if they do not reply.",
+      "quitarSeguimiento": "Remove",
+      "guardar": "Save",
+      "notas": "Notes",
+      "notasEjemplo": "What you want to remember about this person",
+      "guardarNotas": "Save notes",
+      "guardado": "Changes saved"
+    },
+    "nuevo": {
+      "titulo": "Add a LinkedIn contact",
+      "subtitulo": "If they are already in your network, they are updated by profile.",
+      "nombre": "Name",
+      "perfilUrl": "LinkedIn profile",
+      "perfilInvalido": "It must be a LinkedIn profile (linkedin.com/in/…).",
+      "titular": "Headline",
+      "empresa": "Company",
+      "postulacion": "Link to an application (optional)",
+      "ninguna": "None",
+      "ayuda": "What you talk about with this person goes into their conversation; Claude records it via MCP when it checks LinkedIn.",
+      "confirmar": "Add",
+      "creado": "Contact added: {{nombre}}",
+      "actualizado": "{{nombre}} was already in your network and is now up to date"
+    },
+    "elegir": {
+      "titulo": "Link someone from your network",
+      "buscar": "Search your network",
+      "resultados": "People in your network",
+      "sinResultados": "Nobody like that in your network.",
+      "yaLigado": "Already linked",
+      "nuevo": "Add someone new"
+    }
+  },
+  "ajustes": {
+    "titulo": "Settings",
+    "resumen": "Your credentials, the language and how often your email is checked.",
+    "guardar": "Save",
+    "probando": "Testing…",
+    "borrar": "Delete",
+    "borrando": "Deleting…",
+    "guardada": "Tested and saved in your system keychain.",
+    "borrada": "Deleted.",
+    "correo": {
+      "titulo": "Email (Gmail)",
+      "conectado": "Connected as {{usuario}}",
+      "explicacion": "Gmail does not let other apps sign in with your normal password: create an app password (2-Step Verification is required) and paste it here. It is tested before saving and never shown again.",
+      "crearClave": "Create an app password at myaccount.google.com/apppasswords",
+      "usuario": "Your Gmail address",
+      "clave": "App password",
+      "claveAyuda": "16 letters; spaces do not matter.",
+      "borrarTitulo": "Delete the email credential?",
+      "borrarTexto": "The watcher stops checking your email until you save another one."
+    },
+    "openai": {
+      "titulo": "OpenAI",
+      "explicacion": "The key is used to classify emails, analyse postings and answer in Ask. It is tested before saving and never shown again.",
+      "crearLlave": "Create a key at platform.openai.com/api-keys",
+      "llave": "API key",
+      "borrarTitulo": "Delete the OpenAI key?",
+      "borrarTexto": "Without a key, emails are not classified and questions are not answered: emails stay queued."
+    },
+    "general": "General",
+    "idioma": "Console language",
+    "idiomas": {
+      "es": "Español",
+      "en": "English"
+    },
+    "vigia": "The watcher checks your email every",
+    "vigiaSinDato": "no data (the AI service is not responding)",
+    "vigiaAyuda": "It is changed in the AI service configuration."
   }
 }

@@ -215,3 +215,130 @@ test('F2-13: sin la API de IA, las pantallas lo dicen y son accesibles', async (
   await expect(page.getByRole('alert')).toContainText('El servicio con IA no responde');
   await sinViolaciones(page);
 });
+
+// Red de LinkedIn: el contacto entra como lo registraría Claude por MCP (aquí, por REST con el token
+// de la consola) y se liga desde la pantalla Red.
+async function conConsola(request: APIRequestContext, ruta: string, data: object) {
+  const token = readFileSync(join(process.env.BRECHA_DIR_E2E!, 'token-consola'), 'utf8').trim();
+  const r = await request.post(`http://127.0.0.1:${process.env.NUCLEO_E2E}/api/v1${ruta}`, {
+    headers: { Authorization: `Bearer ${token}` },
+    data,
+  });
+  expect(r.status()).toBe(201);
+  return (await r.json()) as { id: string };
+}
+
+test('Red: un contacto de LinkedIn se liga a una postulación y aparece en «Con quién hablas»', async ({
+  page,
+  request,
+}) => {
+  await crear(page, 'Frontend Angular', 'Brisa Ficticia', 'https://ejemplo.test/e2e/brisa');
+  const ficha = page.url();
+  const { id } = await conConsola(request, '/red', {
+    nombre: 'Camila Rojas Ficticia',
+    perfilUrl: 'linkedin.com/in/camila-rojas-ficticia',
+    titular: 'Talent Partner',
+    empresa: 'Brisa Ficticia',
+  });
+  await conConsola(request, `/red/${id}/interacciones`, {
+    tipo: 'mensaje_recibido',
+    resumen: '¿Conversamos el jueves sobre la vacante?',
+  });
+
+  await page.goto('/red');
+  await expect(page.getByRole('heading', { level: 1, name: 'Red' })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Red (1 por responder)' })).toBeVisible();
+  const fila = page.locator('[data-contacto]').filter({ hasText: 'Camila Rojas Ficticia' });
+  await expect(fila.getByText('Te toca responder')).toBeVisible();
+  await expect(fila.getByText('¿Conversamos el jueves sobre la vacante?')).toBeVisible();
+  await sinViolaciones(page);
+
+  await page.getByRole('button', { name: 'Seguimiento vencido' }).click();
+  await expect(page.getByText('Nadie calza con este filtro.')).toBeVisible();
+  await page.getByRole('button', { name: /^Por responder/ }).click();
+  await fila.getByRole('link', { name: 'Camila Rojas Ficticia', exact: true }).click();
+
+  // Detalle: ligar a la postulación con el buscador, que parte con la empresa del contacto.
+  await expect(
+    page.getByRole('heading', { level: 1, name: 'Camila Rojas Ficticia' }),
+  ).toBeVisible();
+  await expect(page.getByText('Todavía no está ligado a ninguna postulación.')).toBeVisible();
+  await sinViolaciones(page);
+  await page.getByRole('button', { name: '+ Ligar a una postulación' }).click();
+  const ligar = page.getByRole('dialog');
+  await expect(ligar.getByLabel('Buscar postulación')).toHaveValue('Brisa Ficticia');
+  const brisa = ligar.getByRole('button', { name: /Brisa Ficticia/ });
+  await expect(brisa).toBeVisible();
+  await sinViolaciones(page);
+  await brisa.click();
+  await expect(page.getByText('Ligado a Brisa Ficticia · Frontend Angular')).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Brisa Ficticia · Frontend Angular' })).toBeVisible();
+
+  // Respondes: ahora le toca a la otra persona.
+  await page.getByLabel('Qué pasó').selectOption('mensaje_enviado');
+  await page.getByLabel('Resumen').fill('Sí, el jueves a las 10');
+  await page.getByRole('button', { name: 'Registrar', exact: true }).click();
+  await expect(page.getByText('Registrado en la conversación')).toBeVisible();
+  await expect(page.getByText('Esperando respuesta desde hoy')).toBeVisible();
+  await expect(
+    page
+      .getByRole('navigation', { name: 'Secciones' })
+      .getByRole('link', { name: 'Red', exact: true }),
+  ).toBeVisible();
+
+  // En la ficha: con quién hablas, lo pendiente y el mensaje en la línea de tiempo.
+  await page.goto(ficha);
+  const conQuien = page.locator('[data-con-quien]');
+  await expect(
+    conQuien.getByRole('link', { name: 'Camila Rojas Ficticia', exact: true }),
+  ).toBeVisible();
+  await expect(conQuien.getByText('Esperando respuesta desde hoy')).toBeVisible();
+  await expect(
+    conQuien.getByText('Le escribiste: Sí, el jueves a las 10', { exact: false }),
+  ).toBeVisible();
+  await expect(
+    page.locator('[data-linkedin]').filter({ hasText: '¿Conversamos el jueves sobre la vacante?' }),
+  ).toBeVisible();
+  const resumen = page.locator('[data-resumen]');
+  await expect(resumen.getByText('Todavía no postulas')).toBeVisible();
+  await expect(
+    resumen.getByRole('link', { name: /Abrir el aviso en Get on Board/ }),
+  ).toHaveAttribute('href', 'https://ejemplo.test/e2e/brisa');
+  await sinViolaciones(page);
+
+  // Ligar a alguien más desde la ficha: el buscador de la red marca a quien ya está ligado.
+  await conQuien.getByRole('button', { name: '+ Ligar a alguien de tu red' }).click();
+  const elegir = page.getByRole('dialog');
+  await expect(elegir.getByRole('button', { name: /Camila Rojas Ficticia/ })).toBeDisabled();
+  await sinViolaciones(page);
+  await elegir.getByRole('button', { name: '+ Agregar a alguien nuevo' }).click();
+  const nuevo = page.getByRole('dialog');
+  await nuevo.getByLabel('Nombre').fill('Pablo Soto Ficticio');
+  await nuevo
+    .getByLabel('Perfil de LinkedIn')
+    .fill('https://cl.linkedin.com/in/pablo-soto-ficticio/');
+  await nuevo.getByRole('button', { name: 'Agregar', exact: true }).click();
+  await expect(page.getByText('Pablo Soto Ficticio quedó ligado a esta postulación')).toBeVisible();
+  await expect(
+    conQuien.getByRole('link', { name: 'Pablo Soto Ficticio', exact: true }),
+  ).toBeVisible();
+});
+
+test('Ajustes sin la API de IA: lo dice, no deja guardar y es accesible', async ({ page }) => {
+  await page.goto('/ajustes');
+  await expect(page.getByRole('heading', { level: 1, name: 'Ajustes' })).toBeVisible();
+  await expect(page.getByRole('alert')).toContainText('El servicio con IA no responde');
+  await page.getByLabel('Tu correo de Gmail').fill('juan@gmail.com');
+  await page.getByLabel('Contraseña de aplicación').fill('abcd efgh ijkl mnop');
+  await expect(page.getByRole('button', { name: 'Guardar' }).first()).toBeDisabled();
+  await expect(
+    page.getByRole('link', { name: /myaccount\.google\.com\/apppasswords/ }),
+  ).toHaveAttribute('href', 'https://myaccount.google.com/apppasswords');
+  await expect(page.locator('[data-vigia]')).toContainText('sin dato');
+  await sinViolaciones(page);
+
+  await page.getByLabel('Idioma de la consola').selectOption('en');
+  await expect(page.getByRole('heading', { level: 1, name: 'Settings' })).toBeVisible();
+  await page.getByLabel('Console language').selectOption('es');
+  await expect(page.getByRole('heading', { level: 1, name: 'Ajustes' })).toBeVisible();
+});

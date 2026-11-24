@@ -1,0 +1,22 @@
+{
+  "_nota": "Set inventado para probar la mecánica de la evaluación (F2-14). Empresas y personas ficticias. El set real va en datos/privado/eval/.",
+  "postulaciones": [
+    { "id": "p-norte", "empresa": "Norte Datos SpA", "titulo": "Desarrollador Backend NestJS", "plataforma": "getonboard", "activa": true },
+    { "id": "p-lago", "empresa": "Lago Software", "titulo": "Ingeniero de Software Full Stack", "plataforma": "linkedin", "activa": true },
+    { "id": "p-cumbre", "empresa": "Cumbre Pagos", "titulo": "Analista de Datos", "plataforma": "sitio_empresa", "activa": true },
+    { "id": "p-cumbre-2", "empresa": "Cumbre Pagos", "titulo": "Senior Backend Engineer", "plataforma": "sitio_empresa", "activa": false },
+    { "id": "p-rio", "empresa": "Río Logística", "titulo": "Desarrollador Python", "plataforma": "trabajando", "activa": true }
+  ],
+  "casos": [
+    { "id": "c01", "remitente": "notificaciones@getonbrd.com", "asunto": "Postulaste a Desarrollador Backend NestJS en Norte Datos SpA", "texto": "Hola, tu postulación a Desarrollador Backend NestJS en Norte Datos SpA fue enviada con éxito. Te avisaremos cuando la empresa la revise.", "estado": "postulado", "postulacion": "p-norte" },
+    { "id": "c02", "remitente": "seleccion@nortedatos.example", "asunto": "Prueba técnica: Desarrollador Backend NestJS", "texto": "Gracias por postular a Norte Datos SpA. Avanzaste a la etapa de prueba técnica: tienes 5 días para resolver el desafío técnico que adjuntamos.", "estado": "en_proceso", "postulacion": "p-norte" },
+    { "id": "c03", "remitente": "jobs-noreply@linkedin.com", "asunto": "Tu postulación a Ingeniero de Software Full Stack en Lago Software", "texto": "Lago Software recibió tu postulación a Ingeniero de Software Full Stack. Te avisaremos si hay novedades.", "estado": "postulado", "postulacion": "p-lago" },
+    { "id": "c04", "remitente": "talento@lagosoftware.example", "asunto": "Entrevista con el equipo de Lago Software", "texto": "Hola, nos gustó tu perfil para Ingeniero de Software Full Stack. ¿Podemos agendar una entrevista de 45 minutos esta semana? Elige un horario en el enlace.", "estado": "entrevista", "postulacion": "p-lago" },
+    { "id": "c05", "remitente": "no-reply@cumbrepagos.teamtailor-mail.com", "asunto": "Actualización de tu postulación: Analista de Datos", "texto": "Gracias por tu interés en Cumbre Pagos. Después de revisar los perfiles para Analista de Datos, decidimos no continuar con tu postulación en esta oportunidad.", "estado": "rechazado", "postulacion": "p-cumbre" },
+    { "id": "c06", "remitente": "no-reply@cumbrepagos.teamtailor-mail.com", "asunto": "Gracias por tu interés en Cumbre Pagos", "texto": "Confirmamos que tus datos quedaron registrados en nuestra base de talento. Te contactaremos si aparece una oportunidad.", "estado": null, "postulacion": null },
+    { "id": "c07", "remitente": "avisos@trabajando.cl", "asunto": "Río Logística revisó tu postulación", "texto": "Tu postulación al cargo Desarrollador Python en Río Logística está en revisión por la empresa.", "estado": "en_proceso", "postulacion": "p-rio" },
+    { "id": "c08", "remitente": "newsletter@getonbrd.com", "asunto": "10 empleos nuevos de backend para ti", "texto": "Mira estos empleos nuevos que calzan con tus búsquedas guardadas. Postula hoy.", "estado": null, "postulacion": null },
+    { "id": "c09", "remitente": "rrhh@riologistica.example", "asunto": "Oferta para el cargo de Desarrollador Python", "texto": "Nos alegra ofrecerte el cargo de Desarrollador Python en Río Logística. Adjuntamos la carta oferta con el sueldo y la fecha de inicio.", "estado": "oferta", "postulacion": "p-rio" },
+    { "id": "c10", "remitente": "jobs-noreply@linkedin.com", "asunto": "Tu postulación fue vista por Lago Software", "texto": "Buenas noticias: Lago Software vio tu postulación a Ingeniero de Software Full Stack.", "estado": null, "postulacion": "p-lago" }
+  ]
+}

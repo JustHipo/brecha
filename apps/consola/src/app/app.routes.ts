@@ -35,6 +35,14 @@ export const routes: Routes = [
         loadComponent: () => import('./funciones/bandeja/bandeja').then((m) => m.BandejaPagina),
       },
       {
+        path: 'red',
+        loadComponent: () => import('./funciones/red/red').then((m) => m.RedPagina),
+      },
+      {
+        path: 'red/:id',
+        loadComponent: () => import('./funciones/red/contacto').then((m) => m.ContactoRedPagina),
+      },
+      {
         path: 'avisos',
         loadComponent: () => import('./funciones/avisos/avisos').then((m) => m.AvisosPagina),
       },
@@ -51,6 +59,10 @@ export const routes: Routes = [
         path: 'conexiones',
         loadComponent: () =>
           import('./funciones/conexiones/conexiones').then((m) => m.ConexionesPagina),
+      },
+      {
+        path: 'ajustes',
+        loadComponent: () => import('./funciones/ajustes/ajustes').then((m) => m.AjustesPagina),
       },
     ],
   },

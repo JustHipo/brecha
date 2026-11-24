@@ -30,9 +30,11 @@ interface ContextoSenal {
   resumen: string;
   empresa?: string;
   cargo?: string;
+  /** Clave del título si no es «Asociar a una postulación» (la Red lo usa para ligar). */
+  titulo?: string;
 }
 
-/** Asociar una señal a una postulación: buscador sobre tus postulaciones (f2.md §8). */
+/** Asociar una señal (o ligar un contacto) a una postulación: buscador sobre tus postulaciones. */
 @Component({
   selector: 'b-dialogo-asociar',
   imports: [TranslocoPipe, HlmButton, HlmInput, EtiquetaPlataforma],
@@ -40,7 +42,7 @@ interface ContextoSenal {
   template: `
     <div [class]="e.cabecera">
       <div class="flex-1">
-        <h2 [class]="e.titulo">{{ 'bandeja.asociar.titulo' | transloco }}</h2>
+        <h2 [class]="e.titulo">{{ ctx.titulo ?? 'bandeja.asociar.titulo' | transloco }}</h2>
         <p [class]="e.subtitulo">{{ ctx.resumen }}</p>
       </div>
     </div>

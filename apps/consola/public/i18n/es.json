@@ -1,5 +1,7 @@
 {
-  "app": { "nombre": "Brecha" },
+  "app": {
+    "nombre": "Brecha"
+  },
   "nav": {
     "secciones": "Secciones",
     "tablero": "Tablero",
@@ -15,7 +17,10 @@
     "avisos": "Avisos",
     "preguntar": "Preguntar",
     "conexiones": "Conexiones",
-    "bandejaPendientes": "({{n}} por revisar)"
+    "bandejaPendientes": "({{n}} por revisar)",
+    "red": "Red",
+    "redPendientes": "({{n}} por responder)",
+    "ajustes": "Ajustes"
   },
   "busqueda": {
     "abrir": "Buscar o ejecutar…",
@@ -30,7 +35,11 @@
     "idiomaEn": "Cambiar a inglés",
     "cerrar": "Cerrar"
   },
-  "idioma": { "etiqueta": "Idioma", "es": "ES", "en": "EN" },
+  "idioma": {
+    "etiqueta": "Idioma",
+    "es": "ES",
+    "en": "EN"
+  },
   "estados": {
     "sin_decidir": "Sin decidir",
     "por_postular": "Por postular",
@@ -52,8 +61,18 @@
     "sitio_empresa": "Sitio empresa",
     "otra": "Otra"
   },
-  "modalidades": { "remoto": "Remoto", "hibrido": "Híbrido", "presencial": "Presencial", "no_indica": "Sin indicar" },
-  "prioridad": { "alta": "Prioridad alta", "media": "Prioridad media", "baja": "Prioridad baja", "etiqueta": "Prioridad" },
+  "modalidades": {
+    "remoto": "Remoto",
+    "hibrido": "Híbrido",
+    "presencial": "Presencial",
+    "no_indica": "Sin indicar"
+  },
+  "prioridad": {
+    "alta": "Prioridad alta",
+    "media": "Prioridad media",
+    "baja": "Prioridad baja",
+    "etiqueta": "Prioridad"
+  },
   "origenes": {
     "tablero": "tablero",
     "formulario": "formulario",
@@ -61,8 +80,18 @@
     "senal": "señal",
     "importacion": "importación"
   },
-  "fuentes": { "correo": "Correo", "plataforma": "Plataforma", "manual": "A mano", "ia": "IA" },
-  "canales": { "portal": "Portal", "email": "Correo", "formulario": "Formulario", "referido": "Referido" },
+  "fuentes": {
+    "correo": "Correo",
+    "plataforma": "Plataforma",
+    "manual": "A mano",
+    "ia": "IA"
+  },
+  "canales": {
+    "portal": "Portal",
+    "email": "Correo",
+    "formulario": "Formulario",
+    "referido": "Referido"
+  },
   "tablero": {
     "titulo": "Mis postulaciones",
     "resumen": "{{total}} en total · {{abiertas}} abiertas",
@@ -144,7 +173,6 @@
     "aviso": "Aviso",
     "abrirAviso": "Abrir el aviso en {{plataforma}}",
     "cierra": "Cierra el {{fecha}}",
-    "postulacion": "Postulación",
     "canal": "Canal",
     "fechaPostulacion": "Postulada el",
     "sueldo": "Sueldo pedido",
@@ -152,7 +180,6 @@
     "editar": "Editar",
     "guardar": "Guardar",
     "cancelar": "Cancelar",
-    "contactos": "Contactos",
     "agregarContacto": "Agregar contacto",
     "entrevistas": "Entrevistas",
     "sinEntrevistas": "Sin entrevistas agendadas",
@@ -176,10 +203,37 @@
     "noEncontrada": "Esta postulación no existe.",
     "resueltaConfirmada": "Mantuviste tu movimiento",
     "resueltaCorregida": "Estado corregido",
-    "discrepanciaCerrada": "Discrepancia {{estado}}"
+    "discrepanciaCerrada": "Discrepancia {{estado}}",
+    "deUnVistazo": "De un vistazo",
+    "comoPostulaste": "Cómo postulaste",
+    "sinPostular": "Todavía no postulas",
+    "sinCierre": "Sin fecha de cierre",
+    "sueldoPublicado": "Sueldo publicado",
+    "sueldoNoPublicado": "El aviso no lo dice",
+    "calce": "Calce",
+    "analisisApagado": "El análisis del aviso (sueldo publicado, calce y brechas) no está disponible: el servicio con IA no responde.",
+    "analisisError": "No se pudo cargar el análisis del aviso.",
+    "sinAnalisis": "Este aviso no viene de Avisos: no tiene análisis de calce ni brechas.",
+    "conQuienHablas": "Con quién hablas",
+    "redNoDisponible": "No se pudo cargar tu red de LinkedIn para esta postulación.",
+    "nadieTodavia": "Todavía no hay nadie ligado a esta postulación.",
+    "ligarRed": "Ligar a alguien de tu red",
+    "ligado": "{{nombre}} quedó ligado a esta postulación",
+    "origen": "Origen",
+    "cierre": "Cierre"
   },
-  "resultados": { "pendiente": "Pendiente", "avanza": "Avanza", "no_avanza": "No avanza", "cancelada": "Cancelada" },
-  "entrevistas": { "rrhh": "RR. HH.", "tecnica": "Técnica", "caso": "Caso", "final": "Final" },
+  "resultados": {
+    "pendiente": "Pendiente",
+    "avanza": "Avanza",
+    "no_avanza": "No avanza",
+    "cancelada": "Cancelada"
+  },
+  "entrevistas": {
+    "rrhh": "RR. HH.",
+    "tecnica": "Técnica",
+    "caso": "Caso",
+    "final": "Final"
+  },
   "nueva": {
     "titulo": "Nueva postulación",
     "tituloCargo": "Cargo",
@@ -279,8 +333,9 @@
     "campo": "Campo: {{campo}}",
     "IA_NO_DISPONIBLE": "La IA no está disponible ahora.",
     "NUCLEO_NO_DISPONIBLE": "El servicio con IA no pudo hablar con el núcleo.",
-    "DATO_INVALIDO": "Revisa los datos del aviso: hay uno que no es válido.",
-    "IA_APAGADA": "El servicio con IA no responde: está apagado o se cayó."
+    "IA_APAGADA": "El servicio con IA no responde: está apagado o se cayó.",
+    "CREDENCIAL_INVALIDA": "La credencial no pasó la prueba.",
+    "PROHIBIDO": "Las credenciales solo se cambian desde la consola."
   },
   "ia": {
     "cargando": "Revisando la IA…",
@@ -336,7 +391,6 @@
     "nunca": "Todavía no",
     "ultimoError": "Último error",
     "sinErrores": "Sin errores",
-    "comando": "Las credenciales no se escriben en la consola. Corre esto en una terminal, desde services/ia:",
     "cargando": "Cargando conexiones…",
     "salida": "Qué sale de tu máquina",
     "correo": {
@@ -370,7 +424,9 @@
       "guardar": "Guardar perfil",
       "sinGuardar": "Hay cambios sin guardar",
       "guardado": "Perfil guardado: {{n}} avisos recalcularon su calce"
-    }
+    },
+    "faltaCredencial": "Falta la credencial.",
+    "irAjustes": "Guárdala en Ajustes"
   },
   "avisos": {
     "titulo": "Avisos",
@@ -445,5 +501,147 @@
     "etiqueta": "Tu pregunta",
     "ayuda": "{{n}} de {{max}} caracteres · Enter envía, Mayús+Enter salta de línea",
     "enviar": "Preguntar"
+  },
+  "red": {
+    "titulo": "Red",
+    "resumen": "{{total}} personas · {{conectados}} conectadas · {{porResponder}} esperan tu respuesta",
+    "nuevoBoton": "Agregar contacto",
+    "filtrosEtiqueta": "Filtrar contactos",
+    "filtros": {
+      "responder": "Por responder",
+      "esperando": "Esperando",
+      "solicitudes": "Solicitudes",
+      "seguimiento": "Seguimiento vencido",
+      "todos": "Todos"
+    },
+    "buscar": "Buscar por nombre, empresa o titular",
+    "lista": "Contactos",
+    "cargando": "Cargando tu red…",
+    "sinResultados": "Nadie calza con este filtro.",
+    "vaciaTitulo": "Aquí aparece tu red de LinkedIn",
+    "vaciaTexto": "LinkedIn no tiene API, así que Claude mantiene esta lista al día por MCP desde tu navegador: cuando revisa tus mensajes y solicitudes, registra quién te escribió, a quién le debes una respuesta y con qué postulación tiene que ver.",
+    "vaciaComo": "Pídele a Claude «revisa mis mensajes de LinkedIn y actualiza mi red», o agrega a alguien a mano.",
+    "verPerfil": "Perfil en LinkedIn",
+    "sinInteracciones": "Sin mensajes todavía",
+    "seguimiento": "Seguimiento el {{fecha}}",
+    "seguimientoVencido": "Seguimiento vencido el {{fecha}}",
+    "conexion": {
+      "ninguna": "Sin conexión",
+      "solicitud_enviada": "Solicitud enviada",
+      "solicitud_recibida": "Solicitud recibida",
+      "conectados": "Conectados",
+      "rechazada": "Solicitud rechazada",
+      "retirada": "Solicitud retirada"
+    },
+    "pendiente": {
+      "responder": "Te toca responder",
+      "esperando": "Esperando respuesta hace {{n}} días",
+      "esperandoUno": "Esperando respuesta hace 1 día",
+      "esperandoHoy": "Esperando respuesta desde hoy"
+    },
+    "tipos": {
+      "solicitud_enviada": "Le enviaste una solicitud",
+      "solicitud_recibida": "Te envió una solicitud",
+      "solicitud_aceptada": "Solicitud aceptada",
+      "solicitud_rechazada": "Solicitud rechazada",
+      "solicitud_retirada": "Solicitud retirada",
+      "mensaje_enviado": "Le escribiste",
+      "mensaje_recibido": "Te escribió",
+      "nota": "Nota"
+    },
+    "origen": {
+      "consola": "desde la consola",
+      "ia": "registrado por Claude"
+    },
+    "detalle": {
+      "noEncontrado": "Este contacto no existe.",
+      "registrar": "Registrar algo que pasó",
+      "tipo": "Qué pasó",
+      "fecha": "Fecha (opcional)",
+      "resumen": "Resumen",
+      "resumenEjemplo": "Ej.: me pidió el CV y su correo para agendar",
+      "agregar": "Registrar",
+      "registrada": "Registrado en la conversación",
+      "repetida": "Eso ya estaba registrado",
+      "interacciones": "Conversación",
+      "postulaciones": "Postulaciones ligadas",
+      "postulacion": "Postulación",
+      "sinPostulaciones": "Todavía no está ligado a ninguna postulación.",
+      "vincular": "Ligar a una postulación",
+      "vincularTitulo": "Ligar a una postulación",
+      "vinculada": "Ligado a {{postulacion}}",
+      "desvincular": "Desligar",
+      "desvincularDe": "Desligar de {{postulacion}}",
+      "desvinculada": "Desligado de {{postulacion}}",
+      "seguimiento": "Seguimiento",
+      "seguimientoAyuda": "Una fecha para volver a escribirle si no responde.",
+      "quitarSeguimiento": "Quitar",
+      "guardar": "Guardar",
+      "notas": "Notas",
+      "notasEjemplo": "Lo que quieres recordar de esta persona",
+      "guardarNotas": "Guardar notas",
+      "guardado": "Cambios guardados"
+    },
+    "nuevo": {
+      "titulo": "Agregar contacto de LinkedIn",
+      "subtitulo": "Si ya está en tu red, se pone al día por su perfil.",
+      "nombre": "Nombre",
+      "perfilUrl": "Perfil de LinkedIn",
+      "perfilInvalido": "Tiene que ser un perfil de LinkedIn (linkedin.com/in/…).",
+      "titular": "Titular",
+      "empresa": "Empresa",
+      "postulacion": "Ligar a una postulación (opcional)",
+      "ninguna": "Ninguna",
+      "ayuda": "Lo que hables con esta persona se registra en su conversación; Claude lo hace solo por MCP cuando revisa LinkedIn.",
+      "confirmar": "Agregar",
+      "creado": "Contacto agregado: {{nombre}}",
+      "actualizado": "{{nombre}} ya estaba en tu red y quedó al día"
+    },
+    "elegir": {
+      "titulo": "Ligar a alguien de tu red",
+      "buscar": "Buscar en tu red",
+      "resultados": "Personas de tu red",
+      "sinResultados": "No hay nadie así en tu red.",
+      "yaLigado": "Ya ligado",
+      "nuevo": "Agregar a alguien nuevo"
+    }
+  },
+  "ajustes": {
+    "titulo": "Ajustes",
+    "resumen": "Tus credenciales, el idioma y cada cuánto se revisa tu correo.",
+    "guardar": "Guardar",
+    "probando": "Probando…",
+    "borrar": "Borrar",
+    "borrando": "Borrando…",
+    "guardada": "Probada y guardada en el llavero de tu sistema.",
+    "borrada": "Borrada.",
+    "correo": {
+      "titulo": "Correo (Gmail)",
+      "conectado": "Conectado como {{usuario}}",
+      "explicacion": "Gmail no deja entrar con tu contraseña normal desde otras aplicaciones: crea una contraseña de aplicación (hace falta la verificación en dos pasos) y pégala aquí. Se prueba antes de guardarla y nunca vuelve a mostrarse.",
+      "crearClave": "Crear una contraseña de aplicación en myaccount.google.com/apppasswords",
+      "usuario": "Tu correo de Gmail",
+      "clave": "Contraseña de aplicación",
+      "claveAyuda": "16 letras; los espacios dan lo mismo.",
+      "borrarTitulo": "¿Borrar la credencial del correo?",
+      "borrarTexto": "El vigía deja de revisar tu correo hasta que guardes otra."
+    },
+    "openai": {
+      "titulo": "OpenAI",
+      "explicacion": "La llave se usa para clasificar correos, analizar avisos y responder en Preguntar. Se prueba antes de guardarla y nunca vuelve a mostrarse.",
+      "crearLlave": "Crear una llave en platform.openai.com/api-keys",
+      "llave": "Llave de la API",
+      "borrarTitulo": "¿Borrar la llave de OpenAI?",
+      "borrarTexto": "Sin llave no se clasifican correos ni se responden preguntas: los correos quedan en cola."
+    },
+    "general": "General",
+    "idioma": "Idioma de la consola",
+    "idiomas": {
+      "es": "Español",
+      "en": "English"
+    },
+    "vigia": "El vigía revisa tu correo cada",
+    "vigiaSinDato": "sin dato (el servicio con IA no responde)",
+    "vigiaAyuda": "Se cambia en la configuración del servicio con IA."
   }
 }

@@ -21,6 +21,25 @@ export type SenalRegistrada = Esquemas['SenalRegistradaDto'];
 export type ResultadoImportacion = Esquemas['ResultadoImportacionDto'];
 export type SenalPendiente = Esquemas['SenalPendienteDto'];
 export type AvisoEntrada = Esquemas['AvisoEntradaDto'];
+// Red de LinkedIn (F2): personas, solicitudes y mensajes ligados a tus postulaciones.
+export type ContactoRed = Esquemas['ContactoRedDto'];
+export type ContactoRedDetalle = Esquemas['ContactoRedDetalleDto'];
+export type ContactoRedRegistrado = Esquemas['ContactoRedRegistradoDto'];
+export type ListaDeRed = Esquemas['ListaDeRedDto'];
+export type ResumenDeRed = Esquemas['ResumenDeRedDto'];
+export type InteraccionRed = Esquemas['InteraccionDto'];
+export type TipoDeInteraccion = Esquemas['TipoDeInteraccion'];
+export type EstadoDeConexion = Esquemas['EstadoDeConexion'];
+export type ContactoRedEntrada = Esquemas['ContactoRedEntradaDto'];
+export type EditarContactoRed = Esquemas['EditarContactoRedDto'];
+export type InteraccionEntrada = Esquemas['InteraccionEntradaDto'];
+export type FiltroDeRed = 'todos' | 'responder' | 'esperando' | 'solicitudes' | 'seguimiento';
+
+export interface ConsultaDeRed {
+  filtro?: FiltroDeRed;
+  texto?: string;
+  postulacionId?: string;
+}
 
 export interface FiltrosLista {
   estado?: string[];
@@ -116,6 +135,28 @@ export class Api {
   }
   descartarSenal(senalId: string) {
     return this.http.post<SenalPendiente>(`${BASE}/bandeja/${senalId}/descartar`, {});
+  }
+
+  // Red (F2): LinkedIn no tiene API; la consola y la IA (por MCP) registran lo que pasa.
+  red(c: ConsultaDeRed = {}) {
+    let params = new HttpParams();
+    for (const [k, v] of Object.entries(c)) {
+      if (v === undefined || v === '' || (k === 'filtro' && v === 'todos')) continue;
+      params = params.set(k, String(v));
+    }
+    return this.http.get<ListaDeRed>(`${BASE}/red`, { params });
+  }
+  verContactoRed(id: string) {
+    return this.http.get<ContactoRedDetalle>(`${BASE}/red/${id}`);
+  }
+  registrarContactoRed(cuerpo: ContactoRedEntrada) {
+    return this.http.post<ContactoRedRegistrado>(`${BASE}/red`, cuerpo);
+  }
+  editarContactoRed(id: string, cuerpo: EditarContactoRed) {
+    return this.http.patch<ContactoRedDetalle>(`${BASE}/red/${id}`, cuerpo);
+  }
+  registrarInteraccionRed(id: string, cuerpo: InteraccionEntrada) {
+    return this.http.post<ContactoRedRegistrado>(`${BASE}/red/${id}/interacciones`, cuerpo);
   }
 
   importar(exportArtifact: object) {
