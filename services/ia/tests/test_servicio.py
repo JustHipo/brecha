@@ -64,3 +64,22 @@ def test_sin_configuracion_sale_con_ex_config(
     monkeypatch.delenv("BRECHA_DIR", raising=False)
     assert servicio.main(["vigia"]) == servicio.SALIDA_CONFIG_INVALIDA
     assert "Falta BRECHA_DIR" in capsys.readouterr().err
+
+
+def test_la_salida_queda_en_utf8() -> None:
+    import io
+    import sys
+
+    from ia.entradas import servicio
+
+    antes = sys.stdout, sys.stderr
+    try:
+        sys.stdout = io.TextIOWrapper(io.BytesIO(), encoding="cp1252")
+        sys.stderr = io.TextIOWrapper(io.BytesIO(), encoding="cp1252")
+        servicio.salida_en_utf8()
+        assert sys.stdout.encoding == "utf-8" and sys.stderr.encoding == "utf-8"
+        print("vigía en marcha")
+        sys.stdout.flush()
+        assert "vigía".encode() in sys.stdout.buffer.getvalue()  # type: ignore[attr-defined]
+    finally:
+        sys.stdout, sys.stderr = antes

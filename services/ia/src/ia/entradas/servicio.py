@@ -170,7 +170,19 @@ def _parser() -> argparse.ArgumentParser:
     return parser
 
 
+def salida_en_utf8() -> None:
+    """En Windows la consola usa la página de códigos del sistema y el registro de la app lee UTF-8.
+
+    El ejecutable de PyInstaller ignora PYTHONUTF8 (no lee las variables PYTHON*), así que se fija aquí.
+    """
+    for flujo in (sys.stdout, sys.stderr):
+        reconfigurar = getattr(flujo, "reconfigure", None)
+        if reconfigurar is not None:
+            reconfigurar(encoding="utf-8", errors="replace")
+
+
 def main(argv: list[str] | None = None) -> int:
+    salida_en_utf8()
     argumentos = sys.argv[1:] if argv is None else argv
     try:
         if argumentos and argumentos[0] in COMANDOS_DE_LA_CLI:
