@@ -18,6 +18,9 @@ describe('ContactoDeRed', () => {
     );
     expect(nuevo().datos().perfilUrl).toBe('https://www.linkedin.com/in/ana-ficticia');
     expect(() => perfilNormalizado('https://ejemplo.test/ana')).toThrow(DatoInvalido);
+    expect(perfilNormalizado('https://www.linkedin.com/in/ACoAAEgiV0IBnSD73tmvFKfG')).toBe(
+      'https://www.linkedin.com/in/ACoAAEgiV0IBnSD73tmvFKfG',
+    );
   });
 
   it('las solicitudes mueven la conexión y manda la más reciente aunque llegue tarde', () => {
