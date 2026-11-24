@@ -516,18 +516,20 @@ export class ArriendosBusquedaPagina {
     this.b.set(b);
     // Transitorio hasta la página Perfil (perfil.md §5): las reglas sin criterio no se editan aquí.
     this.reglas.set(
-      b.reglas.flatMap((r) => (r.criterio ? [{ ...r, criterio: r.criterio }] : [])).map((r) => ({
-        criterio: r.criterio,
-        valor: Array.isArray(r.valor)
-          ? r.valor.join(', ')
-          : typeof r.valor === 'boolean'
-            ? r.valor
-              ? 'si'
-              : 'no'
-            : String(r.valor ?? ''),
-        dura: r.dura,
-        prioridad: r.prioridad ?? 1,
-      })),
+      b.reglas
+        .flatMap((r) => (r.criterio ? [{ ...r, criterio: r.criterio }] : []))
+        .map((r) => ({
+          criterio: r.criterio,
+          valor: Array.isArray(r.valor)
+            ? r.valor.join(', ')
+            : typeof r.valor === 'boolean'
+              ? r.valor
+                ? 'si'
+                : 'no'
+              : String(r.valor ?? ''),
+          dura: r.dura,
+          prioridad: r.prioridad ?? 1,
+        })),
     );
     this.persona = {
       rentaLiquida: b.persona.rentaLiquida ?? null,
