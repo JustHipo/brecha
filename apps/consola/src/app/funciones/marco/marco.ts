@@ -9,12 +9,14 @@ import { Formato, type Idioma } from '../../nucleo/idioma/idioma';
 import { BandejaStore } from '../bandeja/bandeja.store';
 import { EstadoIaStore } from '../conexiones/estado-ia.store';
 import { RedStore } from '../red/red.store';
+import { ArriendosStore } from '../arriendos/arriendos.store';
 import { TableroStore } from '../tablero/tablero.store';
 import { Recorrido } from '../recorrido/recorrido';
 import { RecorridoStore } from '../recorrido/recorrido.store';
 import { PaletaDeComandos } from './paleta';
 
 const ICONOS = {
+  busqueda: 'M4 6h10M4 12h7M4 18h4M15 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM20 20l-2.6-2.6',
   mapa: 'M9 4L3 6v14l6-2 6 2 6-2V4l-6 2-6-2zM9 4v14M15 6v14',
   canales: 'M4 6h16M4 12h10M4 18h7M17 15l3 3-3 3',
   tablero: 'M4 4h6v16H4zM14 4h6v10h-6z',
@@ -102,7 +104,7 @@ const PUNTOS = [
         </button>
       </div>
       <ng-template #menuFoco>
-        <div hlmDropdownMenu class="w-[212px]">
+        <div hlmDropdownMenu class="w-[260px]">
           @for (f of focos; track f.id) {
             <button
               hlmDropdownMenuItem
@@ -119,7 +121,7 @@ const PUNTOS = [
                 'foco.' + f.id | transloco
               }}</span>
               @if (pendientes()[f.id]) {
-                <span class="text-xs text-tinta-suave tabular-nums">{{
+                <span class="text-xs whitespace-nowrap text-tinta-suave tabular-nums">{{
                   'foco.porRevisar' | transloco: { n: pendientes()[f.id] }
                 }}</span>
               }
@@ -159,6 +161,16 @@ const PUNTOS = [
             >
             <span class="solo-lector">{{
               'nav.bandejaPendientes' | transloco: { n: bandeja.conteo() }
+            }}</span>
+          }
+          @if (n.ruta === '/arriendos/bandeja' && arriendos.bandeja().length) {
+            <span
+              class="min-w-5 rounded-full bg-white px-1.5 text-center text-xs font-bold text-[var(--barra-hasta)] tabular-nums"
+              aria-hidden="true"
+              >{{ arriendos.bandeja().length }}</span
+            >
+            <span class="solo-lector">{{
+              'nav.bandejaPendientes' | transloco: { n: arriendos.bandeja().length }
             }}</span>
           }
           @if (n.ruta === '/red' && red.porResponder()) {
@@ -322,6 +334,7 @@ export class Marco {
   protected readonly bandeja = inject(BandejaStore);
   protected readonly estadoIa = inject(EstadoIaStore);
   protected readonly red = inject(RedStore);
+  protected readonly arriendos = inject(ArriendosStore);
   private readonly formato = inject(Formato);
   private readonly transloco = inject(TranslocoService);
   private readonly router = inject(Router);
@@ -347,6 +360,7 @@ export class Marco {
     { ruta: '/arriendos/tablero', etiqueta: 'nav.tablero', icono: ICONOS.tablero },
     { ruta: '/arriendos/lista', etiqueta: 'nav.lista', icono: ICONOS.lista },
     { ruta: '/arriendos/mapa', etiqueta: 'nav.mapa', icono: ICONOS.mapa },
+    { ruta: '/arriendos/busqueda', etiqueta: 'nav.busqueda', icono: ICONOS.busqueda },
     { ruta: '/arriendos/bandeja', etiqueta: 'nav.bandeja', icono: ICONOS.bandeja },
     { ruta: '/arriendos/canales', etiqueta: 'nav.canales', icono: ICONOS.canales },
     { ruta: '/arriendos/preguntar', etiqueta: 'nav.preguntar', icono: ICONOS.preguntar },
@@ -358,7 +372,7 @@ export class Marco {
   /** Lo que cada foco tiene por revisar, para el selector. */
   protected readonly pendientes = computed<Record<FocoId, number>>(() => ({
     empleo: this.bandeja.conteo() + this.red.porResponder(),
-    arriendos: 0,
+    arriendos: this.arriendos.porRevisar(),
   }));
   protected readonly iconoAjustes = ICONOS.ajustes;
   protected readonly puntos = PUNTOS;
@@ -371,6 +385,7 @@ export class Marco {
     if (this.store.estado() === 'inicial') void this.store.cargar();
     if (this.bandeja.estado() === 'inicial') void this.bandeja.cargar();
     if (this.red.estado() === 'inicial') void this.red.cargar(true);
+    if (this.arriendos.estado() === 'inicial') void this.arriendos.cargar(true);
     this.estadoIa.iniciar();
     this.recorrido.iniciarSiEsPrimeraVez();
     this.transloco.langChanges$.subscribe((l) => this.idiomaActivo.set(l));

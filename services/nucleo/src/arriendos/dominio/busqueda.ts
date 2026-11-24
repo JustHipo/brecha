@@ -361,6 +361,15 @@ function revisar(r: Regla, p: DatosDeLaPropiedad, persona: Persona, uf: number |
   }
 }
 
+/** Por qué no se pudo revisar una regla: un dato del aviso o uno tuyo. */
+function faltaDato(c: Criterio, p: DatosDeLaPropiedad, persona: Persona): string {
+  if (c === 'renta_exigida' && persona.rentaLiquida === undefined && p.requisitos.rentaVeces !== undefined)
+    return 'Renta exigida: falta tu renta líquida en Tu búsqueda';
+  if (c === 'aval' && p.requisitos.aval === true && persona.tieneAval === undefined)
+    return 'Aval: falta decir si tienes aval en Tu búsqueda';
+  return `${NOMBRE[c]}: el aviso no lo dice`;
+}
+
 /**
  * Calce por código (A-D7): si falla una dura, 0 y esa brecha va primero. Si no, cada blanda pesa 1/prioridad
  * (P1 = 1, P2 = 0,5…) y el puntaje es lo cumplido sobre lo revisable. Las reglas sin dato no cuentan.
@@ -377,7 +386,7 @@ export function calcularCalce(p: DatosDeLaPropiedad, b: DatosBusqueda, uf: numbe
       sinDato.push({
         reglaId: r.id,
         criterio: r.criterio,
-        texto: `${NOMBRE[r.criterio]}: el aviso no lo dice`,
+        texto: faltaDato(r.criterio, p, b.persona),
       });
       continue;
     }

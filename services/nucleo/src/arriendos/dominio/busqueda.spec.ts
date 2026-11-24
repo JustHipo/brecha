@@ -171,6 +171,22 @@ describe('calce', () => {
   });
 });
 
+describe('lo que falta para revisar una regla', () => {
+  it('distingue un dato tuyo de uno del aviso', () => {
+    const b = busqueda([
+      { criterio: 'renta_exigida' },
+      { criterio: 'aval' },
+      { criterio: 'gastos_comunes', valor: 1 },
+    ]);
+    const c = calcularCalce(depto({ gastosComunes: null }), b, null);
+    expect(c.sinDato.map((s) => s.texto)).toEqual([
+      'Renta exigida: falta tu renta líquida en Tu búsqueda',
+      'Aval: falta decir si tienes aval en Tu búsqueda',
+      'Gastos comunes: el aviso no lo dice',
+    ]);
+  });
+});
+
 describe('duplicados', () => {
   it('misma dirección y comuna, o pines a menos de 30 m, con los mismos dormitorios', () => {
     const a = { direccion: 'Av. Irarrázaval 3000 depto 504', comuna: 'Ñuñoa', dormitorios: 2 };
