@@ -3,7 +3,7 @@ import { join } from 'node:path';
 import { app, BrowserWindow, Menu, nativeImage, Notification, session, shell, Tray } from 'electron';
 import { ejecutarHook, hooksPara, leerHooks } from './hooks';
 import { OyenteDeEventos } from './notificaciones';
-import { abiertaAlIniciarSesion, ARGUMENTO_OCULTA } from './plataforma';
+import { abiertaAlIniciarSesion, ARGUMENTO_OCULTA, ARGUMENTO_SALIR } from './plataforma';
 import { Registro } from './registro';
 import { PUERTOS, rutas } from './rutas';
 import { Servicios } from './servicios';
@@ -33,7 +33,8 @@ if (process.env.BRECHA_DATOS) {
   app.setPath('userData', process.env.BRECHA_DATOS);
   app.setAppLogsPath(join(process.env.BRECHA_DATOS, 'logs'));
 }
-if (!app.requestSingleInstanceLock()) app.quit();
+// `--salir` sin una Brecha abierta no levanta nada.
+if (!app.requestSingleInstanceLock() || process.argv.includes(ARGUMENTO_SALIR)) app.exit(0);
 
 let tray: Tray | null = null;
 let ventana: BrowserWindow | null = null;
@@ -184,7 +185,11 @@ function icono(): Electron.NativeImage {
   return img;
 }
 
-app.on('second-instance', () => abrir());
+// Abrir Brecha otra vez muestra la ventana; `Brecha --salir` cierra la que está corriendo (apagado limpio).
+app.on('second-instance', (_e, argv) => {
+  if (argv.includes(ARGUMENTO_SALIR)) void salir();
+  else abrir();
+});
 app.on('activate', () => abrir());
 app.on('window-all-closed', () => {
   // Se queda en la barra de menú.

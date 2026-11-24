@@ -89,7 +89,27 @@
       }
     },
     "dmg": {
-      "title": "Brecha"
+      "title": "Brecha",
+      "artifactName": "Brecha-${version}-${arch}.${ext}"
+    },
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "recursos-app/icono.png"
+    },
+    "nsis": {
+      "oneClick": true,
+      "perMachine": false,
+      "shortcutName": "Brecha",
+      "runAfterFinish": true,
+      "artifactName": "Brecha-Setup-${version}.${ext}",
+      "deleteAppDataOnUninstall": false
     },
     "afterPack": "./scripts/despues-de-empaquetar.cjs"
   },

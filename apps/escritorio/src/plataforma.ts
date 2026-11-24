@@ -204,6 +204,9 @@ export function entradaDelLlavero(huella: string | null, plataforma: Plataforma 
 /** Argumento con el que Windows abre Brecha al iniciar sesión (allá no existe `wasOpenedAtLogin`). */
 export const ARGUMENTO_OCULTA = '--oculta';
 
+/** `Brecha --salir` le pide a la Brecha abierta que se cierre (detiene todo en orden). */
+export const ARGUMENTO_SALIR = '--salir';
+
 export function abiertaAlIniciarSesion(
   argv: string[],
   wasOpenedAtLogin: boolean | undefined,

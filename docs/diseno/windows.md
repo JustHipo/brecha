@@ -121,6 +121,7 @@ Colores en el artifact: nuevo (CI de Windows, guía de Gmail, icono de bandeja),
 
 ### W6. Prueba en un Windows real y cierre
 - Juan o Tamara bajan el instalador del CI, instalan, abren, conectan Gmail con la guía, Juan pone su llave de OpenAI, crean y mueven una postulación.
+- Prompt para la sesión de Claude de Tamara (pedido de Juan, 24-nov-2026): que se conecte con esta sesión por remote control, haga preguntas y la guíe paso a paso hasta tener todo arriba: instalar la app, conectar OpenAI (llave de Juan), Claude (MCP) y su Gmail sin desconectar el de Juan, usar la app, importar las postulaciones de ambos y convertir las suyas al formato que acepta la importación (de la sesión de CSV).
 - Decisiones nuevas en `docs/PLAN.md` (D41 en adelante), ADR 0017 actualizado, README con la instalación en Windows, lecciones a la bandeja del AIOS.
 
 ## 6. Riesgos

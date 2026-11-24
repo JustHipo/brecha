@@ -1,6 +1,7 @@
 // electron-builder no copia carpetas `node_modules` en extraResources: las del núcleo se agregan aquí,
-// después de armar el .app y antes de firmarlo. Se quitan los enlaces rotos (pnpm deja uno al propio paquete),
-// porque la firma falla con ellos.
+// después de armar la app y antes de firmarla o de armar el instalador. Se quitan los enlaces rotos (pnpm deja
+// uno al propio paquete), porque la firma de macOS falla con ellos.
+// macOS: Brecha.app/Contents/Resources · Windows: win-unpacked/resources
 const { cpSync, existsSync, lstatSync, readdirSync, rmSync } = require('node:fs');
 const { join } = require('node:path');
 
@@ -22,10 +23,18 @@ function quitarEnlacesRotos(dir) {
 }
 
 exports.default = async function despuesDeEmpaquetar(contexto) {
-  const app = join(contexto.appOutDir, `${contexto.packager.appInfo.productFilename}.app`);
+  const recursos =
+    contexto.electronPlatformName === 'darwin'
+      ? join(contexto.appOutDir, `${contexto.packager.appInfo.productFilename}.app`, 'Contents', 'Resources')
+      : join(contexto.appOutDir, 'resources');
   const origen = join(__dirname, '..', 'empaquetado', 'nucleo', 'node_modules');
-  const destino = join(app, 'Contents', 'Resources', 'nucleo', 'node_modules');
-  cpSync(origen, destino, { recursive: true, verbatimSymlinks: true });
+  const destino = join(recursos, 'nucleo', 'node_modules');
+  // En Windows se copian los archivos de verdad (sin enlaces ni junctions): el instalador NSIS no los lleva.
+  cpSync(origen, destino, {
+    recursive: true,
+    verbatimSymlinks: contexto.electronPlatformName === 'darwin',
+    dereference: contexto.electronPlatformName !== 'darwin',
+  });
   const rotos = quitarEnlacesRotos(destino);
   console.log(`  • dependencias del núcleo copiadas (${rotos} enlaces rotos quitados)`);
 };
