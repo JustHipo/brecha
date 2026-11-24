@@ -34,7 +34,7 @@ Pasos:
    Revisa: que exista $env:LOCALAPPDATA\Programs\Brecha\Brecha.exe y que respondan http://127.0.0.1:4300/api/v1/salud y http://127.0.0.1:4400/api/ia/salud (puede tardar hasta un minuto la primera vez). Si no responden, lee los registros en $env:APPDATA\Brecha\logs (app.log, postgres.log, nucleo.log, ia-api.log) y mándale a «windows» las últimas 30 líneas de los que tengan errores, sin contraseñas.
    Muéstrame dónde quedó el icono de Brecha (bandeja del sistema, al lado del reloj o en la flecha «^»): clic abre la ventana, clic derecho el menú.
 
-4. El recorrido de bienvenida: la primera vez la app muestra un recorrido corto con globos. Dime que lo siga; si lo cerró, se puede volver a ver desde Ajustes.
+4. El recorrido de bienvenida: la primera vez la app muestra un recorrido corto con globos (8 pasos). Dime que lo siga; si lo cerré, se puede volver a ver desde Ajustes o desde la búsqueda (Ctrl+K).
 
 5. Conectar mi Gmail: en Brecha, Ajustes → «Conectar con Gmail». La guía tiene 4 pasos (verificación en dos pasos, abrir myaccount.google.com/apppasswords, crear una contraseña llamada «Brecha» y pegarla). Acompáñame paso a paso, pero las páginas de Google y la contraseña las manejo yo. Ojo: tiene que ser MI cuenta de Gmail (la que uso para postular). Conectar mi Gmail aquí no toca el Gmail de Juan: cada equipo tiene su propia conexión y cada contraseña de aplicación es de una sola cuenta. Tampoco hay que conectar ni desconectar nada en los conectores de Claude.
    Revisa: que Ajustes diga «Conectado como …» y que en $env:APPDATA\Brecha\logs\vigia.log aparezca una revisión del correo sin error en los minutos siguientes.
@@ -47,9 +47,17 @@ Pasos:
 
 8. Usar la app: con mi ayuda, crea una postulación de prueba desde el tablero (Crear postulación), muévela de columna arrastrándola y ábrela para ver su ficha. Después bórrala o descártala. Explícame en simple: el tablero, la Bandeja (correos que la IA leyó y espera que yo confirme), Avisos, mi red de LinkedIn y Ajustes.
 
-9. Importar postulaciones:
-   a) Las que Juan y yo ya seguimos juntos: pídele a «windows» el archivo CSV exportado y cómo se importa.
-   b) Las mías que tengo en otro lado (una planilla, notas, correos): pídeme dónde están, conviértelas al formato CSV que acepta Brecha (pídele a «windows» el formato exacto: columnas, cuáles son obligatorias, fechas y estados) y muéstrame el resultado antes de importarlo. Revisa en el tablero que entraron todas.
+9. Importar postulaciones (en Brecha: «Importar y exportar» en la barra lateral; ahí también hay plantillas para descargar):
+   a) Las que Juan y yo ya seguimos juntos: pídele a «windows» que Juan exporte el CSV desde su Brecha («Importar y exportar» → exportar postulaciones) y me lo mande. Lo importo yo con «Elegir archivo CSV». Primero postulaciones y después contactos, si hay.
+   b) Las mías que tengo en otro lado (una planilla, notas, correos): pregúntame dónde están y conviértelas a un postulaciones.csv con estas reglas, y muéstrame el resultado antes de importarlo:
+      - UTF-8, separado por comas (no punto y coma), primera fila con el encabezado. Si sale de Excel, «CSV UTF-8 (delimitado por comas)».
+      - Encabezado: titulo,empresa,url,plataforma,modalidad,ubicacion,cierre,estado,prioridad,fecha_postulacion,canal_tipo,canal_valor,correo_postulacion,sueldo_publicado,stack,requisitos,etiquetas,notas,motivo (pueden faltar las opcionales).
+      - Obligatorias: titulo, empresa y url (la URL del aviso; es lo que identifica cada postulación). Si no tengo la URL, pregúntame; no la inventes.
+      - plataforma: linkedin, trabajando, getonboard, computrabajo, chiletrabajos, indeed, sitio_empresa u otra (si falta, se deduce de la URL). modalidad: remoto, hibrido, presencial o no_indica.
+      - estado: sin_decidir, por_postular, postulado, en_proceso, entrevista, oferta, aceptada, rechazado o descartado.
+      - Desde postulado en adelante (también rechazado) son obligatorias fecha_postulacion (AAAA-MM-DD, no futura), canal_tipo (portal, email, formulario o referido: por dónde postulé) y canal_valor (la URL o el correo). Si no sé la fecha exacta, pregúntame cuál poner.
+      - motivo para rechazado o descartado (opcional). Fechas siempre AAAA-MM-DD. Listas dentro de una celda (stack, etiquetas) separadas por «;». Celdas con comas o comillas, entre comillas dobles.
+   Después de importar, Brecha muestra cuántas entraron, cuáles ya estaban y los errores por línea. Si hay errores, corrige solo esas filas y vuelve a importar (importar dos veces el mismo archivo no duplica). Revisa en el tablero que estén todas.
 
 10. Cierre: haz un resumen de lo que quedó funcionando, lo pendiente y dónde están mis datos ($env:APPDATA\Brecha). Mándale el mismo resumen a «windows».
 ```
