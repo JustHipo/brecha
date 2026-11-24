@@ -301,9 +301,11 @@ Cada fase termina con un checkpoint: la revisas, la pruebas y decides si seguimo
 **Soluciones aplicadas:** se corrige el número de línea en el lector; el parser de la ruta de importar va envuelto en una función con otro nombre.
 
 ### Pasos pendientes (24-nov-2026, D49 a D56)
-**Estado**: 🔄 En curso en la rama `f2-pasos` (PR hacia `f2` al cerrar P4); plan en `docs/diseno/pasos.md`
+**Estado**: ✅ Implementado en la rama `f2-pasos` (PR hacia `f2`); plan en `docs/diseno/pasos.md`. Falta: correr `ia evaluar` y `ia pasos reprocesar` con tu llave, y recompilar la app instalada
 - **P1 · Núcleo ✅:** agregado `Paso` con R15 a R20, tablas `paso` y `paso_postulacion`, señal única por postulación, bandeja con candidatas y paso propuesto, REST `/pasos`, `/senales` y `/bandeja/:id/asociar` con varias postulaciones, `descartarPasos` al cerrar, `?url=` en la lista, MCP `listar_pasos`, `registrar_paso`, `resolver_paso`, `editar_paso` y `registrar_interaccion_red` con `paso`, evento `paso.detectado` y aviso del sistema «Te piden algo».
-- **P2 · Servicio con IA, P3 · Consola, P4 · Evaluación y cierre:** pendientes.
+- **P2 · Servicio con IA ✅:** candidatas por código (número del aviso, hilo, ATS, empresa en el texto), prompt con el contexto de cada candidata y verificación de lo que elige el modelo; paso pedido y pasos cumplidos; enlaces solo en local (D54); LinkedIn liga cerradas y un mensaje nuevo deja «Leer el mensaje de X»; `ia pasos reprocesar`; Alembic 0006.
+- **P3 · Consola ✅:** barra azul y **Hecho** con **Deshacer** en la tarjeta (también en Cerradas), chip de filtro, sección **Proceso** en la ficha con **+ Paso**, diálogo de cerrar con «Descartar estos pasos», bandeja con «Pide» y asociar a varias. Probado en una Brecha de desarrollo aparte (puertos 4310 y 4210, base de pruebas) y con Playwright y axe.
+- **P4 · Evaluación y cierre ✅:** `ia evaluar` mide pasos (≥ 80 % detectados, máximo 1 inventado) y asociación a varias; 4 correos inventados nuevos en `datos/ejemplo/eval/correos.json`. Falta correrla con tu llave y tu set real.
 
 **Archivos modificados (P1):**
 | Archivo | Cambio |
@@ -315,7 +317,7 @@ Cada fase termina con un checkpoint: la revisas, la pruebas y decides si seguimo
 | `apps/escritorio/src/notificaciones.ts` | Aviso del sistema para `paso.detectado` |
 | `packages/contratos` | Contrato regenerado |
 
-**Problemas encontrados:** `descartado` no es terminal en el dominio (se puede reabrir), pero vive en «Cerradas». **Solución aplicada:** `estaCerrada()` en `estado.ts` para R17.
+**Problemas encontrados:** `descartado` no es terminal en el dominio (se puede reabrir), pero vive en «Cerradas»; un `default` en un DTO opcional volvía obligatorio el campo en los tipos de la consola; el lanzador del panel de vista previa no puede leer la carpeta Documents. **Soluciones aplicadas:** `estaCerrada()` en `estado.ts` para R17; el valor por defecto va en la descripción; la Brecha de prueba se levantó desde la terminal.
 
 ### F4: Panorama en Next.js (local)
 **Estado**: ⬜ Pendiente

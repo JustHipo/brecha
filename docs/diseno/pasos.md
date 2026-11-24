@@ -2,7 +2,7 @@
 
 Escrito el 24-nov-2026 sobre la rama `f2` (PR borrador #5, `origin/f2` en `6f24183`). Pedido de Juan: que la IA asocie cada correo, mensaje de LinkedIn o página de portal a una o más postulaciones, detecte cuándo te piden un paso, resalte esas tarjetas con un borde, te deje marcarlo hecho (a mano o por MCP) y use eso como contexto para lo siguiente que llegue.
 
-**Versión 2 (24-nov-2026).** Juan respondió las 6 preguntas del artifact «Plan de pasos pendientes» (sección 13) y aclaró por chat cinco cosas que la versión 1 tenía distinto: los pasos se ven aunque la postulación esté cerrada, son texto libre sin tipos, la ficha muestra el proceso completo (pedidos y hechos), cubren LinkedIn y los portales que Claude revisa con Chrome, y avisan siempre (sección 12). Estado: **por aprobar la versión 2.** Al aprobarse, las decisiones pasan a `docs/PLAN.md` como D49 en adelante.
+**Versión 2 (24-nov-2026).** Juan respondió las 6 preguntas del artifact «Plan de pasos pendientes» (sección 13) y aclaró por chat cinco cosas que la versión 1 tenía distinto: los pasos se ven aunque la postulación esté cerrada, son texto libre sin tipos, la ficha muestra el proceso completo (pedidos y hechos), cubren LinkedIn y los portales que Claude revisa con Chrome, y avisan siempre (sección 12). Estado: **versión 2 aprobada por Juan el 24-nov-2026 e implementada** en la rama `f2-pasos` (P1 a P4); decisiones D49 a D56 en `docs/PLAN.md`.
 
 ## 1. Qué cambia para ti
 

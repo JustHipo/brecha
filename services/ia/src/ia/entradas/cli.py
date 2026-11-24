@@ -232,12 +232,21 @@ def evaluar(args: argparse.Namespace, llavero: Credenciales) -> int:
     if args.correos:
         d = json.loads(Path(args.correos).read_text(encoding="utf-8"))
         conocidas = [
-            PostulacionConocida(p["id"], p["empresa"], p["titulo"], p["plataforma"], p.get("activa", True))
+            PostulacionConocida(
+                p["id"], p["empresa"], p["titulo"], p["plataforma"], p.get("activa", True), p.get("url", "")
+            )
             for p in d["postulaciones"]
         ]
         casos = [
             CasoDeCorreo(
-                c["id"], c["remitente"], c["asunto"], c["texto"], c.get("estado"), c.get("postulacion")
+                c["id"],
+                c["remitente"],
+                c["asunto"],
+                c["texto"],
+                c.get("estado"),
+                c.get("postulacion"),
+                tuple(c["postulaciones"]) if "postulaciones" in c else None,
+                c.get("paso"),
             )
             for c in d["casos"]
         ]
@@ -245,7 +254,9 @@ def evaluar(args: argparse.Namespace, llavero: Credenciales) -> int:
         print(
             f"Correos: {rc.casos} casos · estado {rc.tasa_estado:.0%} (mínimo 80 %) · "
             f"asociación {rc.tasa_asociacion:.0%} (mínimo 75 %) · "
-            f"falsos rechazos {rc.falsos_rechazos} (máximo 1)"
+            f"falsos rechazos {rc.falsos_rechazos} (máximo 1) · "
+            f"pasos {rc.tasa_pasos:.0%} de {rc.pasos_esperados} (mínimo 80 %), "
+            f"inventados {rc.pasos_inventados} (máximo 1)"
             f" → {'PASA' if rc.pasa else 'NO PASA'}"
         )
         for f in rc.fallos:

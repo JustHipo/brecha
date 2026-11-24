@@ -11,7 +11,8 @@ from ia.aplicacion.casos.evaluar import (
 from ia.aplicacion.puertos import AvisoGuardado, Uso
 from ia.dominio.asociacion import PostulacionConocida
 from ia.dominio.aviso import Aviso
-from ia.dominio.clasificacion import Clasificacion
+from ia.dominio.clasificacion import Clasificacion, PasoDetectado
+from ia.dominio.pasos import CandidataParaModelo
 
 SET = Path(__file__).resolve().parents[3] / "datos" / "ejemplo" / "eval" / "correos.json"
 
@@ -19,15 +20,27 @@ SET = Path(__file__).resolve().parents[3] / "datos" / "ejemplo" / "eval" / "corr
 class ModeloQueLeeElSet:
     """Responde lo que dice el set (para probar la mecánica), salvo los casos que se le pide equivocar."""
 
-    def __init__(self, casos: dict[str, dict[str, object]], equivocar: dict[str, str]) -> None:
+    def __init__(
+        self, casos: dict[str, dict[str, object]], equivocar: dict[str, str], inventar: tuple[str, ...] = ()
+    ) -> None:
         self.casos = casos
         self.equivocar = equivocar
+        self.inventar = inventar  # casos en que inventa un paso
 
     def clasificar_correo(
-        self, remitente: str, asunto: str, fragmento: str, plataforma_detectada: str | None
+        self,
+        remitente: str,
+        asunto: str,
+        fragmento: str,
+        plataforma_detectada: str | None,
+        candidatas: list[CandidataParaModelo] | None = None,
+        hoy: str | None = None,
     ) -> tuple[Clasificacion, Uso]:
         c = next(c for c in self.casos.values() if c["asunto"] == asunto)
         estado = self.equivocar.get(str(c["id"]), c["estado"])
+        esperadas = c.get("postulaciones") or ([c["postulacion"]] if c.get("postulacion") else [])
+        elegidas = tuple(x.corto for x in candidatas or [] if x.contexto.id in esperadas)  # type: ignore[operator]
+        pide = c.get("paso") is True or str(c["id"]) in self.inventar
         empresa = {
             "p-norte": "Norte Datos SpA",
             "p-lago": "Lago Software",
@@ -40,7 +53,7 @@ class ModeloQueLeeElSet:
             "p-cumbre": "Analista de Datos",
             "p-rio": "Desarrollador Python",
         }
-        pid = c["postulacion"]
+        pid = esperadas[0] if esperadas else None  # type: ignore[index]
         es = pid is not None
         k = Clasificacion(
             es,
@@ -50,6 +63,8 @@ class ModeloQueLeeElSet:
             str(estado) if estado and es else None,
             "resumen",
             0.9,
+            elegidas if candidatas is not None else None,
+            PasoDetectado("Completar lo que piden") if pide and es else None,
         )
         return k, Uso("falso", 1, 1, 1)
 
@@ -57,11 +72,22 @@ class ModeloQueLeeElSet:
 def _set() -> tuple[list[PostulacionConocida], list[CasoDeCorreo], dict[str, dict[str, object]]]:
     d = json.loads(SET.read_text(encoding="utf-8"))
     conocidas = [
-        PostulacionConocida(p["id"], p["empresa"], p["titulo"], p["plataforma"], p["activa"])
+        PostulacionConocida(
+            p["id"], p["empresa"], p["titulo"], p["plataforma"], p["activa"], p.get("url", "")
+        )
         for p in d["postulaciones"]
     ]
     casos = [
-        CasoDeCorreo(c["id"], c["remitente"], c["asunto"], c["texto"], c["estado"], c["postulacion"])
+        CasoDeCorreo(
+            c["id"],
+            c["remitente"],
+            c["asunto"],
+            c["texto"],
+            c["estado"],
+            c.get("postulacion"),
+            tuple(c["postulaciones"]) if "postulaciones" in c else None,
+            c.get("paso"),
+        )
         for c in d["casos"]
     ]
     return conocidas, casos, {c["id"]: c for c in d["casos"]}
@@ -70,7 +96,19 @@ def _set() -> tuple[list[PostulacionConocida], list[CasoDeCorreo], dict[str, dic
 def test_el_set_inventado_pasa_con_un_modelo_que_acierta() -> None:
     conocidas, casos, crudos = _set()
     r = EvaluarCorreos(ModeloQueLeeElSet(crudos, {}), conocidas).ejecutar(casos)
-    assert r.casos == 10 and r.pasa, r.fallos
+    assert r.casos == 14 and r.pasa, r.fallos
+    assert r.pasos_esperados == 2 and r.pasos_detectados == 2 and r.pasos_inventados == 0
+
+
+def test_un_paso_inventado_pasa_y_dos_no() -> None:
+    from dataclasses import replace
+
+    conocidas, casos, crudos = _set()
+    uno = EvaluarCorreos(ModeloQueLeeElSet(crudos, {}, ("c13",)), conocidas).ejecutar(casos)
+    assert uno.pasos_inventados == 1 and uno.pasa
+    casos = [replace(c, paso_esperado=False) if c.id == "c01" else c for c in casos]
+    dos = EvaluarCorreos(ModeloQueLeeElSet(crudos, {}, ("c01", "c13")), conocidas).ejecutar(casos)
+    assert dos.pasos_inventados == 2 and not dos.pasa
 
 
 def test_dos_falsos_rechazos_no_pasan_aunque_el_resto_acierte() -> None:
@@ -78,7 +116,7 @@ def test_dos_falsos_rechazos_no_pasan_aunque_el_resto_acierte() -> None:
     r = EvaluarCorreos(
         ModeloQueLeeElSet(crudos, {"c01": "rechazado", "c03": "rechazado"}), conocidas
     ).ejecutar(casos)
-    assert r.falsos_rechazos == 2 and r.tasa_estado == 0.8
+    assert r.falsos_rechazos == 2 and r.tasa_estado == 12 / 14
     assert not r.pasa
 
 
