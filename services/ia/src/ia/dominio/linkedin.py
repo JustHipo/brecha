@@ -93,9 +93,10 @@ def leer_aviso(c: CorreoLeido) -> list[AvisoDeLinkedin]:
     tipo = tipo_de(c.asunto)
     if tipo is None:
         return []
+    texto = c.texto.replace("\r\n", "\n").replace("\r", "\n")  # LinkedIn manda la versión de texto con CRLF
     avisos: list[AvisoDeLinkedin] = []
     vistos: set[str] = set()
-    for m in _ENTRADA.finditer(c.texto):
+    for m in _ENTRADA.finditer(texto):
         slug = m.group("slug").lower()
         if slug in vistos:
             continue
@@ -113,7 +114,7 @@ def leer_aviso(c: CorreoLeido) -> list[AvisoDeLinkedin]:
     if avisos:
         return avisos
     # Sin la forma «Nombre (Cargo)»: el nombre del asunto y el primer perfil del texto.
-    perfil = _PERFIL.search(c.texto)
+    perfil = _PERFIL.search(texto)
     nombre = _NOMBRE_EN_ASUNTO.match(c.asunto.strip())
     if perfil and nombre:
         slug = perfil.group(1).lower()

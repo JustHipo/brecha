@@ -100,3 +100,9 @@ def test_lo_que_no_es_mensaje_ni_invitacion_se_ignora() -> None:
         == []
     )
     assert leer_aviso(correo("jobs-noreply@linkedin.com", "Ana just messaged you", TEXTO_MENSAJE)) == []
+
+
+def test_con_saltos_de_linea_de_windows() -> None:
+    texto = TEXTO_MENSAJE.replace("\n", "\r\n")
+    avisos = leer_aviso(correo("messaging-digest-noreply@linkedin.com", "Ana just messaged you", texto))
+    assert [(a.nombre, a.empresa) for a in avisos] == [("Ana Ficticia", "Pino Rojo Soluciones")]
