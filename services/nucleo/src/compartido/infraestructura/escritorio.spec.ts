@@ -1,4 +1,4 @@
-import { mkdtempSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
 import { createServer, type Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { tmpdir } from 'node:os';
@@ -27,7 +27,9 @@ beforeAll(async () => {
     });
   });
   await new Promise<void>((r) => ia.listen(0, '127.0.0.1', r));
-  const consola = mkdtempSync(join(tmpdir(), 'consola-'));
+  // Dentro de una carpeta que empieza con punto (como .claude/worktrees): antes daba 404 en las rutas de la consola.
+  const consola = join(mkdtempSync(join(tmpdir(), 'consola-')), '.oculta');
+  mkdirSync(consola);
   writeFileSync(join(consola, 'index.html'), '<!doctype html><title>Brecha</title>');
   writeFileSync(join(consola, 'main.js'), 'console.log(1)');
   t = await appDePrueba({

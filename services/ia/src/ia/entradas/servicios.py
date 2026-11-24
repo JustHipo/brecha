@@ -8,11 +8,13 @@ from sqlalchemy import Engine, text
 
 from ia.aplicacion.casos.avisos import (
     AnalizarAvisos,
+    AnalizarSinModelo,
     BuscarAvisos,
     IndexarAvisos,
     Preguntar,
     RecalcularCalces,
     ResultadoDePregunta,
+    TraerAvisosDelNucleo,
     VincularConPostulaciones,
 )
 from ia.aplicacion.puertos import (
@@ -113,6 +115,11 @@ class Servicios:
 
     def _procesar_avisos(self) -> dict[str, Any]:
         salida: dict[str, Any] = {}
+        t = TraerAvisosDelNucleo(self.avisos, self.nucleo()).ejecutar()
+        salida["desdeNucleo"] = {"nuevos": t.nuevos, "invalidos": t.invalidos, "error": t.error}
+        if not self.hay_modelo():
+            s = AnalizarSinModelo(self.avisos, self.perfiles).ejecutar()
+            salida["analisis"] = {"analizados": s.analizados, "sinPerfil": s.sin_perfil, "sinModelo": True}
         if self.hay_modelo():
             m = self.modelo()
             a = AnalizarAvisos(m, self.avisos, self.perfiles, self.trazas, ahora, self.precios).ejecutar()

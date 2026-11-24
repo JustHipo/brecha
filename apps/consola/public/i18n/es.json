@@ -20,7 +20,8 @@
     "bandejaPendientes": "({{n}} por revisar)",
     "red": "Red",
     "redPendientes": "({{n}} por responder)",
-    "ajustes": "Ajustes"
+    "ajustes": "Ajustes",
+    "importar": "Importar y exportar"
   },
   "busqueda": {
     "abrir": "Buscar o ejecutar…",
@@ -33,7 +34,8 @@
     "crear": "Crear una postulación",
     "idiomaEs": "Cambiar a español",
     "idiomaEn": "Cambiar a inglés",
-    "cerrar": "Cerrar"
+    "cerrar": "Cerrar",
+    "importarCsv": "Importar o exportar CSV"
   },
   "idioma": {
     "etiqueta": "Idioma",
@@ -220,7 +222,9 @@
     "ligarRed": "Ligar a alguien de tu red",
     "ligado": "{{nombre}} quedó ligado a esta postulación",
     "origen": "Origen",
-    "cierre": "Cierre"
+    "cierre": "Cierre",
+    "prioridad": "Prioridad",
+    "prioridadAutomatica": "Automática ({{p}})"
   },
   "resultados": {
     "pendiente": "Pendiente",
@@ -459,7 +463,8 @@
     "origenes": {
       "importado": "Importado",
       "getonboard": "Get on Board",
-      "manual": "Pegado a mano"
+      "manual": "Pegado a mano",
+      "postulacion": "Desde tu postulación"
     },
     "verOriginal": "Ver aviso original",
     "nuevaVentana": "se abre en otra ventana",
@@ -606,7 +611,9 @@
       "sinResultados": "No hay nadie así en tu red.",
       "yaLigado": "Ya ligado",
       "nuevo": "Agregar a alguien nuevo"
-    }
+    },
+    "sinPerfil": "Sin perfil de LinkedIn",
+    "agregarPerfil": "Agregar perfil"
   },
   "ajustes": {
     "titulo": "Ajustes",
@@ -684,5 +691,71 @@
     "vigia": "El vigía revisa tu correo cada",
     "vigiaSinDato": "sin dato (el servicio con IA no responde)",
     "vigiaAyuda": "Se cambia en la configuración del servicio con IA."
+  },
+  "csv": {
+    "titulo": "Importar y exportar",
+    "intro": "Trae tus postulaciones y contactos de LinkedIn desde una planilla, o pásale los tuyos a otra persona para que los importe en su Brecha. Importar dos veces el mismo archivo deja lo mismo.",
+    "importar": "Importar un CSV",
+    "orden": "Importa primero las postulaciones y después los contactos, para que cada contacto quede ligado a su postulación.",
+    "importando": "Importando…",
+    "elegirArchivo": "Elegir archivo CSV",
+    "formato": "UTF-8, separado por comas y con encabezado. El tipo se reconoce por el encabezado.",
+    "noSeImporto": "No se importó nada.",
+    "resumen": {
+      "postulaciones": "Postulaciones de {{archivo}}",
+      "contactos": "Contactos de {{archivo}}"
+    },
+    "conteos": {
+      "creadas": "nuevas",
+      "yaEstaban": "ya estaban",
+      "actualizadas": "actualizadas",
+      "conAdvertencias": "con advertencia",
+      "errores": "con error"
+    },
+    "avisosEnProceso": "Los avisos de estas postulaciones se están agregando a Avisos para calcular tu calce.",
+    "tablaFilas": "Filas con error o advertencia",
+    "columnas": {
+      "linea": "Línea",
+      "resultado": "Resultado",
+      "fila": "Fila",
+      "detalle": "Detalle"
+    },
+    "resultados": {
+      "error": "Error: no se importó",
+      "creada": "Importada con advertencia",
+      "ya_estaba": "Ya estaba",
+      "actualizada": "Actualizada con advertencia"
+    },
+    "verLista": "Ver la lista",
+    "verRed": "Ver tu red",
+    "exportar": "Exportar",
+    "exportarTexto": "Baja todas tus postulaciones o contactos en el mismo formato de la importación.",
+    "exportar_postulaciones": "Exportar postulaciones",
+    "exportar_contactos": "Exportar contactos",
+    "plantillas": "Plantillas",
+    "plantillasTexto": "El encabezado con dos filas de ejemplo inventadas, para llenarlas en tu planilla.",
+    "plantilla_postulaciones": "Plantilla de postulaciones",
+    "plantilla_contactos": "Plantilla de contactos",
+    "importarCsv": "Importar CSV",
+    "exportarCsv": "Exportar CSV",
+    "exportado": "Se bajaron los dos archivos"
+  },
+  "etiquetas": {
+    "filtro": "Etiqueta",
+    "todas": "Todas",
+    "titulo": "Etiquetas",
+    "quitar": "Quitar la etiqueta {{etiqueta}}",
+    "agregar": "Agregar etiqueta"
+  },
+  "stack": {
+    "titulo": "Stack",
+    "falta": "falta",
+    "tienes": "la tienes",
+    "deseable": "deseable",
+    "sinStack": "Este aviso no trae herramientas.",
+    "requisitos": "Requisitos",
+    "iaApagada": "El servicio con IA no está corriendo: cuando vuelva verás qué te falta.",
+    "sinPerfil": "Carga tu perfil en Ajustes para ver qué herramientas te faltan.",
+    "porAnalizar": "Todavía no se compara con tu perfil: aparece en unos minutos."
   }
 }

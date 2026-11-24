@@ -33,6 +33,11 @@ export type EstadoDeConexion = Esquemas['EstadoDeConexion'];
 export type ContactoRedEntrada = Esquemas['ContactoRedEntradaDto'];
 export type EditarContactoRed = Esquemas['EditarContactoRedDto'];
 export type InteraccionEntrada = Esquemas['InteraccionEntradaDto'];
+// CSV (docs/diseno/csv.md): importar, exportar y plantillas.
+export type ResultadoCsv = Esquemas['ResultadoCsvDto'];
+export type FilaImportada = Esquemas['FilaImportadaDto'];
+export type TipoCsv = Esquemas['TipoCsv'];
+export type EtiquetaEnUso = Esquemas['EtiquetaEnUsoDto'];
 export type FiltroDeRed = 'todos' | 'responder' | 'esperando' | 'solicitudes' | 'seguimiento';
 
 export interface ConsultaDeRed {
@@ -45,6 +50,7 @@ export interface FiltrosLista {
   estado?: string[];
   plataforma?: string[];
   prioridad?: string[];
+  etiqueta?: string[];
   q?: string;
   limit?: number;
   offset?: number;
@@ -157,6 +163,17 @@ export class Api {
   }
   registrarInteraccionRed(id: string, cuerpo: InteraccionEntrada) {
     return this.http.post<ContactoRedRegistrado>(`${BASE}/red/${id}/interacciones`, cuerpo);
+  }
+
+  etiquetas() {
+    return this.http.get<EtiquetaEnUso[]>(`${BASE}/postulaciones/etiquetas`);
+  }
+  importarCsv(csv: string, tipo?: TipoCsv) {
+    return this.http.post<ResultadoCsv>(`${BASE}/csv/importar`, tipo ? { csv, tipo } : { csv });
+  }
+  /** El archivo de una exportación o una plantilla, para guardarlo con `guardarArchivo`. */
+  descargarCsv(ruta: `exportar/${TipoCsv}` | `plantillas/${TipoCsv}`) {
+    return this.http.get(`${BASE}/csv/${ruta}`, { responseType: 'blob', observe: 'response' });
   }
 
   importar(exportArtifact: object) {

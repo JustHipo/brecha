@@ -38,6 +38,9 @@
   --prioridad-baja: #a8a19a;
   --ok: #2f9e6b;
   --error: #b3261e;
+  /* Herramientas que faltan en el perfil (csv.md P7, opción A): siempre con ✕ y «falta», nunca solo el color */
+  --brecha: #b42318;
+  --brecha-fondo: #fdecea;
 
   /* Plataformas (fondo / texto) */
   --plat-linkedin-fondo: #e7eef9;
@@ -96,6 +99,8 @@
   --color-prioridad-baja: var(--prioridad-baja);
   --color-ok: var(--ok);
   --color-error: var(--error);
+  --color-brecha: var(--brecha);
+  --color-brecha-fondo: var(--brecha-fondo);
 
   --color-background: var(--background);
   --color-foreground: var(--foreground);

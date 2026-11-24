@@ -5,6 +5,7 @@ from dataclasses import replace
 
 from ia.aplicacion.casos.avisos import url_normalizada
 from ia.aplicacion.puertos import (
+    AvisoDePostulacion,
     AvisoGuardado,
     AvisoParaResponder,
     ErrorDeModelo,
@@ -136,9 +137,19 @@ class ModeloFalso:
 
 
 class NucleoFalso:
-    def __init__(self, postulaciones: list[PostulacionConocida]) -> None:
+    def __init__(
+        self,
+        postulaciones: list[PostulacionConocida],
+        avisos: dict[str, AvisoDePostulacion] | None = None,
+    ) -> None:
         self.p = postulaciones
+        self.avisos = avisos or {}
+        self.pedidos: list[str] = []
         self.enviados: list[tuple[str, str, float | None]] = []
+
+    def aviso_de(self, postulacion_id: str) -> AvisoDePostulacion | None:
+        self.pedidos.append(postulacion_id)
+        return self.avisos.get(postulacion_id)
 
     def postulaciones(self) -> list[PostulacionConocida]:
         return self.p

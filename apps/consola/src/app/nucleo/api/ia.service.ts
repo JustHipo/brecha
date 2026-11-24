@@ -198,6 +198,10 @@ export class Ia {
     });
   }
 
+  /** Trae del núcleo los avisos de las postulaciones nuevas (por ejemplo, recién importadas). */
+  procesarAvisos() {
+    return this.http.post<{ encolado: boolean }>(`${BASE_IA}/avisos/procesar`, {});
+  }
   preguntar(pregunta: string) {
     return this.http.post<Respuesta>(`${BASE_IA}/preguntas`, { pregunta });
   }

@@ -1,5 +1,7 @@
 import { RequestMethod, ValidationPipe, type INestApplication, type LogLevel } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
+import type { NestExpressApplication } from '@nestjs/platform-express';
+import { json, type NextFunction, type Request, type Response } from 'express';
 import { DocumentBuilder, SwaggerModule, type OpenAPIObject } from '@nestjs/swagger';
 import type { ValidationError } from 'class-validator';
 import { AppModule } from './app.module';
@@ -21,7 +23,7 @@ export async function crearApp(
   config: Config,
   opciones: { logger?: LogLevel[] | false; reloj?: Reloj } = {},
 ): Promise<INestApplication> {
-  const app = await NestFactory.create(
+  const app = await NestFactory.create<NestExpressApplication>(
     AppModule.para(config, { ...(opciones.reloj ? { reloj: opciones.reloj } : {}) }),
     {
       logger: opciones.logger ?? ['error', 'warn', 'log'],
@@ -30,6 +32,13 @@ export async function crearApp(
       forceCloseConnections: true,
     },
   );
+  // Un CSV de cientos de filas con requisitos en texto pasa los 100 KB que Express acepta por defecto. Solo en
+  // esa ruta: un parser global leería también el cuerpo de /api/ia antes de que el proxy lo reenvíe.
+  // Va envuelto: Nest no registra su parser JSON global si ya ve un middleware llamado `jsonParser`.
+  const jsonGrande = json({ limit: '6mb' });
+  app.use('/api/v1/csv/importar', function cuerpoDeCsv(req: Request, res: Response, next: NextFunction) {
+    jsonGrande(req, res, next);
+  });
   app.setGlobalPrefix('api/v1', { exclude: [{ path: 'mcp', method: RequestMethod.ALL }] });
   app.useGlobalPipes(
     new ValidationPipe({

@@ -298,8 +298,25 @@ class RepositorioDePerfil(Protocol):
     def guardar(self, perfil: Perfil) -> None: ...
 
 
+@dataclass(frozen=True)
+class AvisoDePostulacion:
+    """La foto del aviso que guarda el núcleo en la postulación (`GET /postulaciones/:id`)."""
+
+    url: str
+    titulo: str
+    empresa: str
+    plataforma: str
+    modalidad: str
+    ubicacion: str | None
+    cierre: str | None
+    stack: tuple[str, ...]
+    requisitos: str | None
+    sueldo_publicado: str | None
+
+
 class EnlaceConNucleo(Protocol):
     def postulaciones(self) -> list[PostulacionConocida]: ...
+    def aviso_de(self, postulacion_id: str) -> AvisoDePostulacion | None: ...
     def vincular_aviso(self, postulacion_id: str, aviso_id: str, calce: float | None) -> None: ...
 
 

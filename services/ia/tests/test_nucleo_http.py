@@ -94,3 +94,32 @@ def test_token_ausente(tmp_path: Path) -> None:
         leer_token(tmp_path)
     (tmp_path / "token-servicio").write_text("abc\n")
     assert leer_token(tmp_path) == "abc"
+
+
+def test_aviso_de_lee_la_foto_del_aviso_de_la_postulacion() -> None:
+    def manejar(p: httpx.Request) -> httpx.Response:
+        if p.url.path.endswith("/p404"):
+            return httpx.Response(404, json={"codigo": "NO_ENCONTRADO"})
+        aviso = {
+            "url": "https://ejemplo.test/a",
+            "titulo": "Práctica",
+            "empresa": "F",
+            "plataforma": "otra",
+            "modalidad": "presencial",
+            "ubicacion": "",
+            "cierre": "2026-12-15",
+            "stack": ["Python"],
+            "requisitos": "Inglés",
+            "sueldoPublicado": "CLP 150.000",
+        }
+        return httpx.Response(200, json={"id": "p1", "aviso": aviso})
+
+    a = nucleo(manejar).aviso_de("p1")
+    assert a is not None
+    assert (a.stack, a.requisitos, a.sueldo_publicado, a.ubicacion) == (
+        ("Python",),
+        "Inglés",
+        "CLP 150.000",
+        None,
+    )
+    assert nucleo(manejar).aviso_de("p404") is None

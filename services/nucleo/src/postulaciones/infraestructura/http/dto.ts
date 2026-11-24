@@ -15,6 +15,7 @@ import {
   Min,
   ValidateNested,
 } from 'class-validator';
+import { PRIORIDADES, type Prioridad } from '../../../compartido/dominio/evento-de-dominio';
 import { ESTADOS, type EstadoPostulacion } from '../../dominio/estado';
 import {
   BASES,
@@ -50,6 +51,22 @@ export class AvisoEntradaDto {
   @IsOptional()
   @Matches(FECHA)
   cierre?: string | null;
+  @ApiPropertyOptional({ type: [String], maxItems: 40, description: 'Herramientas que pide el aviso' })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  @MaxLength(60, { each: true })
+  stack?: string[];
+  @ApiPropertyOptional({ maxLength: 5000, description: 'Requisitos en texto libre' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(5000)
+  requisitos?: string;
+  @ApiPropertyOptional({ maxLength: 200, description: 'Sueldo tal como lo publica el aviso' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(200)
+  sueldoPublicado?: string;
 }
 
 export class CanalEntradaDto {
@@ -91,6 +108,16 @@ export class CrearPostulacionDto {
   @ValidateNested()
   @Type(() => CanalEntradaDto)
   canal?: CanalEntradaDto;
+  @ApiPropertyOptional({ type: [String], maxItems: 20, description: 'Se guardan en minúsculas y sin tildes' })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  @MaxLength(40, { each: true })
+  etiquetas?: string[];
+  @ApiPropertyOptional({ enum: PRIORIDADES, description: 'Sin ella, la calcula el núcleo (R12)' })
+  @IsOptional()
+  @IsIn(PRIORIDADES)
+  prioridad?: Prioridad;
 }
 
 export class TransicionDto {
@@ -133,6 +160,36 @@ export class EditarPostulacionDto {
   @IsOptional()
   @Matches(FECHA)
   cierre?: string | null;
+  @ApiPropertyOptional({ type: [String], maxItems: 20, description: 'Se guardan en minúsculas y sin tildes' })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  @MaxLength(40, { each: true })
+  etiquetas?: string[];
+  @ApiPropertyOptional({
+    enum: PRIORIDADES,
+    nullable: true,
+    description: 'Fija la prioridad mientras la postulación esté abierta; null vuelve a la calculada',
+  })
+  @IsOptional()
+  @IsIn(PRIORIDADES)
+  prioridad?: Prioridad | null;
+  @ApiPropertyOptional({ type: [String], maxItems: 40, description: 'Reemplaza el stack del aviso' })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  @MaxLength(60, { each: true })
+  stack?: string[];
+  @ApiPropertyOptional({ type: String, maxLength: 5000, nullable: true, description: 'null lo borra' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(5000)
+  requisitos?: string | null;
+  @ApiPropertyOptional({ type: String, maxLength: 200, nullable: true, description: 'null lo borra' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(200)
+  sueldoPublicado?: string | null;
 }
 
 export class NotaDto {
@@ -219,6 +276,11 @@ export class ListarQueryDto {
   @Transform(lista)
   @IsString({ each: true })
   prioridad?: string[];
+  @ApiPropertyOptional({ description: 'Etiquetas que debe tener (todas); varias separadas por coma' })
+  @IsOptional()
+  @Transform(lista)
+  @IsString({ each: true })
+  etiqueta?: string[];
   @ApiPropertyOptional({ description: 'Texto en título o empresa' })
   @IsOptional()
   @IsString()
@@ -230,6 +292,14 @@ export class ListarQueryDto {
   @IsInt()
   limit?: number;
   @ApiPropertyOptional({ default: 0, minimum: 0 }) @IsOptional() @Type(() => Number) @IsInt() offset?: number;
+}
+
+export class TableroQueryDto {
+  @ApiPropertyOptional({ description: 'Etiquetas que debe tener (todas); varias separadas por coma' })
+  @IsOptional()
+  @Transform(lista)
+  @IsString({ each: true })
+  etiqueta?: string[];
 }
 
 export class ResumenQueryDto {

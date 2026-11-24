@@ -4,6 +4,7 @@ import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/
 import type { Request, Response } from 'express';
 import { SoloTokens } from '../../../acceso/decoradores';
 import { CasosDeRedInyectables } from '../../../red/infraestructura/casos-de-red.provider';
+import { CasosCsvInyectables } from '../../../csv/infraestructura/casos-csv.provider';
 import { CasosDeUso } from '../casos';
 import { crearServidorMcp } from './servidor-mcp';
 
@@ -15,11 +16,12 @@ export class McpController {
   constructor(
     @Inject(CasosDeUso) private readonly casos: CasosDeUso,
     @Inject(CasosDeRedInyectables) private readonly red: CasosDeRedInyectables,
+    @Inject(CasosCsvInyectables) private readonly csv: CasosCsvInyectables,
   ) {}
 
   @Post()
   async pedido(@Req() req: Request, @Res() res: Response): Promise<void> {
-    const servidor = crearServidorMcp(this.casos, this.red.red);
+    const servidor = crearServidorMcp(this.casos, this.red.red, this.csv.csv);
     const transporte = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined });
     res.on('close', () => {
       void transporte.close();

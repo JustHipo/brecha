@@ -6,7 +6,9 @@ from dataclasses import dataclass, field
 from datetime import date
 
 MODALIDADES = ("remoto", "hibrido", "presencial", "no_indica")
-ORIGENES = ("importado", "getonboard", "manual")
+# `postulacion`: el aviso de una postulación del núcleo (importada por CSV o creada a mano) que no estaba
+# en el inventario; su stack lo escribió la persona y cuenta directo como requisitos (docs/diseno/csv.md §5).
+ORIGENES = ("importado", "getonboard", "manual", "postulacion")
 
 # Nombre de la fuente en el artifact o en el portal → plataforma del núcleo.
 _PLATAFORMAS = {

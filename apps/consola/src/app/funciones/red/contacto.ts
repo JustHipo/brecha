@@ -97,16 +97,35 @@ const TARJETA =
                   <b-pendiente-red [contacto]="d" />
                 </span>
               </div>
-              <a
-                hlmBtn
-                variant="outline"
-                [href]="d.perfilUrl"
-                target="_blank"
-                rel="noopener noreferrer"
-                >{{ 'red.verPerfil' | transloco }} ↗<span class="solo-lector">
-                  ({{ 'avisos.nuevaVentana' | transloco }})</span
-                ></a
-              >
+              @if (d.perfilUrl) {
+                <a
+                  hlmBtn
+                  variant="outline"
+                  [href]="d.perfilUrl"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  >{{ 'red.verPerfil' | transloco }} ↗<span class="solo-lector">
+                    ({{ 'avisos.nuevaVentana' | transloco }})</span
+                  ></a
+                >
+              } @else {
+                <form
+                  class="flex items-center gap-1.5"
+                  (submit)="completarPerfil(perfil); $event.preventDefault()"
+                >
+                  <input
+                    #perfil
+                    hlmInput
+                    type="url"
+                    class="h-8 w-64 text-[12.5px]"
+                    placeholder="linkedin.com/in/…"
+                    [attr.aria-label]="'red.agregarPerfil' | transloco"
+                  />
+                  <button hlmBtn variant="outline" size="sm" type="submit">
+                    {{ 'red.agregarPerfil' | transloco }}
+                  </button>
+                </form>
+              }
             </div>
 
             <div class="grid grid-cols-[minmax(0,1fr)_320px] gap-5">
@@ -418,6 +437,17 @@ export class ContactoRedPagina {
     const r = await this.store.editar({ seguimiento: fecha });
     if (r.ok) this.avisos.exito('red.detalle.guardado');
     else this.avisos.error(r.error);
+  }
+
+  /** Completa el perfil de LinkedIn de un contacto que llegó sin él (por ejemplo, desde un CSV). */
+  protected async completarPerfil(campo: HTMLInputElement): Promise<void> {
+    const perfilUrl = campo.value.trim();
+    if (!perfilUrl) return;
+    const r = await this.store.editar({ perfilUrl });
+    if (r.ok) {
+      campo.value = '';
+      this.avisos.exito('red.detalle.guardado');
+    } else this.avisos.error(r.error);
   }
 
   protected async guardarNotas(): Promise<void> {

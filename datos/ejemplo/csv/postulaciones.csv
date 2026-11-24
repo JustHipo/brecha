@@ -1,0 +1,9 @@
+titulo,empresa,url,plataforma,modalidad,ubicacion,cierre,estado,prioridad,fecha_postulacion,canal_tipo,canal_valor,correo_postulacion,sueldo_publicado,stack,requisitos,etiquetas,notas,motivo
+Práctica en instrumentación astronómica,Observatorio Ficticio,https://ejemplo.test/avisos/instrumentacion,sitio_empresa,presencial,Valparaíso,2027-01-15,sin_decidir,alta,,,,practicas@observatorio.test,"CLP 150.000 al mes",Python;MATLAB;LabVIEW,"Cursando 5.º año de Ingeniería Física; inglés intermedio",Investigación;p1,"Preguntar si es remunerada",
+Práctica en energías renovables,Energía Ficticia,https://ejemplo.test/avisos/renovables,trabajando,hibrido,Santiago,,por_postular,,,,,,,Python;Excel,"Manejo de Python y Excel avanzado",p2,,
+Analista de datos en práctica,Datos Ficticios,https://ejemplo.test/avisos/analista-datos,linkedin,remoto,,,postulado,,2026-11-20,portal,LinkedIn,,,SQL;Python,,p2,"Primera nota
+---
+Segunda nota, con coma",
+Práctica en física médica,Clínica Ficticia,https://ejemplo.test/avisos/fisica-medica,computrabajo,presencial,Viña del Mar,,entrevista,,2026-11-10,email,rrhh@clinica.test,,,,"Conocimientos de dosimetría",investigacion,,
+Práctica en oceanografía,Instituto Ficticio,https://ejemplo.test/avisos/oceanografia,getonboard,presencial,Valparaíso,,rechazado,,2026-11-05,formulario,Formulario del sitio,,,,,,,No seleccionada en esta etapa
+Práctica en metrología,Laboratorio Ficticio,https://ejemplo.test/avisos/metrologia,,no_indica,,,descartado,,,,,,,,,,,

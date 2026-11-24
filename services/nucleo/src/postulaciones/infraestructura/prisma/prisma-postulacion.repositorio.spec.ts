@@ -156,4 +156,35 @@ describe('PrismaPostulacionRepositorio', () => {
     expect(await repo.porId('00000000-0000-7000-8000-000000000000')).toBeNull();
     expect(await repo.porId('no-es-uuid')).toBeNull();
   });
+
+  it('guarda y lee etiquetas, prioridad fijada y el aviso con stack, requisitos y sueldo publicado', async () => {
+    const d = deps();
+    const p = Postulacion.crear(
+      {
+        aviso: {
+          ...AVISO,
+          stack: ['Python', 'MATLAB'],
+          requisitos: 'Inglés',
+          sueldoPublicado: 'CLP 150.000',
+        },
+        etiquetas: ['investigacion'],
+        prioridadFijada: 'alta',
+        origen: 'importacion',
+      },
+      d,
+    );
+    await repo.guardar(p);
+    const leida = await repo.porId(p.id);
+    expect(leida!.datos()).toMatchObject({
+      etiquetas: ['investigacion'],
+      prioridadFijada: 'alta',
+      aviso: { stack: ['Python', 'MATLAB'], requisitos: 'Inglés', sueldoPublicado: 'CLP 150.000' },
+    });
+    leida!.editar({ etiquetas: [], prioridad: null, stack: [] }, d.reloj);
+    await repo.guardar(leida!);
+    const otra = (await repo.porId(p.id))!.datos();
+    expect(otra.etiquetas).toEqual([]);
+    expect(otra.prioridadFijada).toBeUndefined();
+    expect(otra.aviso.stack).toBeUndefined();
+  });
 });

@@ -110,6 +110,12 @@ export class PaletaDeComandos {
     },
     { id: 'c-lista', texto: 'busqueda.irLista', traducir: true, accion: () => this.ir('/lista') },
     {
+      id: 'c-importar',
+      texto: 'busqueda.importarCsv',
+      traducir: true,
+      accion: () => this.ir('/importar'),
+    },
+    {
       id: 'c-crear',
       texto: 'busqueda.crear',
       traducir: true,
