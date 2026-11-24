@@ -62,7 +62,8 @@ export const routes: Routes = [
       },
       {
         path: 'ajustes',
-        loadComponent: () => import('./funciones/ajustes/ajustes').then((m) => m.AjustesPagina),
+        loadComponent: () =>
+          import('./funciones/recorrido/ajustes-con-recorrido').then((m) => m.AjustesConRecorrido),
       },
     ],
   },

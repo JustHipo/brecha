@@ -28,6 +28,16 @@ export default defineConfig({
     viewport: { width: 1280, height: 860 },
     trace: 'retain-on-failure',
     locale: 'es-CL',
+    // El recorrido guiado sale la primera vez: las pruebas parten con él ya visto, salvo recorrido.spec.ts.
+    storageState: {
+      cookies: [],
+      origins: [
+        {
+          origin: `http://localhost:${CONSOLA}`,
+          localStorage: [{ name: 'brecha.recorrido', value: '1' }],
+        },
+      ],
+    },
   },
   projects: [
     {

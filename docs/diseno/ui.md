@@ -140,6 +140,9 @@ Todos validan en el cliente lo que el dominio exige (para no hacer viajes de má
 - Toast para el resultado de cada acción y para los errores de la API (mensaje por `codigo`, traducido).
 - Errores de red: banda persistente arriba con reintento, no un toast que se pierde.
 
+### 4.8 Recorrido guiado
+Ocho popups que salen la primera vez que se abre la consola, cada uno anclado a un elemento real con `data-tutorial="<ancla>"`: bienvenida (`marca`), tablero (`tablero`: la primera columna o el tablero vacío), nueva postulación (`nueva`), ficha (`ficha`: la primera tarjeta; sin tarjetas, el tablero), Bandeja (`bandeja`), red (`red`), Ajustes (`ajustes`) e importar (`importar`). Los pasos viven en `funciones/recorrido/pasos.ts`; si un ancla no aparece, el paso sale al centro. Se recuerda en `localStorage` (`brecha.recorrido`, con versión: subirla lo vuelve a mostrar una vez) y se vuelve a ver desde Ajustes o desde la búsqueda («recorrido»). Modal accesible: foco atrapado, Escape cierra, flechas para avanzar y retroceder, cada paso anunciado a los lectores de pantalla y sin animaciones con «reducir movimiento».
+
 ## 5. Pantallas de F2 y F3 (qué muestran)
 
 | Pantalla | Qué muestra | Acciones |

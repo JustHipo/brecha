@@ -33,7 +33,54 @@
     "crear": "Crear una postulación",
     "idiomaEs": "Cambiar a español",
     "idiomaEn": "Cambiar a inglés",
+    "recorrido": "Ver el recorrido guiado",
     "cerrar": "Cerrar"
+  },
+  "recorrido": {
+    "contador": "Paso {{n}} de {{total}}",
+    "siguiente": "Siguiente",
+    "atras": "Atrás",
+    "saltar": "Saltar",
+    "terminar": "Terminar",
+    "enAjustes": {
+      "titulo": "Recorrido guiado",
+      "texto": "Un paseo corto por las pantallas de Brecha: el tablero, la ficha de una postulación, la Bandeja, tu red y estos ajustes.",
+      "ver": "Ver el recorrido"
+    },
+    "pasos": {
+      "bienvenida": {
+        "titulo": "Te damos la bienvenida a Brecha",
+        "texto": "Brecha te ayuda a seguir tus postulaciones de trabajo: dónde postulaste, en qué va cada una y qué te respondieron. Todo queda guardado en tu computador; solo sale lo que tú conectes, como Gmail u OpenAI. Son 8 pasos cortos."
+      },
+      "tablero": {
+        "titulo": "El tablero",
+        "texto": "Cada columna es un estado: Sin decidir, Por postular, Postulado, En proceso, Entrevista y Oferta. Arrastra una tarjeta a otra columna para cambiarla de estado; con el teclado, enfócala y presiona M. Si el estado pide algo, como la fecha en que postulaste, te lo pregunta."
+      },
+      "nueva": {
+        "titulo": "Agrega una postulación",
+        "texto": "Con «Nueva postulación» anotas un aviso que te interesa: cargo, empresa, enlace y plataforma. Parte en «Sin decidir» y desde ahí la vas moviendo."
+      },
+      "ficha": {
+        "titulo": "La ficha de cada postulación",
+        "texto": "Haz clic en una tarjeta para abrir su ficha. Ahí está toda su historia: las señales que llegaron (correos y respuestas de la empresa), tus notas, los contactos con quienes hablaste y las entrevistas."
+      },
+      "bandeja": {
+        "titulo": "La Bandeja",
+        "texto": "Cuando conectas tu correo, la IA lee los mensajes de las empresas y propone a qué postulación pertenece cada uno. Lo que no puede asociar con seguridad te espera aquí para que lo confirmes, lo asocies o lo descartes."
+      },
+      "red": {
+        "titulo": "Tu red de LinkedIn",
+        "texto": "Aquí llevas a las personas con quienes hablas en LinkedIn: solicitudes, mensajes y a qué postulación se ligan. Los avisos de LinkedIn que llegan a tu correo se suman solos."
+      },
+      "ajustes": {
+        "titulo": "Ajustes",
+        "texto": "Aquí conectas tu Gmail (con una contraseña de aplicación) y tu llave de OpenAI para que la IA lea tus correos. Sin eso Brecha funciona igual, pero todo se anota a mano."
+      },
+      "importar": {
+        "titulo": "Trae lo que ya tienes",
+        "texto": "Si ya llevabas tus postulaciones en otro lado, impórtalas para no partir de cero. Puedes volver a ver este recorrido cuando quieras desde Ajustes o buscando «recorrido» en la barra de arriba."
+      }
+    }
   },
   "idioma": {
     "etiqueta": "Idioma",
