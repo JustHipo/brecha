@@ -41,9 +41,9 @@ describe('avisos del sistema', () => {
 
 describe('rutas y puertos', () => {
   it('empaquetada usa Resources; en desarrollo, el repo', () => {
-    expect(rutas(true, '/App/Resources', 'darwin').ia).toBe('/App/Resources/ia/brecha-ia');
-    expect(rutas(true, '/App/Resources', 'win32').ia.endsWith('brecha-ia.exe')).toBe(true);
-    expect(rutas(false, '').nucleo.endsWith('services/nucleo')).toBe(true);
+    expect(rutas(true, '/App/Resources', 'darwin').ia).toBe(join('/App/Resources', 'ia', 'brecha-ia'));
+    expect(rutas(true, '/App/Resources', 'win32').ia).toBe(join('/App/Resources', 'ia', 'brecha-ia.exe'));
+    expect(rutas(false, '').nucleo.endsWith(join('services', 'nucleo'))).toBe(true);
   });
   it('los puertos se pueden cambiar solo con los tres', () => {
     expect(puertos({})).toEqual({ postgres: 5434, nucleo: 4300, ia: 4400 });
