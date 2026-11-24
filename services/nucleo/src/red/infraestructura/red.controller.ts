@@ -1,4 +1,6 @@
-import { Body, Controller, Get, Inject, Param, Patch, Post, Query } from '@nestjs/common';
+import { Body, Controller, Get, Inject, Param, Patch, Post, Query, Req } from '@nestjs/common';
+import type { Request } from 'express';
+import type { PedidoConAcceso } from '../../acceso/decoradores';
 import {
   ApiBearerAuth,
   ApiCreatedResponse,
@@ -208,13 +210,18 @@ export class RedController {
   @ApiCreatedResponse({ type: ContactoRedRegistradoDto })
   @err(400, 'VALIDACION')
   @err(404, 'NO_ENCONTRADO')
-  interaccion(@Param('id') id: string, @Body() dto: InteraccionEntradaDto) {
+  interaccion(
+    @Param('id') id: string,
+    @Body() dto: InteraccionEntradaDto,
+    @Req() req: Request & PedidoConAcceso,
+  ) {
     const { ocurridaEn, ...resto } = dto;
     return this.casos.red.registrarInteraccion.ejecutar({
       id,
       ...resto,
       ...(ocurridaEn ? { ocurridaEn: new Date(ocurridaEn) } : {}),
-      origen: 'consola',
+      // El servicio con IA registra lo que leyó en los avisos de LinkedIn del correo (D40).
+      origen: req.acceso?.tipo === 'servicio' ? 'correo' : 'consola',
     });
   }
 }

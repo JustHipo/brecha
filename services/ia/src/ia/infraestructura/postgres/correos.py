@@ -10,6 +10,7 @@ from sqlalchemy import Engine, func, select, update
 from sqlalchemy.dialects.postgresql import insert
 
 from ia.aplicacion.puertos import (
+    AvisoRedPorEnviar,
     ClasificadoPorEnviar,
     CorreoGuardado,
     CorreoPorClasificar,
@@ -19,7 +20,8 @@ from ia.aplicacion.puertos import (
 )
 from ia.dominio.clasificacion import Clasificacion
 from ia.dominio.correo import EstadoDeCorreo
-from ia.infraestructura.postgres.tablas import clasificacion, correo, estado_vigia, traza
+from ia.dominio.linkedin import AvisoDeLinkedin
+from ia.infraestructura.postgres.tablas import aviso_red, clasificacion, correo, estado_vigia, traza
 
 
 class RepositorioPostgresDeCorreos:
@@ -193,6 +195,63 @@ class RepositorioPostgresDeCorreos:
             gasto_mes_usd=float(gasto),
             llamadas_mes=int(llamadas),
         )
+
+    # ── Avisos de LinkedIn para tu red (D40) ───────────────────────────────────
+
+    def guardar_avisos_red(
+        self, message_id: str, recibido_en: datetime, avisos: list[AvisoDeLinkedin]
+    ) -> int:
+        ahora = datetime.now(UTC)
+        filas = [
+            {
+                "message_id": message_id,
+                "indice": i,
+                "tipo": a.tipo,
+                "nombre": a.nombre[:200],
+                "perfil_url": a.perfil_url[:500],
+                "titular": a.titular[:300] if a.titular else None,
+                "empresa": a.empresa[:200] if a.empresa else None,
+                "recibido_en": recibido_en,
+                "creado_en": ahora,
+            }
+            for i, a in enumerate(avisos)
+        ]
+        if not filas:
+            return 0
+        with self.motor.begin() as c:
+            # rowcount no es confiable con varias filas: se cuentan las que de verdad entraron.
+            r = c.execute(
+                insert(aviso_red).values(filas).on_conflict_do_nothing().returning(aviso_red.c.indice)
+            )
+            return len(r.all())
+
+    def avisos_red_por_enviar(self, limite: int) -> list[AvisoRedPorEnviar]:
+        q = (
+            select(aviso_red)
+            .where(aviso_red.c.enviado.is_(False))
+            .order_by(aviso_red.c.recibido_en, aviso_red.c.indice)
+            .limit(limite)
+        )
+        with self.motor.connect() as c:
+            return [
+                AvisoRedPorEnviar(
+                    f.message_id,
+                    f.indice,
+                    f.recibido_en,
+                    AvisoDeLinkedin(f.tipo, f.nombre, f.perfil_url, f.titular, f.empresa),
+                )
+                for f in c.execute(q)
+            ]
+
+    def marcar_aviso_red_enviado(
+        self, message_id: str, indice: int, contacto_id: str, postulacion_id: str | None
+    ) -> None:
+        with self.motor.begin() as c:
+            c.execute(
+                update(aviso_red)
+                .where(aviso_red.c.message_id == message_id, aviso_red.c.indice == indice)
+                .values(enviado=True, contacto_id=contacto_id, postulacion_id=postulacion_id)
+            )
 
 
 class TrazasPostgres:

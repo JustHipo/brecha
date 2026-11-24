@@ -5,7 +5,7 @@ Subcomandos:
 - `vigia`: el vigía del correo y los avisos (`--comprobar` solo revisa que todo se importe).
 - `migrar`: `alembic upgrade head` con las migraciones que van dentro del ejecutable.
 - `comprobar`: importa todo lo que el servicio usa al correr y sale (0 si está completo).
-- `credenciales`, `avisos`, `perfil`, `preguntar`, `probar-correo`: la línea de comandos `ia`.
+- `credenciales`, `avisos`, `perfil`, `preguntar`, `probar-correo`, `red` y `evaluar`: la CLI `ia`.
 
 Funciona igual desde el código (`uv run brecha-ia ...`) y empaquetado con PyInstaller.
 """
@@ -22,7 +22,7 @@ from pydantic import ValidationError
 
 from ia.infraestructura.config import ConfigInvalida, cargar_config, esta_empaquetado
 
-COMANDOS_DE_LA_CLI = ("credenciales", "avisos", "perfil", "preguntar", "probar-correo")
+COMANDOS_DE_LA_CLI = ("credenciales", "avisos", "perfil", "preguntar", "probar-correo", "red", "evaluar")
 SALIDA_CONFIG_INVALIDA = 78  # EX_CONFIG de sysexits.h: la app distingue "falta configuración" de un fallo
 
 # Lo que el servicio importa en tiempo de ejecución, incluso lo que uvicorn y keyring cargan por nombre.
@@ -152,6 +152,8 @@ def _parser() -> argparse.ArgumentParser:
         ("perfil", "Cargar o ver tu perfil (herramientas y años)"),
         ("preguntar", "Preguntar sobre tus avisos"),
         ("probar-correo", "Pasar correos de prueba (.eml) por el camino del vigía"),
+        ("red", "Traer los avisos de LinkedIn del correo a tu red"),
+        ("evaluar", "Medir la clasificación y Preguntar contra los umbrales de D30"),
     ):
         sub.add_parser(nombre, help=f"{ayuda} (brecha-ia {nombre} --help)")
     return parser

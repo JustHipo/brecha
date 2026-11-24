@@ -1,5 +1,6 @@
 """Cliente del núcleo con el token `servicio` (backend.md §6.1 y C3). Solo 127.0.0.1."""
 
+from datetime import datetime
 from pathlib import Path
 from typing import Any
 
@@ -88,3 +89,37 @@ class NucleoHttp:
         r = self._pedir("PATCH", f"/postulaciones/{postulacion_id}/aviso", json=cuerpo)
         if r.status_code != 200:
             raise NucleoNoDisponible(f"vincular aviso respondió {r.status_code}: {r.text[:200]}")
+
+    # ── Tu red de LinkedIn (D40) ───────────────────────────────────────────────
+
+    def registrar_contacto_red(
+        self, nombre: str, perfil_url: str, titular: str | None, empresa: str | None
+    ) -> str:
+        cuerpo: dict[str, Any] = {"nombre": nombre[:200], "perfilUrl": perfil_url[:500]}
+        if titular:
+            cuerpo["titular"] = titular[:300]
+        if empresa:
+            cuerpo["empresa"] = empresa[:200]
+        r = self._pedir("POST", "/red", json=cuerpo)
+        if r.status_code != 201:
+            raise NucleoNoDisponible(f"registrar contacto respondió {r.status_code}: {r.text[:200]}")
+        return str(r.json()["id"])
+
+    def registrar_interaccion_red(
+        self, contacto_id: str, tipo: str, resumen: str, ocurrida_en: datetime, referencia: str
+    ) -> bool:
+        cuerpo = {
+            "tipo": tipo,
+            "resumen": resumen[:1000],
+            "ocurridaEn": ocurrida_en.isoformat(),
+            "referenciaExterna": referencia[:500],
+        }
+        r = self._pedir("POST", f"/red/{contacto_id}/interacciones", json=cuerpo)
+        if r.status_code != 201:
+            raise NucleoNoDisponible(f"registrar interacción respondió {r.status_code}: {r.text[:200]}")
+        return bool(r.json().get("agregada"))
+
+    def vincular_contacto_red(self, contacto_id: str, postulacion_id: str) -> None:
+        r = self._pedir("PATCH", f"/red/{contacto_id}", json={"vincular": postulacion_id})
+        if r.status_code != 200:
+            raise NucleoNoDisponible(f"ligar contacto respondió {r.status_code}: {r.text[:200]}")

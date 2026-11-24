@@ -5,10 +5,17 @@ from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 
-from ia.aplicacion.puertos import CorreoGuardado, LectorDeCorreo, PuntoDeLectura, RepositorioDeCorreos
+from ia.aplicacion.puertos import (
+    ColaDeRed,
+    CorreoGuardado,
+    LectorDeCorreo,
+    PuntoDeLectura,
+    RepositorioDeCorreos,
+)
 from ia.dominio.correo import CorreoLeido, EstadoDeCorreo
 from ia.dominio.filtro import filtrar
 from ia.dominio.fragmento import fragmento
+from ia.dominio.linkedin import leer_aviso
 
 
 @dataclass
@@ -52,7 +59,7 @@ class SincronizarCorreo:
                 destino, plataforma = ingresar(self.repo, c)
                 if destino == "repetido":
                     r.repetidos += 1
-                elif destino == "filtrado":
+                elif destino in {"filtrado", "red"}:
                     r.filtrados += 1
                 else:
                     r.pendientes += 1
@@ -73,6 +80,21 @@ def ingresar(repo: RepositorioDeCorreos, c: CorreoLeido) -> tuple[str, str | Non
     """
     if repo.existe(c.message_id):
         return "repetido", None
+    avisos = leer_aviso(c)
+    if avisos and isinstance(repo, ColaDeRed):
+        repo.guardar_avisos_red(c.message_id, c.recibido_en, avisos)
+        repo.guardar(
+            CorreoGuardado(
+                c.message_id,
+                c.uid,
+                c.remitente,
+                c.recibido_en,
+                EstadoDeCorreo.FILTRADO,
+                "linkedin",
+                f"aviso de LinkedIn: {len(avisos)} en tu red",
+            )
+        )
+        return "red", "linkedin"
     f = filtrar(c)
     if not f.pasa:
         repo.guardar(

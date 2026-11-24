@@ -1,4 +1,5 @@
-import { existsSync, mkdirSync } from 'node:fs';
+import { createHash } from 'node:crypto';
+import { existsSync, mkdirSync, readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import {
   argumentosDePostgres,
@@ -83,8 +84,7 @@ export class Servicios {
       BRECHA_DIR: this.instancia,
       CONSOLA_ORIGEN: `http://127.0.0.1:${PUERTOS.nucleo}`,
       NUCLEO_URL: `http://127.0.0.1:${PUERTOS.nucleo}`,
-      // Entrada propia en el llavero: la app es su dueña y macOS no le pide permiso para leerla.
-      BRECHA_LLAVERO: process.env.BRECHA_LLAVERO ?? 'brecha-app',
+      BRECHA_LLAVERO: process.env.BRECHA_LLAVERO ?? servicioDelLlavero(this.r.ia),
     };
     await this.migrarIa(k, comun);
 
@@ -195,4 +195,14 @@ export async function esperarHttp(url: string, intentos = 60): Promise<void> {
 export function certificados(ia: string): NodeJS.ProcessEnv {
   const archivo = join(dirname(ia), '_internal', 'certifi', 'cacert.pem');
   return existsSync(archivo) && !process.env.SSL_CERT_FILE ? { SSL_CERT_FILE: archivo } : {};
+}
+
+/**
+ * Entrada propia en el llavero por cada versión del servicio con IA: la crea ese binario, así que es su dueño
+ * y macOS no le pide permiso para leerla. Sin firma de Apple (D39), un binario recompilado es «otra app» para
+ * el llavero: con una entrada nueva, Ajustes pide las credenciales una vez en vez de mostrar una ventana de permiso.
+ */
+export function servicioDelLlavero(ia: string): string {
+  if (!existsSync(ia)) return 'brecha-app';
+  return `brecha-app-${createHash('sha256').update(readFileSync(ia)).digest('hex').slice(0, 12)}`;
 }

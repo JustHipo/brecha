@@ -113,3 +113,20 @@ perfil = Table(
     Column("anos_totales", Float, nullable=False),
     Column("actualizado_en", DateTime(timezone=True), nullable=False),
 )
+
+aviso_red = Table(
+    "aviso_red",
+    metadata,
+    Column("message_id", String(998), primary_key=True),
+    Column("indice", Integer, primary_key=True),
+    Column("tipo", String(30), nullable=False),
+    Column("nombre", String(200), nullable=False),
+    Column("perfil_url", String(500), nullable=False),
+    Column("titular", String(300)),
+    Column("empresa", String(200)),
+    Column("recibido_en", DateTime(timezone=True), nullable=False),
+    Column("enviado", Boolean, nullable=False, server_default="false"),
+    Column("contacto_id", String(36)),
+    Column("postulacion_id", String(36)),
+    Column("creado_en", DateTime(timezone=True), nullable=False),
+)

@@ -135,6 +135,21 @@ class LectorImap:
         finally:
             self.cerrar()
 
+    def de_linkedin(self, desde_fecha: date) -> Iterator[CorreoLeido]:
+        """Los avisos de LinkedIn desde una fecha (para traer a tu red lo que llegó antes de D40)."""
+        c = self._abrir()
+        try:
+            uids = sorted(c.search(["SINCE", desde_fecha, "FROM", "linkedin.com"]))
+            for i in range(0, len(uids), LOTE):
+                for uid, datos in sorted(
+                    c.fetch(uids[i : i + LOTE], ["BODY.PEEK[]", "INTERNALDATE"]).items()
+                ):
+                    crudo = datos.get(b"BODY[]")
+                    if isinstance(crudo, bytes):
+                        yield a_correo(uid, crudo, datos.get(b"INTERNALDATE"))
+        finally:
+            self.cerrar()
+
     def cerrar(self) -> None:
         if self._cliente is not None:
             try:

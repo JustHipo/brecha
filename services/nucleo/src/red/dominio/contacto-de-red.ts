@@ -28,7 +28,7 @@ export const TIPOS_DE_INTERACCION = [
 ] as const;
 export type TipoDeInteraccion = (typeof TIPOS_DE_INTERACCION)[number];
 
-export const ORIGENES_DE_RED = ['consola', 'ia'] as const;
+export const ORIGENES_DE_RED = ['consola', 'ia', 'correo'] as const;
 export type OrigenDeRed = (typeof ORIGENES_DE_RED)[number];
 
 /** Qué falta en la conversación: te toca a ti, esperas a la otra persona o nada. */

@@ -552,7 +552,8 @@
     },
     "origen": {
       "consola": "desde la consola",
-      "ia": "registrado por Claude"
+      "ia": "registrado por Claude",
+      "correo": "aviso de LinkedIn por correo"
     },
     "detalle": {
       "noEncontrado": "Este contacto no existe.",

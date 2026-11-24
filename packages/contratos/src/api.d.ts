@@ -897,7 +897,7 @@ export interface components {
         /** @enum {string} */
         TipoDeInteraccion: "solicitud_enviada" | "solicitud_recibida" | "solicitud_aceptada" | "solicitud_rechazada" | "solicitud_retirada" | "mensaje_enviado" | "mensaje_recibido" | "nota";
         /** @enum {string} */
-        OrigenDeRed: "consola" | "ia";
+        OrigenDeRed: "consola" | "ia" | "correo";
         InteraccionDto: {
             id: string;
             tipo: components["schemas"]["TipoDeInteraccion"];

@@ -3741,7 +3741,8 @@
         "type": "string",
         "enum": [
           "consola",
-          "ia"
+          "ia",
+          "correo"
         ]
       },
       "InteraccionDto": {

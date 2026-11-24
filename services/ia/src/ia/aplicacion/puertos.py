@@ -4,13 +4,14 @@ from collections.abc import Iterable
 from dataclasses import dataclass
 from datetime import date, datetime
 from enum import StrEnum
-from typing import Protocol
+from typing import Protocol, runtime_checkable
 
 from ia.dominio.asociacion import PostulacionConocida
 from ia.dominio.aviso import Aviso
 from ia.dominio.calce import Calce, Perfil, Requisito
 from ia.dominio.clasificacion import Clasificacion
 from ia.dominio.correo import CorreoLeido, EstadoDeCorreo
+from ia.dominio.linkedin import AvisoDeLinkedin
 
 
 class TipoDeCredencial(StrEnum):
@@ -300,3 +301,36 @@ class RepositorioDePerfil(Protocol):
 class EnlaceConNucleo(Protocol):
     def postulaciones(self) -> list[PostulacionConocida]: ...
     def vincular_aviso(self, postulacion_id: str, aviso_id: str, calce: float | None) -> None: ...
+
+
+# ── Tu red de LinkedIn desde los avisos por correo (D40) ───────────────────────
+
+
+@dataclass(frozen=True)
+class AvisoRedPorEnviar:
+    message_id: str
+    indice: int
+    recibido_en: datetime
+    aviso: AvisoDeLinkedin
+
+
+@runtime_checkable
+class ColaDeRed(Protocol):
+    def guardar_avisos_red(
+        self, message_id: str, recibido_en: datetime, avisos: list[AvisoDeLinkedin]
+    ) -> int: ...
+    def avisos_red_por_enviar(self, limite: int) -> list[AvisoRedPorEnviar]: ...
+    def marcar_aviso_red_enviado(
+        self, message_id: str, indice: int, contacto_id: str, postulacion_id: str | None
+    ) -> None: ...
+
+
+class RedEnNucleo(Protocol):
+    def postulaciones(self) -> list[PostulacionConocida]: ...
+    def registrar_contacto_red(
+        self, nombre: str, perfil_url: str, titular: str | None, empresa: str | None
+    ) -> str: ...
+    def registrar_interaccion_red(
+        self, contacto_id: str, tipo: str, resumen: str, ocurrida_en: datetime, referencia: str
+    ) -> bool: ...
+    def vincular_contacto_red(self, contacto_id: str, postulacion_id: str) -> None: ...

@@ -286,6 +286,40 @@ def evaluar(args: argparse.Namespace, llavero: Credenciales) -> int:
     return 0 if ok else 1
 
 
+def red(args: argparse.Namespace, llavero: Credenciales) -> int:
+    """D40: trae a tu red los avisos de LinkedIn de los últimos días y los registra en el núcleo."""
+    from datetime import timedelta
+
+    from ia.aplicacion.casos.registrar_red import RegistrarRed
+    from ia.aplicacion.puertos import TipoDeCredencial
+    from ia.dominio.linkedin import leer_aviso
+    from ia.infraestructura.imap import LectorImap
+    from ia.infraestructura.postgres.correos import RepositorioPostgresDeCorreos
+
+    s = _servicios(llavero)
+    repo = RepositorioPostgresDeCorreos(s.motor)
+    if args.accion == "reprocesar":
+        lector = LectorImap(
+            llavero.obtener(TipoDeCredencial.CORREO_USUARIO) or "",
+            llavero.obtener(TipoDeCredencial.CORREO_CLAVE) or "",
+        )
+        nuevos = 0
+        for c in lector.de_linkedin(date.today() - timedelta(days=args.dias)):
+            avisos = leer_aviso(c)
+            if avisos:
+                nuevos += repo.guardar_avisos_red(c.message_id, c.recibido_en, avisos)
+        print(f"Avisos de LinkedIn de los últimos {args.dias} días: {nuevos} nuevos.")
+    r = RegistrarRed(s.nucleo_http(), repo).ejecutar()
+    for d in r.detalle:
+        print(f"  · {d}")
+    print(f"En tu red: {r.registrados} avisos, {r.nuevos} interacciones nuevas.")
+    print(f"Ligados a postulaciones: {r.ligados}.")
+    if r.error:
+        print(r.error, file=sys.stderr)
+        return 1
+    return 0
+
+
 def main(argv: list[str] | None = None, llavero: Credenciales | None = None) -> int:
     parser = argparse.ArgumentParser(prog="ia", description="Herramientas del servicio con IA de Brecha")
     sub = parser.add_subparsers(dest="comando", required=True)
@@ -299,6 +333,9 @@ def main(argv: list[str] | None = None, llavero: Credenciales | None = None) -> 
     pe.add_argument("archivo", nargs="?")
     pr = sub.add_parser("preguntar", help="Preguntar sobre tus avisos")
     pr.add_argument("pregunta", nargs="+")
+    rd = sub.add_parser("red", help="Traer los avisos de LinkedIn del correo a tu red")
+    rd.add_argument("accion", choices=["reprocesar", "enviar"])
+    rd.add_argument("--dias", type=int, default=45)
     ev = sub.add_parser("evaluar", help="Medir la clasificación y Preguntar contra los umbrales de D30")
     ev.add_argument("--correos", help="set de correos (JSON)")
     ev.add_argument("--preguntas", help="set de preguntas (JSON)")
@@ -320,6 +357,8 @@ def main(argv: list[str] | None = None, llavero: Credenciales | None = None) -> 
                 return probar_correo(args, ll)
             case "evaluar":
                 return evaluar(args, ll)
+            case "red":
+                return red(args, ll)
     except KeyboardInterrupt:
         print("\nCancelado.", file=sys.stderr)
         return 130

@@ -67,4 +67,20 @@ describe('red de LinkedIn por REST', () => {
       .expect(404);
     await auth(http.get('/api/v1/red/no-existe')).expect(404);
   });
+
+  it('lo que registra el servicio con IA queda con origen correo', async () => {
+    const servicio = (r: request.Test) => r.set('Authorization', `Bearer ${t.token('servicio')}`);
+    const c = await servicio(http.post('/api/v1/red'))
+      .send({ nombre: 'Ana Ficticia', perfilUrl: 'linkedin.com/in/ana', empresa: 'Ficticia' })
+      .expect(201);
+    const i = await servicio(http.post(`/api/v1/red/${c.body.id}/interacciones`))
+      .send({ tipo: 'mensaje_recibido', resumen: 'Te escribió por LinkedIn', referenciaExterna: '<m1>#0' })
+      .expect(201);
+    expect(i.body).toMatchObject({ pendiente: 'responder', agregada: true });
+    expect(i.body.interacciones[0].origen).toBe('correo');
+    const otra = await servicio(http.post(`/api/v1/red/${c.body.id}/interacciones`))
+      .send({ tipo: 'mensaje_recibido', resumen: 'Otra vez', referenciaExterna: '<m1>#0' })
+      .expect(201);
+    expect(otra.body.agregada).toBe(false);
+  });
 });

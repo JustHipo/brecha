@@ -552,7 +552,8 @@
     },
     "origen": {
       "consola": "from the console",
-      "ia": "recorded by Claude"
+      "ia": "recorded by Claude",
+      "correo": "LinkedIn email notice"
     },
     "detalle": {
       "noEncontrado": "This contact does not exist.",

@@ -7,6 +7,7 @@ from collections.abc import Callable
 from datetime import UTC, datetime, timedelta
 
 from ia.aplicacion.casos.clasificar_pendientes import ClasificarPendientes, ResumenDeClasificacion
+from ia.aplicacion.casos.registrar_red import RegistrarRed
 from ia.aplicacion.casos.registrar_senales import RegistrarSenales, ResumenDeRegistro
 from ia.aplicacion.casos.sincronizar_correo import ResumenDeSincronizacion, SincronizarCorreo
 from ia.aplicacion.puertos import Credenciales, TipoDeCredencial, estado_de
@@ -106,6 +107,24 @@ def main() -> None:
             return ResumenDeRegistro(error=str(e))
         return RegistrarSenales(nucleo, repo).ejecutar()
 
+    def red() -> None:
+        """Los avisos de LinkedIn que trajo el correo entran a tu red (D40)."""
+        try:
+            nucleo = NucleoHttp(cfg.nucleo_url, leer_token(cfg.carpeta_instancia))
+        except Exception as e:
+            log.error("red de LinkedIn: %s", e)
+            return
+        r = RegistrarRed(nucleo, repo).ejecutar()
+        if r.error:
+            log.error("red de LinkedIn: %s (los avisos esperan a la próxima vuelta)", r.error)
+        elif r.registrados:
+            log.info(
+                "red de LinkedIn: %s avisos, %s nuevos, %s ligados a postulaciones",
+                r.registrados,
+                r.nuevos,
+                r.ligados,
+            )
+
     servicios = Servicios(cfg, llavero, motor)
     ultima_busqueda: list[datetime] = []
 
@@ -145,6 +164,10 @@ def main() -> None:
             una_vuelta(llavero, sincronizar, clasificar, registrar)
         except Exception:  # una vuelta rota no apaga el vigía: queda en el log y se intenta en la próxima
             log.exception("la vuelta del vigía falló")
+        try:
+            red()
+        except Exception:
+            log.exception("la vuelta de la red falló")
         try:
             avisos()
         except Exception:
