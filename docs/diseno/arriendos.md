@@ -189,7 +189,7 @@ Nada para terceros. Para el proyecto: ADR 0020, decisiones D-A1 en adelante en `
 
 ## 13. Implementación (24-nov-2026)
 
-Rama `arriendos` desde `brecha-junta`, fases A1 a A7 con pruebas en cada una (commits `feat(consola): selector de foco…` a `feat(escritorio): …`).
+Rama `arriendos` desde `brecha-junta` y después con `origin/windows` juntada (24-nov-2026, PR #10 hacia `windows`; migración `20261128000000_arriendos`, posterior a la de pasos), fases A1 a A7 con pruebas en cada una (commits `feat(consola): selector de foco…` a `feat(escritorio): …`).
 
 **Hecho como estaba planeado:** selector y color por foco; dominio con sus 10 estados, contactos con conversaciones por canal, visitas, documentos, señales y discrepancias (`contra_senal` y `visita_sin_registro`); canales editables; reglas duras y blandas con prioridad e historial; calce y brechas en palabras; duplicados por URL y por dirección o pin; REST, contrato y 19 herramientas MCP con el protocolo para la IA; correos de arriendo con filtro y clasificación propios; importar texto y chats de WhatsApp con teléfonos enmascarados; Preguntar; mapa en los dos focos; notificaciones y barra de menú.
 
