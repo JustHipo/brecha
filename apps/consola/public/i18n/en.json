@@ -557,6 +557,7 @@
       "solicitud_retirada": "Request withdrawn",
       "mensaje_enviado": "You wrote",
       "mensaje_recibido": "Wrote to you",
+      "conversacion_cerrada": "Conversation closed",
       "nota": "Note"
     },
     "origen": {
@@ -591,7 +592,10 @@
       "notas": "Notes",
       "notasEjemplo": "What you want to remember about this person",
       "guardarNotas": "Save notes",
-      "guardado": "Changes saved"
+      "guardado": "Changes saved",
+      "cerrarConversacion": "Close conversation",
+      "conversacionCerradaResumen": "Conversation closed: no reply needed",
+      "conversacionCerrada": "Conversation closed: no longer waiting on your reply"
     },
     "nuevo": {
       "titulo": "Add a LinkedIn contact",

@@ -74,6 +74,20 @@ describe('ContactoDeRed', () => {
     expect(c.ultimaInteraccion()?.resumen).toBe('Me respondió');
   });
 
+  it('una conversación cerrada no deja nada pendiente, y un mensaje nuevo la reabre', () => {
+    const c = nuevo();
+    const registrar = (tipo: string, resumen: string, cuando: string) =>
+      c.registrarInteraccion({ tipo, resumen, ocurridaEn: en(cuando), origen: 'ia' }, deps);
+    registrar('solicitud_enviada', 'Le mandé solicitud', '2026-11-14T12:00:00Z');
+    registrar('mensaje_recibido', 'Se despidió y me deseó éxito', '2026-11-15T12:00:00Z');
+    expect(c.pendiente()).toBe('responder');
+    registrar('conversacion_cerrada', 'Se despidió: no hace falta contestar', '2026-11-15T13:00:00Z');
+    expect(c.pendiente()).toBeNull();
+    expect(c.ultimaInteraccion()?.tipo).toBe('conversacion_cerrada');
+    registrar('mensaje_recibido', 'Me volvió a escribir', '2026-11-20T12:00:00Z');
+    expect(c.pendiente()).toBe('responder');
+  });
+
   it('una solicitud recibida queda por responder', () => {
     const c = nuevo();
     c.registrarInteraccion({ tipo: 'solicitud_recibida', resumen: 'Me invitó', origen: 'ia' }, deps);
