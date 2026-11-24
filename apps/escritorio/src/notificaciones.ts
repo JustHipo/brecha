@@ -17,7 +17,15 @@ export interface Evento {
     origen?: string;
     resumen?: string;
     aplicada?: boolean;
+    /** Pasos pendientes (docs/diseno/pasos.md): un paso puede tocar varias postulaciones. */
+    postulacionIds?: string[];
+    descripcion?: string;
   };
+}
+
+/** La postulación del evento (los pasos traen varias: se nombra la primera). */
+export function postulacionDe(e: Evento): string | undefined {
+  return e.datos.postulacionId ?? e.datos.postulacionIds?.[0];
 }
 
 const ESTADOS: Record<string, string> = {
@@ -32,7 +40,17 @@ const ESTADOS: Record<string, string> = {
 
 /** Qué merece un aviso del sistema (prioridad alta, PLAN F3): lo que cambió solo y lo que no calza. */
 export function avisoDe(e: Evento, nombre: string): Aviso | null {
-  const ruta = e.datos.postulacionId ? `/postulaciones/${e.datos.postulacionId}` : '/tablero';
+  const id = postulacionDe(e);
+  const ruta = id ? `/postulaciones/${id}` : '/tablero';
+  if (e.tipo === 'paso.detectado' && e.datos.descripcion) {
+    // Un pedido siempre avisa, también en una postulación cerrada (R18).
+    const otras = (e.datos.postulacionIds?.length ?? 1) - 1;
+    return {
+      titulo: `Te piden algo: ${nombre}${otras > 0 ? ` y ${otras} más` : ''}`,
+      cuerpo: e.datos.descripcion,
+      ruta,
+    };
+  }
   if (e.tipo === 'postulacion.estado_cambiado' && e.datos.origen === 'senal') {
     return {
       titulo: `${nombre}: ${ESTADOS[e.datos.a ?? ''] ?? e.datos.a}`,
@@ -121,7 +139,7 @@ export class OyenteDeEventos {
             const e = JSON.parse(datos) as Evento;
             if (!e.tipo || e.tipo === 'latido') continue;
             this.alEvento(e);
-            const nombre = await this.nombre(e.datos?.postulacionId, token);
+            const nombre = await this.nombre(e.datos ? postulacionDe(e) : undefined, token);
             const aviso = avisoDe(e, nombre);
             if (aviso) this.avisar(aviso);
           }

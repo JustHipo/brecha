@@ -133,7 +133,7 @@ describe('PrismaPostulacionRepositorio', () => {
     expect(await prisma.postulacion.count()).toBe(2);
   });
 
-  it('una referencia externa repetida en otra postulación da YA_EXISTE', async () => {
+  it('un mismo correo puede ser señal de dos postulaciones (pasos.md §4.2)', async () => {
     const d = deps();
     const a = Postulacion.crear({ aviso: AVISO, origen: 'formulario' }, d);
     a.registrarSenal(
@@ -149,7 +149,31 @@ describe('PrismaPostulacionRepositorio', () => {
       { fuente: 'correo', resumen: 'x', confianza: 0.5, referenciaExterna: '<mismo@id>' },
       { ...d, ...SEGURAS },
     );
-    await expect(repo.guardar(b)).rejects.toBeInstanceOf(SenalDuplicada);
+    await repo.guardar(b);
+    expect(await prisma.senal.count({ where: { referenciaExterna: '<mismo@id>' } })).toBe(2);
+  });
+
+  it('la misma referencia dos veces en la misma postulación choca con la base (YA_EXISTE)', async () => {
+    const d = deps();
+    const a = Postulacion.crear({ aviso: AVISO, origen: 'formulario' }, d);
+    await repo.guardar(a);
+    await prisma.senal.create({
+      data: {
+        id: d.ids.nuevo(),
+        postulacionId: a.id,
+        fuente: 'correo',
+        plataforma: 'otra',
+        resumen: 'x',
+        confianza: 0.5,
+        referenciaExterna: '<mismo@id>',
+        recibidaEn: new Date(),
+      },
+    });
+    a.registrarSenal(
+      { fuente: 'correo', resumen: 'x', confianza: 0.5, referenciaExterna: '<mismo@id>' },
+      { ...d, ...SEGURAS },
+    );
+    await expect(repo.guardar(a)).rejects.toBeInstanceOf(SenalDuplicada);
   });
 
   it('porId con un id que no existe o mal formado da null', async () => {

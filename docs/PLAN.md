@@ -168,6 +168,14 @@ Una pyme registra sus importaciones y las sigue por hitos, con RAG sobre normati
 | D46 | Contactos sin LinkedIn | **Se importan igual**, reconocidos por nombre y empresa, con advertencia; el perfil se completa después | Migración `20261126010000_red_sin_perfil` |
 | D47 | Lector de CSV | **csv-parse 7.0.3 y csv-stringify 6.9.0** | Detrás del puerto `LectorCsv` |
 | D48 | Rojo de las brechas | Token **`brecha` #B42318 sobre #FDECEA** (5,8:1), siempre con ✕ y «falta» | `apps/consola/src/styles.css` |
+| D49 | Pasos pendientes | **Agregado `Paso` propio**, texto libre (sin tipos), ligado a una o más postulaciones **abiertas o cerradas**; pendiente, hecho o descartado, con quién y cuándo lo cerró. No cambia estado ni prioridad. Pedido de Juan del 24-nov-2026 | `docs/diseno/pasos.md` (v2 aprobada el 24-nov); migración `20261127000000_pasos` |
+| D50 | Asociar un correo | **Híbrido**: el código arma candidatas y aplica reglas seguras (número del aviso en la URL, hilo), el modelo elige entre ellas con el contexto de pasos y el código verifica. Un correo puede ir a **varias** postulaciones | La señal es única por postulación, no global |
+| D51 | Tarjeta con paso | **Barra lateral azul** (opción B) y la línea del paso con **Hecho**, también en «Cerradas» | Elegida por Juan entre 3 maquetas |
+| D52 | Cierre por correo | Un correo posterior **cierra solo** un paso con confianza ≥ 0,9; con menos, queda la sugerencia | Como D27, se puede reabrir |
+| D53 | D27 con varias postulaciones | El estado sugerido se aplica solo si el correo toca **una** postulación; con varias queda como sugerencia | |
+| D54 | Enlace del paso | Se guarda, **sacado en local**: el token del enlace nunca va a OpenAI | Fase P2 |
+| D55 | Cerrar una postulación con pasos | **No** los descarta sola: el diálogo de cerrar ofrece descartarlos (`descartarPasos`), marcado por defecto | R17 de `pasos.md` |
+| D56 | De dónde salen los pasos | Correo (vigía), **LinkedIn** (`registrar_interaccion_red` con `paso`) y **portales** que Claude revisa con Chrome (`registrar_paso`, `listar_postulaciones` con `url`) | Un paso nuevo avisa siempre con prioridad alta (`paso.detectado`) |
 
 ### 6.1 D8: lo que pidió Juan después del checkpoint de F0
 
@@ -291,6 +299,23 @@ Cada fase termina con un checkpoint: la revisas, la pruebas y decides si seguimo
 
 **Problemas encontrados:** csv-parse cuenta dos líneas por cada `\r\n` dentro de una celda; NestJS no registra su parser JSON global si ya hay un middleware llamado `jsonParser` (el límite de 6 MB de la ruta de importar dejó sin cuerpo a las demás).
 **Soluciones aplicadas:** se corrige el número de línea en el lector; el parser de la ruta de importar va envuelto en una función con otro nombre.
+
+### Pasos pendientes (24-nov-2026, D49 a D56)
+**Estado**: 🔄 En curso en la rama `f2-pasos` (PR hacia `f2` al cerrar P4); plan en `docs/diseno/pasos.md`
+- **P1 · Núcleo ✅:** agregado `Paso` con R15 a R20, tablas `paso` y `paso_postulacion`, señal única por postulación, bandeja con candidatas y paso propuesto, REST `/pasos`, `/senales` y `/bandeja/:id/asociar` con varias postulaciones, `descartarPasos` al cerrar, `?url=` en la lista, MCP `listar_pasos`, `registrar_paso`, `resolver_paso`, `editar_paso` y `registrar_interaccion_red` con `paso`, evento `paso.detectado` y aviso del sistema «Te piden algo».
+- **P2 · Servicio con IA, P3 · Consola, P4 · Evaluación y cierre:** pendientes.
+
+**Archivos modificados (P1):**
+| Archivo | Cambio |
+|---|---|
+| `services/nucleo/src/postulaciones/dominio/paso.ts`, `id-de-aviso.ts` | Agregado `Paso` y número del aviso desde la URL |
+| `services/nucleo/src/postulaciones/aplicacion/casos-de-pasos.ts`, `casos-de-bandeja.ts`, `casos-de-escritura.ts` | Registrar, listar, resolver y editar pasos; señales a varias postulaciones; R17 |
+| `services/nucleo/prisma/schema.prisma`, `migrations/20261127000000_pasos` | Tablas nuevas y unicidad de la señal por postulación |
+| `services/nucleo/src/postulaciones/infraestructura/http/pasos.controller.ts`, `mcp/servidor-mcp.ts` | REST y MCP |
+| `apps/escritorio/src/notificaciones.ts` | Aviso del sistema para `paso.detectado` |
+| `packages/contratos` | Contrato regenerado |
+
+**Problemas encontrados:** `descartado` no es terminal en el dominio (se puede reabrir), pero vive en «Cerradas». **Solución aplicada:** `estaCerrada()` en `estado.ts` para R17.
 
 ### F4: Panorama en Next.js (local)
 **Estado**: ⬜ Pendiente

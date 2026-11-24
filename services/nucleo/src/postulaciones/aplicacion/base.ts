@@ -2,6 +2,7 @@ import type { Deps, GeneradorId, Reloj } from '../../compartido/dominio/puertos'
 import { ConflictoDeVersion, NoEncontrada } from '../dominio/errores';
 import type { Postulacion } from '../dominio/postulacion';
 import type { PostulacionRepositorio } from '../dominio/postulacion.repositorio';
+import type { PasoRepositorio } from '../dominio/paso';
 import type { BandejaRepositorio } from '../dominio/senal-pendiente';
 import type { Ajustes, ConsultasDePostulaciones } from './puertos';
 import type { VistaDetalle } from './vistas';
@@ -9,6 +10,7 @@ import type { VistaDetalle } from './vistas';
 export interface Contexto {
   repo: PostulacionRepositorio;
   bandeja: BandejaRepositorio;
+  pasos: PasoRepositorio;
   consultas: ConsultasDePostulaciones;
   reloj: Reloj;
   ids: GeneradorId;

@@ -90,6 +90,7 @@ export class PostulacionesController {
       ...(q.prioridad ? { prioridades: q.prioridad } : {}),
       ...(q.etiqueta ? { etiquetas: q.etiqueta } : {}),
       ...(q.q ? { q: q.q } : {}),
+      ...(q.url ? { url: q.url } : {}),
       ...(q.limit !== undefined ? { limit: q.limit } : {}),
       ...(q.offset !== undefined ? { offset: q.offset } : {}),
     });

@@ -20,6 +20,7 @@ function senal(extra: Partial<SenalPendiente> = {}): SenalPendiente {
     asunto: 'Entrevista',
     empresaDetectada: 'Ficticia',
     cargoDetectado: 'Backend',
+    candidatas: [],
     estado: 'pendiente',
     resueltaEn: null,
     creadaEn: '2026-11-23T12:00:00.000Z',

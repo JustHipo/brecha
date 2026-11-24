@@ -1,7 +1,15 @@
 import type { Prioridad } from '../../compartido/dominio/evento-de-dominio';
 import type { EstadoPostulacion } from '../dominio/estado';
 import type { Plataforma } from '../dominio/objetos-valor/valores';
-import type { ElementoResumen, VistaDetalle, VistaExportacion, VistaResumen, VistaTablero } from './vistas';
+import type { EstadoDePaso } from '../dominio/paso';
+import type {
+  ElementoResumen,
+  VistaDetalle,
+  VistaExportacion,
+  VistaPaso,
+  VistaResumen,
+  VistaTablero,
+} from './vistas';
 
 export interface FiltrosPostulaciones {
   estados?: EstadoPostulacion[];
@@ -10,6 +18,8 @@ export interface FiltrosPostulaciones {
   /** La postulación debe tener todas estas etiquetas (ya normalizadas). */
   etiquetas?: string[];
   q?: string;
+  /** URL del aviso o solo su número (Chiletrabajos …-3916453): ubica la postulación desde un portal. */
+  url?: string;
 }
 
 export interface EtiquetaEnUso {
@@ -30,6 +40,9 @@ export interface ConsultasDePostulaciones {
   detalle(id: string): Promise<VistaDetalle | null>;
   resumenDesde(desde: Date): Promise<ElementoResumen[]>;
   exportar(): Promise<VistaExportacion>;
+  /** Pasos con sus postulaciones: pendientes primero (por plazo) y después los cerrados, del más nuevo. */
+  pasos(filtro?: { estado?: EstadoDePaso; postulacionId?: string }): Promise<VistaPaso[]>;
+  paso(id: string): Promise<VistaPaso | null>;
 }
 
 /** Ajustes de la instancia (R11). */

@@ -389,6 +389,57 @@ export interface paths {
         patch: operations["vincularAviso"];
         trace?: never;
     };
+    "/api/v1/pasos": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Pendientes primero (por plazo) y después los cerrados, del más nuevo al más antiguo */
+        get: operations["listarPasos"];
+        put?: never;
+        /** Anota un paso pendiente o ya hecho */
+        post: operations["registrarPaso"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/pasos/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch: operations["editarPaso"];
+        trace?: never;
+    };
+    "/api/v1/pasos/{id}/resolver": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Hecho, descartado o reabrir (pendiente) */
+        post: operations["resolverPaso"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/eventos/stream": {
         parameters: {
             query?: never;
@@ -555,6 +606,14 @@ export interface components {
         EstadoPostulacion: "sin_decidir" | "por_postular" | "postulado" | "en_proceso" | "entrevista" | "oferta" | "aceptada" | "rechazado" | "descartado";
         /** @enum {string} */
         Prioridad: "alta" | "media" | "baja";
+        PasoCortoDto: {
+            id: string;
+            descripcion: string;
+            /** Format: date */
+            plazo: string | null;
+            /** @description Días hasta el plazo (negativo si venció) */
+            diasAlPlazo: number | null;
+        };
         ResumenPostulacionDto: {
             id: string;
             titulo: string;
@@ -577,6 +636,8 @@ export interface components {
             /** @description Señales sin aplicar */
             senalesNuevas: number;
             discrepanciasAbiertas: number;
+            /** @description Lo que te piden hacer, el de plazo más cercano primero */
+            pasosPendientes: components["schemas"]["PasoCortoDto"][];
             transicionesPosibles: components["schemas"]["EstadoPostulacion"][];
             version: number;
             /** Format: date-time */
@@ -615,7 +676,7 @@ export interface components {
             empresa: string;
             titulo: string;
             /** @enum {string} */
-            tipo: "cambio" | "senal" | "discrepancia" | "nota";
+            tipo: "cambio" | "senal" | "discrepancia" | "nota" | "paso";
             descripcion: string;
             prioridad: components["schemas"]["Prioridad"];
             /** Format: date-time */
@@ -773,6 +834,63 @@ export interface components {
             /** Format: date-time */
             resueltaEn: string | null;
         };
+        PostulacionDelPasoDto: {
+            id: string;
+            empresa: string;
+            titulo: string;
+            estado: components["schemas"]["EstadoPostulacion"];
+        };
+        /** @enum {string} */
+        EstadoDePaso: "pendiente" | "hecho" | "descartado";
+        /** @enum {string} */
+        FuenteDePaso: "correo" | "linkedin" | "portal" | "persona";
+        /** @enum {string} */
+        RegistradorDePaso: "vigia" | "ia" | "persona";
+        /** @enum {string} */
+        CerradorDePaso: "persona" | "ia" | "correo" | "sistema";
+        CierreDePasoDto: {
+            por: components["schemas"]["CerradorDePaso"];
+            /** Format: date-time */
+            en: string;
+            nota: string | null;
+            /** @description El correo que lo dio por hecho */
+            referenciaExterna: string | null;
+        };
+        SugerenciaDeCierreDto: {
+            referenciaExterna: string | null;
+            confianza: number;
+            /** Format: date-time */
+            en: string;
+        };
+        PasoDto: {
+            id: string;
+            descripcion: string;
+            /** Format: date */
+            plazo: string | null;
+            /** @description Días hasta el plazo (negativo si venció) */
+            diasAlPlazo: number | null;
+            postulacionIds: string[];
+            postulaciones: components["schemas"]["PostulacionDelPasoDto"][];
+            detalle: string | null;
+            enlace: string | null;
+            estado: components["schemas"]["EstadoDePaso"];
+            fuente: components["schemas"]["FuenteDePaso"];
+            registradoPor: components["schemas"]["RegistradorDePaso"];
+            contactoRedId: string | null;
+            referenciaExterna: string | null;
+            cierre: components["schemas"]["CierreDePasoDto"] | null;
+            sugerenciaCierre: components["schemas"]["SugerenciaDeCierreDto"] | null;
+            /**
+             * Format: date-time
+             * @description Cuándo te lo pidieron
+             */
+            pedidoEn: string;
+            /** Format: date-time */
+            creadoEn: string;
+            /** Format: date-time */
+            actualizadoEn: string;
+            version: number;
+        };
         DetallePostulacionDto: {
             id: string;
             titulo: string;
@@ -795,6 +913,8 @@ export interface components {
             /** @description Señales sin aplicar */
             senalesNuevas: number;
             discrepanciasAbiertas: number;
+            /** @description Lo que te piden hacer, el de plazo más cercano primero */
+            pasosPendientes: components["schemas"]["PasoCortoDto"][];
             transicionesPosibles: components["schemas"]["EstadoPostulacion"][];
             version: number;
             /** Format: date-time */
@@ -811,6 +931,8 @@ export interface components {
             /** @description De la más nueva a la más antigua */
             senales: components["schemas"]["SenalDto"][];
             discrepancias: components["schemas"]["DiscrepanciaDto"][];
+            /** @description El proceso: todos los pasos, en el orden en que te los pidieron */
+            pasos: components["schemas"]["PasoDto"][];
             /** Format: date-time */
             creadaEn: string;
         };
@@ -875,6 +997,8 @@ export interface components {
             origen?: "tablero" | "formulario";
             /** @description Versión que tenías (bloqueo optimista) */
             version: number;
+            /** @description Al cerrarla, descartar sus pasos pendientes que solo tocan postulaciones cerradas (R17) */
+            descartarPasos?: boolean;
         };
         NotaDto: {
             texto: string;
@@ -923,9 +1047,30 @@ export interface components {
             canal?: components["schemas"]["CanalEntradaDto"];
             version?: number;
         };
+        PasoPedidoDto: {
+            descripcion: string;
+            detalle?: string;
+            /** Format: date */
+            plazo?: string;
+            enlace?: string;
+            /** @description Id de un paso pendiente que este correo solo recuerda (R19) */
+            mismoQue?: string;
+        };
+        PasoCumplidoDto: {
+            id: string;
+            confianza: number;
+        };
         SenalRecibidaEntradaDto: {
             /** @description Sin postulación, la señal va a la bandeja */
             postulacionId?: string;
+            /** @description Varias postulaciones: una señal en cada una */
+            postulacionIds?: string[];
+            /** @description Sin postulación: las propuestas sin certeza */
+            candidatas?: string[];
+            /** @description Lo que el correo pide hacer */
+            paso?: components["schemas"]["PasoPedidoDto"];
+            /** @description Pasos pendientes que este correo da por hechos */
+            pasosCumplidos?: components["schemas"]["PasoCumplidoDto"][];
             fuente: components["schemas"]["FuenteDeSenal"];
             plataforma?: components["schemas"]["Plataforma"];
             resumen: string;
@@ -939,6 +1084,13 @@ export interface components {
             asunto?: string;
             empresaDetectada?: string;
             cargoDetectado?: string;
+        };
+        SenalEnPostulacionDto: {
+            postulacionId: string;
+            senalId: string | null;
+            aplicada: boolean;
+            /** @description Ya estaba registrada en esa postulación */
+            repetida: boolean;
         };
         /** @enum {string} */
         EstadoDePendiente: "pendiente" | "asociada" | "descartada";
@@ -956,6 +1108,8 @@ export interface components {
             asunto?: string;
             empresaDetectada?: string;
             cargoDetectado?: string;
+            candidatas: string[];
+            pasoPropuesto?: components["schemas"]["PasoPedidoDto"];
             estado: components["schemas"]["EstadoDePendiente"];
             postulacionId?: string;
             /** Format: date-time */
@@ -966,12 +1120,23 @@ export interface components {
         ResultadoRecepcionDto: {
             /** @enum {string} */
             destino: "postulacion" | "bandeja";
+            /** @description La primera señal nueva */
             senal?: components["schemas"]["SenalDto"];
             postulacion?: components["schemas"]["DetallePostulacionDto"];
+            senales?: components["schemas"]["SenalEnPostulacionDto"][];
+            paso?: components["schemas"]["PasoDto"] | null;
+            /** @enum {string|null} */
+            accion?: "creado" | "recordado" | "ya_estaba" | null;
+            /** @description Pasos que este correo cerró */
+            cerrados?: string[];
+            /** @description Pasos que quedaron con la sugerencia de cierre */
+            sugeridos?: string[];
             pendiente?: components["schemas"]["SenalPendienteDto"];
         };
         AsociarDto: {
-            postulacionId: string;
+            postulacionId?: string;
+            /** @description A varias postulaciones a la vez */
+            postulacionIds?: string[];
         };
         CrearDesdeSenalDto: {
             aviso: components["schemas"]["AvisoEntradaDto"];
@@ -979,6 +1144,82 @@ export interface components {
         VincularAvisoDto: {
             avisoId?: string;
             calce?: number;
+        };
+        RegistrarPasoDto: {
+            /** @description Una o más postulaciones, abiertas o cerradas */
+            postulacionIds: string[];
+            /** @description Texto libre corto: lo que se ve en la tarjeta */
+            descripcion: string;
+            /** @description Qué piden exactamente y cómo */
+            detalle?: string;
+            /** Format: date */
+            plazo?: string;
+            enlace?: string;
+            /**
+             * @description hecho: para anotar algo que ya hiciste
+             * @enum {string}
+             */
+            estado?: "pendiente" | "hecho";
+            /** @default persona */
+            fuente: components["schemas"]["FuenteDePaso"];
+            /** @description La persona de tu red que lo pidió */
+            contactoRedId?: string;
+            /** @description Correo o mensaje que lo pidió: no se duplica */
+            referenciaExterna?: string;
+            /**
+             * Format: date-time
+             * @description Cuándo te lo pidieron
+             */
+            pedidoEn?: string;
+            nota?: string;
+        };
+        PasoRegistradoDto: {
+            id: string;
+            descripcion: string;
+            /** Format: date */
+            plazo: string | null;
+            /** @description Días hasta el plazo (negativo si venció) */
+            diasAlPlazo: number | null;
+            postulacionIds: string[];
+            postulaciones: components["schemas"]["PostulacionDelPasoDto"][];
+            detalle: string | null;
+            enlace: string | null;
+            estado: components["schemas"]["EstadoDePaso"];
+            fuente: components["schemas"]["FuenteDePaso"];
+            registradoPor: components["schemas"]["RegistradorDePaso"];
+            contactoRedId: string | null;
+            referenciaExterna: string | null;
+            cierre: components["schemas"]["CierreDePasoDto"] | null;
+            sugerenciaCierre: components["schemas"]["SugerenciaDeCierreDto"] | null;
+            /**
+             * Format: date-time
+             * @description Cuándo te lo pidieron
+             */
+            pedidoEn: string;
+            /** Format: date-time */
+            creadoEn: string;
+            /** Format: date-time */
+            actualizadoEn: string;
+            version: number;
+            /** @description Ese correo o mensaje ya había creado este paso */
+            yaEstaba: boolean;
+        };
+        EditarPasoDto: {
+            version: number;
+            descripcion?: string;
+            /** @description null lo borra */
+            detalle?: string | null;
+            /** Format: date */
+            plazo?: string | null;
+            enlace?: string | null;
+            postulacionIds?: string[];
+        };
+        ResolverPasoDto: {
+            /** @description pendiente lo reabre */
+            estado: components["schemas"]["EstadoDePaso"];
+            nota?: string;
+            /** @description Versión que tenías; si cambió, CONFLICTO */
+            version?: number;
         };
         EventoDto: {
             id: string;
@@ -1237,6 +1478,8 @@ export interface operations {
                 etiqueta?: string[];
                 /** @description Texto en título o empresa */
                 q?: string;
+                /** @description URL del aviso o solo su número (por ejemplo 3916453) */
+                url?: string;
                 limit?: number;
                 offset?: number;
             };
@@ -2328,6 +2571,173 @@ export interface operations {
             };
             /** @description NO_ENCONTRADO */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorDto"];
+                };
+            };
+        };
+    };
+    listarPasos: {
+        parameters: {
+            query?: {
+                estado?: components["schemas"]["EstadoDePaso"];
+                postulacionId?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PasoDto"][];
+                };
+            };
+        };
+    };
+    registrarPaso: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RegistrarPasoDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PasoRegistradoDto"];
+                };
+            };
+            /** @description VALIDACION */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorDto"];
+                };
+            };
+            /** @description NO_ENCONTRADO */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorDto"];
+                };
+            };
+        };
+    };
+    editarPaso: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EditarPasoDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PasoDto"];
+                };
+            };
+            /** @description VALIDACION */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorDto"];
+                };
+            };
+            /** @description NO_ENCONTRADO */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorDto"];
+                };
+            };
+            /** @description CONFLICTO */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorDto"];
+                };
+            };
+        };
+    };
+    resolverPaso: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ResolverPasoDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PasoDto"];
+                };
+            };
+            /** @description VALIDACION */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorDto"];
+                };
+            };
+            /** @description NO_ENCONTRADO */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorDto"];
+                };
+            };
+            /** @description CONFLICTO */
+            409: {
                 headers: {
                     [name: string]: unknown;
                 };
