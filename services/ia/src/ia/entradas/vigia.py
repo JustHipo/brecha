@@ -98,7 +98,14 @@ def main() -> None:
     def clasificar() -> ResumenDeClasificacion:
         modelo = ModeloOpenAI(llavero.obtener(TipoDeCredencial.OPENAI) or "", cfg.openai_modelo)
         precios = (cfg.openai_precio_entrada, cfg.openai_precio_salida)
-        return ClasificarPendientes(modelo, repo, trazas, lambda: datetime.now(UTC), precios).ejecutar()
+        try:
+            # Con el núcleo, el modelo ve las candidatas y sus pasos (pasos.md §5.2).
+            nucleo: NucleoHttp | None = NucleoHttp(cfg.nucleo_url, leer_token(cfg.carpeta_instancia))
+        except Exception:
+            nucleo = None
+        return ClasificarPendientes(
+            modelo, repo, trazas, lambda: datetime.now(UTC), precios, nucleo=nucleo
+        ).ejecutar()
 
     def registrar() -> ResumenDeRegistro:
         try:
@@ -119,10 +126,11 @@ def main() -> None:
             log.error("red de LinkedIn: %s (los avisos esperan a la próxima vuelta)", r.error)
         elif r.registrados:
             log.info(
-                "red de LinkedIn: %s avisos, %s nuevos, %s ligados a postulaciones",
+                "red de LinkedIn: %s avisos, %s nuevos, %s ligados a postulaciones, %s pasos",
                 r.registrados,
                 r.nuevos,
                 r.ligados,
+                r.pasos,
             )
 
     servicios = Servicios(cfg, llavero, motor)

@@ -1,4 +1,5 @@
-import { Body, Controller, Get, HttpCode, Inject, Param, Patch, Post } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, Inject, Param, Patch, Post, Req } from '@nestjs/common';
+import type { Request } from 'express';
 import {
   ApiBearerAuth,
   ApiCreatedResponse,
@@ -11,6 +12,8 @@ import {
 } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {
+  ArrayMaxSize,
+  IsArray,
   IsDateString,
   IsIn,
   IsNumber,
@@ -19,22 +22,70 @@ import {
   IsString,
   Max,
   MaxLength,
+  Matches,
   Min,
+  MinLength,
   ValidateNested,
 } from 'class-validator';
-import { SoloTokens } from '../../../acceso/decoradores';
+import { SoloTokens, type PedidoConAcceso } from '../../../acceso/decoradores';
 import { ESTADOS, type EstadoPostulacion } from '../../dominio/estado';
 import { PLATAFORMAS } from '../../dominio/objetos-valor/valores';
 import { FUENTES_DE_SENAL, type FuenteDeSenal } from '../../dominio/partes';
 import { CasosDeUso } from '../casos';
 import { AvisoEntradaDto } from './dto';
-import { DetallePostulacionDto, ErrorDto, SenalDto } from './respuestas.dto';
+import { DetallePostulacionDto, ErrorDto, PasoDto, SenalDto } from './respuestas.dto';
+
+export class PasoPedidoDto {
+  @ApiProperty({ minLength: 3, maxLength: 120 })
+  @IsString()
+  @MinLength(3)
+  @MaxLength(120)
+  descripcion!: string;
+  @ApiPropertyOptional({ maxLength: 2000 }) @IsOptional() @IsString() @MaxLength(2000) detalle?: string;
+  @ApiPropertyOptional({ format: 'date' }) @IsOptional() @Matches(/^\d{4}-\d{2}-\d{2}$/) plazo?: string;
+  @ApiPropertyOptional({ maxLength: 2000 }) @IsOptional() @IsString() @MaxLength(2000) enlace?: string;
+  @ApiPropertyOptional({ description: 'Id de un paso pendiente que este correo solo recuerda (R19)' })
+  @IsOptional()
+  @IsString()
+  mismoQue?: string;
+}
+
+export class PasoCumplidoDto {
+  @ApiProperty() @IsString() id!: string;
+  @ApiProperty({ minimum: 0, maximum: 1 }) @IsNumber() @Min(0) @Max(1) confianza!: number;
+}
 
 export class SenalRecibidaEntradaDto {
   @ApiPropertyOptional({ description: 'Sin postulación, la señal va a la bandeja' })
   @IsOptional()
   @IsString()
   postulacionId?: string;
+  @ApiPropertyOptional({ type: [String], description: 'Varias postulaciones: una señal en cada una' })
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(20)
+  @IsString({ each: true })
+  postulacionIds?: string[];
+  @ApiPropertyOptional({ type: [String], description: 'Sin postulación: las propuestas sin certeza' })
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(8)
+  @IsString({ each: true })
+  candidatas?: string[];
+  @ApiPropertyOptional({ type: PasoPedidoDto, description: 'Lo que el correo pide hacer' })
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => PasoPedidoDto)
+  paso?: PasoPedidoDto;
+  @ApiPropertyOptional({
+    type: [PasoCumplidoDto],
+    description: 'Pasos pendientes que este correo da por hechos',
+  })
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => PasoCumplidoDto)
+  pasosCumplidos?: PasoCumplidoDto[];
   @ApiProperty({ enum: FUENTES_DE_SENAL, enumName: 'FuenteDeSenal' })
   @IsIn(FUENTES_DE_SENAL)
   fuente!: FuenteDeSenal;
@@ -77,6 +128,8 @@ export class SenalPendienteDto {
   @ApiPropertyOptional() asunto?: string;
   @ApiPropertyOptional() empresaDetectada?: string;
   @ApiPropertyOptional() cargoDetectado?: string;
+  @ApiProperty({ type: [String] }) candidatas!: string[];
+  @ApiPropertyOptional({ type: PasoPedidoDto }) pasoPropuesto?: PasoPedidoDto;
   @ApiProperty({ enum: ['pendiente', 'asociada', 'descartada'], enumName: 'EstadoDePendiente' })
   estado!: string;
   @ApiPropertyOptional() postulacionId?: string;
@@ -84,15 +137,34 @@ export class SenalPendienteDto {
   @ApiProperty({ format: 'date-time' }) creadaEn!: string;
 }
 
+export class SenalEnPostulacionDto {
+  @ApiProperty() postulacionId!: string;
+  @ApiProperty({ type: String, nullable: true }) senalId!: string | null;
+  @ApiProperty() aplicada!: boolean;
+  @ApiProperty({ description: 'Ya estaba registrada en esa postulación' }) repetida!: boolean;
+}
+
 export class ResultadoRecepcionDto {
   @ApiProperty({ enum: ['postulacion', 'bandeja'] }) destino!: string;
-  @ApiPropertyOptional({ type: SenalDto }) senal?: SenalDto;
+  @ApiPropertyOptional({ type: SenalDto, description: 'La primera señal nueva' }) senal?: SenalDto;
   @ApiPropertyOptional({ type: DetallePostulacionDto }) postulacion?: DetallePostulacionDto;
+  @ApiPropertyOptional({ type: [SenalEnPostulacionDto] }) senales?: SenalEnPostulacionDto[];
+  @ApiPropertyOptional({ type: PasoDto, nullable: true }) paso?: PasoDto | null;
+  @ApiPropertyOptional({ enum: ['creado', 'recordado', 'ya_estaba'], nullable: true }) accion?: string | null;
+  @ApiPropertyOptional({ type: [String], description: 'Pasos que este correo cerró' }) cerrados?: string[];
+  @ApiPropertyOptional({ type: [String], description: 'Pasos que quedaron con la sugerencia de cierre' })
+  sugeridos?: string[];
   @ApiPropertyOptional({ type: SenalPendienteDto }) pendiente?: SenalPendienteDto;
 }
 
 class AsociarDto {
-  @ApiProperty() @IsString() postulacionId!: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() postulacionId?: string;
+  @ApiPropertyOptional({ type: [String], description: 'A varias postulaciones a la vez' })
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(20)
+  @IsString({ each: true })
+  postulacionIds?: string[];
 }
 
 class CrearDesdeSenalDto {
@@ -127,10 +199,11 @@ export class BandejaController {
   @err(400, 'VALIDACION')
   @err(404, 'NO_ENCONTRADO')
   @err(409, 'YA_EXISTE')
-  recibir(@Body() dto: SenalRecibidaEntradaDto) {
+  recibir(@Body() dto: SenalRecibidaEntradaDto, @Req() req: Request & PedidoConAcceso) {
     const { recibidaEn, ...resto } = dto;
     return this.casos.recibirSenal.ejecutar({
       ...resto,
+      registradoPor: req.acceso?.tipo === 'mcp' ? 'ia' : 'vigia',
       ...(recibidaEn ? { recibidaEn: new Date(recibidaEn) } : {}),
     });
   }
@@ -153,7 +226,11 @@ export class BandejaController {
   @err(404, 'NO_ENCONTRADO')
   @err(409, 'YA_EXISTE o CONFLICTO')
   asociar(@Param('senalId') senalId: string, @Body() dto: AsociarDto) {
-    return this.casos.asociarSenal.ejecutar({ senalId, postulacionId: dto.postulacionId });
+    return this.casos.asociarSenal.ejecutar({
+      senalId,
+      ...(dto.postulacionId ? { postulacionId: dto.postulacionId } : {}),
+      ...(dto.postulacionIds ? { postulacionIds: dto.postulacionIds } : {}),
+    });
   }
 
   @Post('bandeja/:senalId/crear')

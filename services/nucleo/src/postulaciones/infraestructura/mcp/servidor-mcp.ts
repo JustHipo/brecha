@@ -6,7 +6,8 @@ import { PRIORIDADES } from '../../../compartido/dominio/evento-de-dominio';
 import { ESTADOS } from '../../dominio/estado';
 import { MODALIDADES, MONEDAS, PLATAFORMAS, TIPOS_DE_CANAL } from '../../dominio/objetos-valor/valores';
 import { FUENTES_DE_SENAL, TIPOS_DE_ENTREVISTA } from '../../dominio/partes';
-import type { VistaDetalle } from '../../aplicacion/vistas';
+import type { VistaDetalle, VistaPaso } from '../../aplicacion/vistas';
+import { ESTADOS_DE_PASO, FUENTES_DE_PASO } from '../../dominio/paso';
 import type { CasosDeRed } from '../../../red/aplicacion/casos-de-red';
 import { FILTROS_DE_RED } from '../../../red/aplicacion/casos-de-red';
 import { TIPOS_DE_INTERACCION } from '../../../red/dominio/contacto-de-red';
@@ -72,7 +73,11 @@ export function crearServidorMcp(casos: CasosDeUso, red?: CasosDeRed, csv?: Caso
         'Tu red de LinkedIn (contactos, solicitudes y mensajes) se lleva con listar_red, registrar_contacto_red, registrar_interaccion_red y editar_contacto_red: ' +
         'LinkedIn no tiene API, así que la revisas desde el navegador de la persona y registras aquí, ligando cada contacto a sus postulaciones. ' +
         'Liga a una persona a una postulación solo si trabaja hoy en esa empresa: si su cargo actual dice otra empresa o te cuenta que ya no está ahí, ' +
-        'desvincúlala de esa postulación (editar_contacto_red con desvincular), corrige su empresa y anótalo en sus notas.',
+        'desvincúlala de esa postulación (editar_contacto_red con desvincular), corrige su empresa y anótalo en sus notas. ' +
+        'Pasos pendientes: cuando un correo, un mensaje de LinkedIn o un portal le pida algo a la persona (un test, mandar el CV, un formulario, agendar), regístralo: ' +
+        'con registrar_interaccion_red y su campo paso si vino por LinkedIn, o con registrar_paso si lo viste en un portal (también lo que ya hizo, con estado hecho). ' +
+        'Antes de registrar, mira los pasos de la postulación (ver_postulacion o listar_pasos) para no duplicar. Para ubicar la postulación desde la página de un aviso usa listar_postulaciones con url. ' +
+        'Cuando la persona diga que completó algo, márcalo con resolver_paso. Los pasos se registran aunque la postulación esté cerrada.',
     },
   );
   const lectura = { readOnlyHint: true, openWorldHint: false };
@@ -92,6 +97,12 @@ export function crearServidorMcp(casos: CasosDeUso, red?: CasosDeRed, csv?: Caso
           .optional()
           .describe('Debe tener todas (se comparan en minúsculas y sin tildes)'),
         q: z.string().optional().describe('Texto en título o empresa'),
+        url: z
+          .string()
+          .optional()
+          .describe(
+            'URL del aviso o solo su número (3916453): ubica la postulación desde la página de un portal',
+          ),
         limit: z.number().int().min(1).max(200).optional(),
         offset: z.number().int().min(0).optional(),
       },
@@ -126,7 +137,8 @@ export function crearServidorMcp(casos: CasosDeUso, red?: CasosDeRed, csv?: Caso
     'ver_postulacion',
     {
       title: 'Ver postulación',
-      description: 'Detalle con historial, señales, discrepancias y transicionesPosibles.',
+      description:
+        'Detalle con historial, señales, discrepancias, transicionesPosibles y pasos (el proceso: lo pedido y lo hecho).',
       inputSchema: { id: z.string() },
       annotations: lectura,
     },
@@ -189,6 +201,10 @@ export function crearServidorMcp(casos: CasosDeUso, red?: CasosDeRed, csv?: Caso
         fechaPostulacion: fecha.optional().describe('Obligatoria para postulado si no la tiene'),
         canal: canal.optional().describe('Obligatorio para postulado si no lo tiene'),
         version: z.number().int().optional().describe('Si la pasas y cambió, devuelve CONFLICTO'),
+        descartarPasos: z
+          .boolean()
+          .optional()
+          .describe('Al cerrarla, descarta sus pasos pendientes (solo si la persona lo pide)'),
       },
     },
     (a) =>
@@ -197,7 +213,10 @@ export function crearServidorMcp(casos: CasosDeUso, red?: CasosDeRed, csv?: Caso
         const aviso = d.discrepanciasAbiertas
           ? ` · ⚠ ${d.discrepanciasAbiertas} discrepancia(s) abierta(s)`
           : '';
-        return ok(`Movida: ${linea(d)}${aviso}`, d);
+        const pasos = d.pasosPendientes.length
+          ? ` · quedan ${d.pasosPendientes.length} paso(s) pendiente(s): ${d.pasosPendientes.map((x) => x.descripcion).join('; ')}`
+          : '';
+        return ok(`Movida: ${linea(d)}${aviso}${pasos}`, d);
       }),
   );
 
@@ -280,9 +299,22 @@ export function crearServidorMcp(casos: CasosDeUso, red?: CasosDeRed, csv?: Caso
     {
       title: 'Registrar señal',
       description:
-        'Registra evidencia de una fuente (por ejemplo, un correo que leíste con tu propio MCP de correo). Sin id de postulación, queda en la bandeja para que la persona la asocie. Una señal registrada por ti no cambia el estado: queda como sugerencia. Usa referenciaExterna (Message-ID) para no duplicar.',
+        'Registra evidencia de una fuente (por ejemplo, un correo que leíste con tu propio MCP de correo). Sin id de postulación, queda en la bandeja para que la persona la asocie. Una señal registrada por ti no cambia el estado: queda como sugerencia. Usa referenciaExterna (Message-ID) para no duplicar. ' +
+        'Si el correo pide algo, pásalo en paso; si da por hecho un paso pendiente, en pasosCumplidos.',
       inputSchema: {
         id: z.string().optional().describe('Postulación; sin ella, va a la bandeja'),
+        postulacionIds: z.array(z.string()).optional().describe('Si el correo toca varias postulaciones'),
+        candidatas: z.array(z.string()).optional().describe('Sin postulación: las que crees probables'),
+        paso: z
+          .object({
+            descripcion: z.string().describe('Corta, lo que se ve en la tarjeta'),
+            detalle: z.string().optional(),
+            plazo: fecha.optional(),
+            enlace: z.string().optional(),
+            mismoQue: z.string().optional().describe('Id de un paso pendiente que el correo solo recuerda'),
+          })
+          .optional(),
+        pasosCumplidos: z.array(z.object({ id: z.string(), confianza: z.number().min(0).max(1) })).optional(),
         fuente: z.enum(FUENTES_DE_SENAL),
         resumen: z.string(),
         estadoSugerido: estado.optional(),
@@ -299,6 +331,7 @@ export function crearServidorMcp(casos: CasosDeUso, red?: CasosDeRed, csv?: Caso
         const { recibidaEn, id, ...resto } = a;
         const r = await casos.recibirSenal.ejecutar({
           ...resto,
+          registradoPor: 'ia',
           ...(id ? { postulacionId: id } : {}),
           ...(recibidaEn ? { recibidaEn: new Date(recibidaEn) } : {}),
         });
@@ -334,8 +367,12 @@ export function crearServidorMcp(casos: CasosDeUso, red?: CasosDeRed, csv?: Caso
     {
       title: 'Asociar señal',
       description:
-        'Lleva una señal de la bandeja a una postulación (con la misma referencia, no se duplica).',
-      inputSchema: { senalId: z.string(), postulacionId: z.string() },
+        'Lleva una señal de la bandeja a una o varias postulaciones (con la misma referencia, no se duplica). Si el correo pidió algo, el paso se crea ligado a todas.',
+      inputSchema: {
+        senalId: z.string(),
+        postulacionId: z.string().optional(),
+        postulacionIds: z.array(z.string()).optional(),
+      },
     },
     (a) => correr(async () => ok('Señal asociada', await casos.asociarSenal.ejecutar(a))),
   );
@@ -397,6 +434,8 @@ export function crearServidorMcp(casos: CasosDeUso, red?: CasosDeRed, csv?: Caso
         ok('Discrepancia resuelta', await casos.resolverDiscrepancia.ejecutar({ ...a, origen: 'ia' })),
       ),
   );
+
+  registrarPasos(s, casos);
 
   s.registerTool(
     'resumen',
@@ -466,7 +505,7 @@ export function crearServidorMcp(casos: CasosDeUso, red?: CasosDeRed, csv?: Caso
     }),
   );
 
-  if (red) registrarRed(s, red);
+  if (red) registrarRed(s, red, casos);
   if (csv) {
     s.registerTool(
       'importar_csv',
@@ -520,7 +559,7 @@ export function crearServidorMcp(casos: CasosDeUso, red?: CasosDeRed, csv?: Caso
 }
 
 /** Tu red de LinkedIn (no tiene API): la IA la lee desde tu navegador y la registra aquí. */
-function registrarRed(s: McpServer, red: CasosDeRed): void {
+function registrarRed(s: McpServer, red: CasosDeRed, casos: CasosDeUso): void {
   const lectura = { readOnlyHint: true, openWorldHint: false };
   const fila = (c: {
     nombre: string;
@@ -604,17 +643,52 @@ function registrarRed(s: McpServer, red: CasosDeRed): void {
         resumen: z.string(),
         ocurridaEn: z.string().datetime({ offset: true }).optional(),
         referenciaExterna: z.string().optional(),
+        paso: z
+          .object({
+            descripcion: z.string().describe('Corta: «Contestar a Daniel con tu CV»'),
+            detalle: z.string().optional().describe('Qué pide exactamente y cómo'),
+            plazo: fecha.optional(),
+            postulacionIds: z
+              .array(z.string())
+              .optional()
+              .describe('Si no, las postulaciones ligadas al contacto'),
+          })
+          .optional()
+          .describe('Si el mensaje te pide hacer algo: queda como paso pendiente en sus postulaciones'),
       },
     },
     (a) =>
       correr(async () => {
-        const { ocurridaEn, ...resto } = a;
+        const { ocurridaEn, paso, ...resto } = a;
         const r = await red.registrarInteraccion.ejecutar({
           ...resto,
           ...(ocurridaEn ? { ocurridaEn: new Date(ocurridaEn) } : {}),
           origen: 'ia',
         });
-        return ok(r.agregada ? 'Interacción registrada' : 'Ya estaba registrada', r);
+        const texto = r.agregada ? 'Interacción registrada' : 'Ya estaba registrada';
+        if (!paso) return ok(texto, r);
+        const { postulacionIds, ...pedido } = paso;
+        const ids = postulacionIds?.length ? postulacionIds : r.postulacionIds;
+        if (!ids.length) {
+          return ok(
+            `${texto}. El paso NO se registró: el contacto no está ligado a ninguna postulación. ` +
+              'Búscala con listar_postulaciones (q con la empresa) y vuelve a llamar con paso.postulacionIds.',
+            r,
+          );
+        }
+        const p = await casos.registrarPaso.ejecutar({
+          ...pedido,
+          postulacionIds: ids,
+          fuente: 'linkedin',
+          registradoPor: 'ia',
+          contactoRedId: r.id,
+          ...(a.referenciaExterna ? { referenciaExterna: `${a.referenciaExterna}#paso` } : {}),
+          ...(ocurridaEn ? { pedidoEn: new Date(ocurridaEn) } : {}),
+        });
+        return ok(`${texto} · paso ${p.yaEstaba ? 'ya estaba' : 'registrado'}: ${p.descripcion}`, {
+          contacto: r,
+          paso: p,
+        });
       }),
   );
 
@@ -638,5 +712,105 @@ function registrarRed(s: McpServer, red: CasosDeRed): void {
       },
     },
     (a) => correr(async () => ok('Contacto editado', await red.editar.ejecutar(a))),
+  );
+}
+
+/** Pasos pendientes (docs/diseno/pasos.md §8): lo que cada postulación te pide hacer. */
+function registrarPasos(s: McpServer, casos: CasosDeUso): void {
+  const lectura = { readOnlyHint: true, openWorldHint: false };
+  const fila = (p: VistaPaso) =>
+    `${p.estado} · ${p.descripcion}${p.plazo ? ` · plazo ${p.plazo}` : ''} · ` +
+    `${p.postulaciones.map((x) => `${x.empresa} (${x.estado})`).join(', ')} · id ${p.id}`;
+
+  s.registerTool(
+    'listar_pasos',
+    {
+      title: 'Listar pasos pendientes',
+      description:
+        'Lo que tus postulaciones te piden hacer. Por defecto, solo los pendientes (por plazo). estado: pendiente, hecho o descartado.',
+      inputSchema: {
+        estado: z.enum(ESTADOS_DE_PASO).optional(),
+        postulacionId: z.string().optional(),
+        todos: z.boolean().optional().describe('true: todos los estados'),
+      },
+      annotations: lectura,
+    },
+    ({ estado: e, postulacionId, todos }) =>
+      correr(async () => {
+        const r = await casos.listarPasos.ejecutar({
+          ...(todos ? {} : { estado: e ?? 'pendiente' }),
+          ...(postulacionId ? { postulacionId } : {}),
+        });
+        return ok(`${r.length} pasos\n${r.map(fila).join('\n')}`, r);
+      }),
+  );
+
+  s.registerTool(
+    'registrar_paso',
+    {
+      title: 'Registrar un paso',
+      description:
+        'Algo que una o más postulaciones piden hacer (un test, un formulario, mandar documentos), visto en un portal, un correo o un mensaje. ' +
+        'Texto libre. estado hecho para anotar lo que la persona ya hizo, así la ficha muestra el proceso completo. ' +
+        'Funciona aunque la postulación esté cerrada. Usa referenciaExterna para no duplicar (el mismo pedido dos veces devuelve el que estaba).',
+      inputSchema: {
+        postulacionIds: z.array(z.string()).min(1),
+        descripcion: z.string().describe('Corta, de 3 a 120 caracteres: lo que se ve en la tarjeta'),
+        detalle: z.string().optional().describe('Qué piden exactamente y cómo'),
+        plazo: fecha.optional(),
+        enlace: z.string().optional(),
+        estado: z.enum(['pendiente', 'hecho']).optional(),
+        fuente: z.enum(FUENTES_DE_PASO).optional().describe('Por dónde llegó el pedido (por defecto portal)'),
+        contactoRedId: z.string().optional(),
+        referenciaExterna: z.string().optional(),
+        pedidoEn: z.string().optional().describe('ISO 8601: cuándo lo pidieron'),
+      },
+    },
+    (a) =>
+      correr(async () => {
+        const { pedidoEn, ...resto } = a;
+        const p = await casos.registrarPaso.ejecutar({
+          ...resto,
+          fuente: a.fuente ?? 'portal',
+          registradoPor: 'ia',
+          ...(pedidoEn ? { pedidoEn: new Date(pedidoEn) } : {}),
+        });
+        return ok(p.yaEstaba ? `Ya estaba: ${fila(p)}` : `Registrado: ${fila(p)}`, p);
+      }),
+  );
+
+  s.registerTool(
+    'resolver_paso',
+    {
+      title: 'Marcar un paso como hecho, descartarlo o reabrirlo',
+      description:
+        'Cuando la persona diga que completó algo («ya mandé el CV»), márcalo hecho. Queda registrado que lo cerró la IA.',
+      inputSchema: {
+        id: z.string(),
+        estado: z.enum(ESTADOS_DE_PASO).describe('hecho, descartado, o pendiente para reabrir'),
+        nota: z.string().optional(),
+        version: z.number().int().optional().describe('Si la pasas y cambió, devuelve CONFLICTO'),
+      },
+    },
+    (a) => correr(async () => ok('Paso actualizado', await casos.resolverPaso.ejecutar({ ...a, por: 'ia' }))),
+  );
+
+  s.registerTool(
+    'editar_paso',
+    {
+      title: 'Editar un paso',
+      description:
+        'Cambia la descripción, el detalle, el plazo, el enlace o las postulaciones (null borra). Pide la versión actual.',
+      inputSchema: {
+        id: z.string(),
+        version: z.number().int(),
+        descripcion: z.string().optional(),
+        detalle: z.string().nullable().optional(),
+        plazo: fecha.nullable().optional(),
+        enlace: z.string().nullable().optional(),
+        postulacionIds: z.array(z.string()).min(1).optional(),
+      },
+    },
+    (a) => correr(async () => ok('Paso editado', await casos.editarPaso.ejecutar(a))),
   );
 }

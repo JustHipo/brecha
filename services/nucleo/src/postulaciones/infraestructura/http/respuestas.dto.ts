@@ -10,6 +10,12 @@ import {
   TIPOS_DE_CANAL,
 } from '../../dominio/objetos-valor/valores';
 import { FUENTES_DE_SENAL, RESULTADOS_DE_ENTREVISTA, TIPOS_DE_ENTREVISTA } from '../../dominio/partes';
+import {
+  CERRADORES_DE_PASO,
+  ESTADOS_DE_PASO,
+  FUENTES_DE_PASO,
+  REGISTRADORES_DE_PASO,
+} from '../../dominio/paso';
 
 // Formas de las respuestas para OpenAPI: de aquí salen los tipos de la consola (ADR 0006).
 
@@ -130,6 +136,58 @@ export class DiscrepanciaDto {
   @ApiProperty({ type: String, format: 'date-time', nullable: true }) resueltaEn!: string | null;
 }
 
+export class PasoCortoDto {
+  @ApiProperty() id!: string;
+  @ApiProperty() descripcion!: string;
+  @ApiProperty({ type: String, format: 'date', nullable: true }) plazo!: string | null;
+  @ApiProperty({ type: Number, nullable: true, description: 'Días hasta el plazo (negativo si venció)' })
+  diasAlPlazo!: number | null;
+}
+
+export class PostulacionDelPasoDto {
+  @ApiProperty() id!: string;
+  @ApiProperty() empresa!: string;
+  @ApiProperty() titulo!: string;
+  @ApiProperty(estado) estado!: string;
+}
+
+export class CierreDePasoDto {
+  @ApiProperty({ enum: CERRADORES_DE_PASO, enumName: 'CerradorDePaso' }) por!: string;
+  @ApiProperty({ format: 'date-time' }) en!: string;
+  @ApiProperty({ type: String, nullable: true }) nota!: string | null;
+  @ApiProperty({ type: String, nullable: true, description: 'El correo que lo dio por hecho' })
+  referenciaExterna!: string | null;
+}
+
+export class SugerenciaDeCierreDto {
+  @ApiProperty({ type: String, nullable: true }) referenciaExterna!: string | null;
+  @ApiProperty() confianza!: number;
+  @ApiProperty({ format: 'date-time' }) en!: string;
+}
+
+export class PasoDto extends PasoCortoDto {
+  @ApiProperty({ type: [String] }) postulacionIds!: string[];
+  @ApiProperty({ type: [PostulacionDelPasoDto] }) postulaciones!: PostulacionDelPasoDto[];
+  @ApiProperty({ type: String, nullable: true }) detalle!: string | null;
+  @ApiProperty({ type: String, nullable: true }) enlace!: string | null;
+  @ApiProperty({ enum: ESTADOS_DE_PASO, enumName: 'EstadoDePaso' }) estado!: string;
+  @ApiProperty({ enum: FUENTES_DE_PASO, enumName: 'FuenteDePaso' }) fuente!: string;
+  @ApiProperty({ enum: REGISTRADORES_DE_PASO, enumName: 'RegistradorDePaso' }) registradoPor!: string;
+  @ApiProperty({ type: String, nullable: true }) contactoRedId!: string | null;
+  @ApiProperty({ type: String, nullable: true }) referenciaExterna!: string | null;
+  @ApiProperty({ type: CierreDePasoDto, nullable: true }) cierre!: CierreDePasoDto | null;
+  @ApiProperty({ type: SugerenciaDeCierreDto, nullable: true })
+  sugerenciaCierre!: SugerenciaDeCierreDto | null;
+  @ApiProperty({ format: 'date-time', description: 'Cuándo te lo pidieron' }) pedidoEn!: string;
+  @ApiProperty({ format: 'date-time' }) creadoEn!: string;
+  @ApiProperty({ format: 'date-time' }) actualizadoEn!: string;
+  @ApiProperty() version!: number;
+}
+
+export class PasoRegistradoDto extends PasoDto {
+  @ApiProperty({ description: 'Ese correo o mensaje ya había creado este paso' }) yaEstaba!: boolean;
+}
+
 export class ResumenPostulacionDto {
   @ApiProperty() id!: string;
   @ApiProperty() titulo!: string;
@@ -154,6 +212,11 @@ export class ResumenPostulacionDto {
   @ApiProperty({ type: String, format: 'date', nullable: true }) fechaPostulacion!: string | null;
   @ApiProperty({ description: 'Señales sin aplicar' }) senalesNuevas!: number;
   @ApiProperty() discrepanciasAbiertas!: number;
+  @ApiProperty({
+    type: [PasoCortoDto],
+    description: 'Lo que te piden hacer, el de plazo más cercano primero',
+  })
+  pasosPendientes!: PasoCortoDto[];
   @ApiProperty({ ...estado, isArray: true }) transicionesPosibles!: string[];
   @ApiProperty() version!: number;
   @ApiProperty({ format: 'date-time' }) actualizadaEn!: string;
@@ -171,6 +234,11 @@ export class DetallePostulacionDto extends ResumenPostulacionDto {
   historial!: CambioDeEstadoDto[];
   @ApiProperty({ type: [SenalDto], description: 'De la más nueva a la más antigua' }) senales!: SenalDto[];
   @ApiProperty({ type: [DiscrepanciaDto] }) discrepancias!: DiscrepanciaDto[];
+  @ApiProperty({
+    type: [PasoDto],
+    description: 'El proceso: todos los pasos, en el orden en que te los pidieron',
+  })
+  pasos!: PasoDto[];
   @ApiProperty({ format: 'date-time' }) creadaEn!: string;
 }
 
@@ -200,7 +268,7 @@ export class ElementoResumenDto {
   @ApiProperty() postulacionId!: string;
   @ApiProperty() empresa!: string;
   @ApiProperty() titulo!: string;
-  @ApiProperty({ enum: ['cambio', 'senal', 'discrepancia', 'nota'] }) tipo!: string;
+  @ApiProperty({ enum: ['cambio', 'senal', 'discrepancia', 'nota', 'paso'] }) tipo!: string;
   @ApiProperty() descripcion!: string;
   @ApiProperty({ enum: PRIORIDADES, enumName: 'Prioridad' }) prioridad!: string;
   @ApiProperty({ format: 'date-time' }) ocurridoEn!: string;

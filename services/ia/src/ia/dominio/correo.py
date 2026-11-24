@@ -22,6 +22,8 @@ class CorreoLeido:
     recibido_en: datetime
     texto: str  # cuerpo en texto plano (el adaptador convierte el HTML)
     masivo: bool = False  # trae List-Unsubscribe o Precedence: bulk (boletines, publicidad, notificaciones)
+    en_respuesta_a: str | None = None  # In-Reply-To: el hilo (pasos.md §5.1)
+    referencias: tuple[str, ...] = ()  # References
 
     @property
     def dominio(self) -> str:

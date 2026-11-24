@@ -13,6 +13,7 @@ from ia.aplicacion.puertos import (
     RepositorioDeCorreos,
 )
 from ia.dominio.correo import CorreoLeido, EstadoDeCorreo
+from ia.dominio.enlaces import marcar_enlaces
 from ia.dominio.filtro import filtrar
 from ia.dominio.fragmento import fragmento
 from ia.dominio.linkedin import leer_aviso
@@ -109,6 +110,8 @@ def ingresar(repo: RepositorioDeCorreos, c: CorreoLeido) -> tuple[str, str | Non
             )
         )
         return "filtrado", f.plataforma
+    # Los enlaces quedan en la base local y al modelo le llega «[enlace N]» (D54).
+    texto, enlaces = marcar_enlaces(fragmento(c.texto), c.dominio)
     repo.guardar(
         CorreoGuardado(
             c.message_id,
@@ -119,7 +122,10 @@ def ingresar(repo: RepositorioDeCorreos, c: CorreoLeido) -> tuple[str, str | Non
             f.plataforma,
             f.motivo,
             asunto=c.asunto[:500],
-            fragmento=fragmento(c.texto),
+            fragmento=texto,
+            en_respuesta_a=c.en_respuesta_a,
+            referencias=c.referencias,
+            enlaces=tuple(enlaces),
         )
     )
     return "pendiente", f.plataforma

@@ -3,6 +3,9 @@ import { DatoInvalido } from './errores';
 import { esEstado, type EstadoPostulacion } from './estado';
 import { esUno, PLATAFORMAS, textoObligatorio, type Plataforma } from './objetos-valor/valores';
 import { FUENTES_DE_SENAL, type FuenteDeSenal } from './partes';
+import { propuestaDePaso, type PropuestaDePaso } from './paso';
+
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export type EstadoDePendiente = 'pendiente' | 'asociada' | 'descartada';
 
@@ -19,7 +22,12 @@ export interface DatosPendiente {
   asunto?: string;
   empresaDetectada?: string;
   cargoDetectado?: string;
+  /** Postulaciones propuestas sin certeza, para marcarlas al asociar (pasos.md §4.3). */
+  candidatas: string[];
+  /** El paso que pidió el correo; se crea al asociar. */
+  pasoPropuesto?: PropuestaDePaso;
   estado: EstadoDePendiente;
+  /** La primera postulación a la que se asoció (puede ir a varias). */
   postulacionId?: string;
   resueltaEn?: Date;
   creadaEn: Date;
@@ -48,9 +56,14 @@ export class SenalPendiente {
       asunto?: unknown;
       empresaDetectada?: unknown;
       cargoDetectado?: unknown;
+      candidatas?: unknown;
+      pasoPropuesto?: unknown;
     },
     deps: Deps,
   ): SenalPendiente {
+    const candidatas = p.candidatas ?? [];
+    if (!Array.isArray(candidatas) || candidatas.some((x) => typeof x !== 'string' || !UUID.test(x)))
+      throw new DatoInvalido('candidatas', 'Las candidatas son ids de postulaciones');
     if (!esUno(FUENTES_DE_SENAL, p.fuente)) throw new DatoInvalido('fuente', 'Fuente desconocida');
     const plataforma = p.plataforma ?? 'otra';
     if (!esUno(PLATAFORMAS, plataforma)) throw new DatoInvalido('plataforma', 'Plataforma desconocida');
@@ -77,13 +90,15 @@ export class SenalPendiente {
       confianza: p.confianza,
       recibidaEn: p.recibidaEn ?? ahora,
       ...Object.fromEntries(Object.entries(extra).filter(([, v]) => v !== undefined)),
+      candidatas: [...new Set(candidatas as string[])].slice(0, 8),
+      ...(p.pasoPropuesto ? { pasoPropuesto: propuestaDePaso(p.pasoPropuesto) } : {}),
       estado: 'pendiente',
       creadaEn: ahora,
     });
   }
 
   static reconstituir(d: DatosPendiente): SenalPendiente {
-    return new SenalPendiente({ ...d });
+    return new SenalPendiente({ ...d, candidatas: d.candidatas ?? [] });
   }
 
   get id(): string {
@@ -133,6 +148,8 @@ export interface BandejaRepositorio {
   guardar(s: SenalPendiente, evento?: { tipo: string; prioridad: 'alta' | 'media' | 'baja' }): Promise<void>;
   /** ¿Ya se usó esta referencia externa, en una postulación o en la bandeja? (ADR 0015) */
   referenciaUsada(referencia: string): Promise<boolean>;
+  /** ¿Está en la bandeja (pendiente, asociada o descartada)? */
+  referenciaEnBandeja(referencia: string): Promise<boolean>;
   /** Las que siguen en la bandeja, de la más nueva a la más antigua. */
   pendientes(): Promise<DatosPendiente[]>;
 }

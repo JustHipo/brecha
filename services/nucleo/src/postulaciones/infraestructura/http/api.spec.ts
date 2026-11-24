@@ -560,3 +560,139 @@ describe('etiquetas, prioridad fijada y aviso con stack (csv.md C1)', () => {
     expect((await api().get('/postulaciones?prioridad=alta').expect(200)).body.total).toBe(0);
   });
 });
+
+describe('pasos pendientes (docs/diseno/pasos.md)', () => {
+  const servicio = () => ({
+    post: (u: string, b?: object) =>
+      http
+        .post(`/api/v1${u}`)
+        .set('Authorization', `Bearer ${t.token('servicio')}`)
+        .send(b ?? {}),
+  });
+  const TEST = {
+    fuente: 'correo',
+    plataforma: 'chiletrabajos',
+    resumen: 'Te piden completar un test de personalidad',
+    confianza: 0.95,
+    referenciaExterna: '<test@chiletrabajos>',
+    paso: { descripcion: 'Completar el test de personalidad', plazo: '2030-01-15' },
+  };
+
+  it('el lector registra un pedido: crea el paso y la tarjeta y la ficha lo muestran', async () => {
+    const p = await crear();
+    const r = await servicio()
+      .post('/senales', { ...TEST, postulacionIds: [p.id] })
+      .expect(201);
+    expect(r.body).toMatchObject({
+      destino: 'postulacion',
+      accion: 'creado',
+      paso: { registradoPor: 'vigia', fuente: 'correo', estado: 'pendiente' },
+      senales: [{ postulacionId: p.id, repetida: false }],
+    });
+    const tablero = await api().get('/postulaciones/tablero').expect(200);
+    const tarjeta = tablero.body.columnas
+      .flatMap((x: { items: { id: string }[] }) => x.items)
+      .find((x: { id: string }) => x.id === p.id);
+    expect(tarjeta.pasosPendientes).toEqual([
+      expect.objectContaining({ descripcion: 'Completar el test de personalidad', plazo: '2030-01-15' }),
+    ]);
+    const ficha = await api().get(`/postulaciones/${p.id}`).expect(200);
+    expect(ficha.body.pasos[0]).toMatchObject({ postulaciones: [{ id: p.id, empresa: 'Empresa Ficticia' }] });
+    await servicio()
+      .post('/senales', { ...TEST, postulacionIds: [p.id] })
+      .expect(409);
+  });
+
+  it('sin postulación el pedido queda en la bandeja y se crea al asociar a varias', async () => {
+    const a = await crear();
+    const b = await crear({ aviso: { ...AVISO, url: 'https://ejemplo.test/avisos/2' } });
+    const r = await servicio()
+      .post('/senales', { ...TEST, candidatas: [a.id, b.id] })
+      .expect(201);
+    expect(r.body.pendiente).toMatchObject({
+      candidatas: [a.id, b.id],
+      pasoPropuesto: { descripcion: 'Completar el test de personalidad' },
+    });
+    await api()
+      .post(`/bandeja/${r.body.pendiente.id}/asociar`, { postulacionIds: [a.id, b.id] })
+      .expect(200);
+    const pasos = await api().get('/pasos').expect(200);
+    expect(pasos.body).toHaveLength(1);
+    expect(pasos.body[0].postulacionIds.sort()).toEqual([a.id, b.id].sort());
+    expect(pasos.body[0].registradoPor).toBe('vigia');
+  });
+
+  it('POST /pasos a mano, PATCH, resolver con versión, CONFLICTO y filtro por estado', async () => {
+    const p = await crear();
+    const r = await api()
+      .post('/pasos', { postulacionIds: [p.id], descripcion: 'Mandar el certificado', plazo: '2030-01-10' })
+      .expect(201);
+    expect(r.body).toMatchObject({
+      registradoPor: 'persona',
+      fuente: 'persona',
+      yaEstaba: false,
+      version: 0,
+    });
+    await api()
+      .post('/pasos', { postulacionIds: [p.id], descripcion: 'x' })
+      .expect(400);
+    await api()
+      .post('/pasos', { postulacionIds: ['01a209db-0000-7000-8000-000000000000'], descripcion: 'Algo' })
+      .expect(404);
+    const editado = await api()
+      .patch(`/pasos/${r.body.id}`, { version: 0, plazo: null, detalle: 'El de la universidad' })
+      .expect(200);
+    expect(editado.body).toMatchObject({ plazo: null, detalle: 'El de la universidad', version: 1 });
+    const hecho = await api()
+      .post(`/pasos/${r.body.id}/resolver`, { estado: 'hecho', version: 1 })
+      .expect(200);
+    expect(hecho.body).toMatchObject({ estado: 'hecho', cierre: { por: 'persona' } });
+    const conflicto = await api()
+      .post(`/pasos/${r.body.id}/resolver`, { estado: 'pendiente', version: 1 })
+      .expect(409);
+    expect(conflicto.body.codigo).toBe('CONFLICTO');
+    expect((await api().get('/pasos?estado=pendiente').expect(200)).body).toHaveLength(0);
+    expect((await api().get(`/pasos?postulacionId=${p.id}`).expect(200)).body).toHaveLength(1);
+  });
+
+  it('cerrar con descartarPasos descarta los pendientes; sin él quedan y se ven en la cerrada', async () => {
+    const a = await crear();
+    await api()
+      .post('/pasos', { postulacionIds: [a.id], descripcion: 'Completar el test' })
+      .expect(201);
+    const sin = await api()
+      .post(`/postulaciones/${a.id}/transiciones`, { a: 'descartado', motivo: 'No me interesa', version: 0 })
+      .expect(200);
+    expect(sin.body.pasosPendientes).toHaveLength(1);
+    const b = await crear({ aviso: { ...AVISO, url: 'https://ejemplo.test/avisos/3' } });
+    await api()
+      .post('/pasos', { postulacionIds: [b.id], descripcion: 'Agendar la llamada' })
+      .expect(201);
+    const con = await api()
+      .post(`/postulaciones/${b.id}/transiciones`, {
+        a: 'descartado',
+        motivo: 'No me interesa',
+        version: 0,
+        descartarPasos: true,
+      })
+      .expect(200);
+    expect(con.body.pasosPendientes).toHaveLength(0);
+    expect(con.body.pasos[0]).toMatchObject({
+      estado: 'descartado',
+      cierre: { nota: 'La postulación se cerró' },
+    });
+  });
+
+  it('GET /postulaciones?url= ubica la postulación por el número del aviso', async () => {
+    const p = await crear({
+      aviso: {
+        ...AVISO,
+        url: 'https://www.chiletrabajos.cl/trabajo/backend-3916453',
+        plataforma: 'chiletrabajos',
+      },
+    });
+    await crear({ aviso: { ...AVISO, url: 'https://ejemplo.test/39164530' } });
+    const r = await api().get('/postulaciones?url=3916453').expect(200);
+    expect(r.body.items.map((x: { id: string }) => x.id)).toEqual([p.id]);
+  });
+});

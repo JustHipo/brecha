@@ -173,6 +173,8 @@ test('F2-13: una señal de la bandeja se asocia a una postulación y aparece en 
   await expect(resultado).toBeVisible();
   await sinViolaciones(page);
   await resultado.click();
+  // La bandeja asocia a una o varias (pasos.md §7.3): se marca y se confirma.
+  await asociar.getByRole('button', { name: 'Asociar a 1' }).click();
   await expect(page.getByText('Señal asociada a Lumen Ficticia · Analista QA')).toBeVisible();
   await expect(lumen).toHaveCount(0);
   await expect(page.getByRole('link', { name: 'Bandeja (1 por revisar)' })).toBeVisible();
@@ -341,4 +343,44 @@ test('Ajustes sin la API de IA: lo dice, no deja guardar y es accesible', async 
   await expect(page.getByRole('heading', { level: 1, name: 'Settings' })).toBeVisible();
   await page.getByLabel('Console language').selectOption('es');
   await expect(page.getByRole('heading', { level: 1, name: 'Ajustes' })).toBeVisible();
+});
+
+// Pasos pendientes (docs/diseno/pasos.md §7): el pedido llega como lo manda el vigía (token de servicio).
+test('Pasos: un pedido resalta la tarjeta, se marca hecho y la ficha muestra el proceso', async ({
+  page,
+  request,
+}) => {
+  await crear(page, 'Data Engineer', 'Pumas Ficticia', 'https://ejemplo.test/e2e/pumas-3916453');
+  const id = page.url().split('/').pop()!;
+  const token = readFileSync(join(process.env.BRECHA_DIR_E2E!, 'token-servicio'), 'utf8').trim();
+  const r = await request.post(`http://127.0.0.1:${process.env.NUCLEO_E2E}/api/v1/senales`, {
+    headers: { Authorization: `Bearer ${token}` },
+    data: {
+      postulacionIds: [id],
+      fuente: 'correo',
+      plataforma: 'getonboard',
+      resumen: 'Te piden completar un test de personalidad',
+      confianza: 0.6,
+      referenciaExterna: `<e2e-paso-${Date.now()}@ejemplo.test>`,
+      paso: { descripcion: 'Completar el test de personalidad', detalle: 'Etapa 2 del proceso' },
+    },
+  });
+  expect(r.status()).toBe(201);
+
+  await page.goto('/tablero');
+  const tarjeta = page.locator(`[data-tarjeta="${id}"]`);
+  await expect(tarjeta.locator('[data-paso]')).toContainText('Completar el test de personalidad');
+  await expect(page.locator('[data-filtro-pasos]')).toContainText('1 paso(s) pendiente(s)');
+  await sinViolaciones(page);
+  await tarjeta
+    .getByRole('button', { name: 'Marcar como hecho: Completar el test de personalidad' })
+    .click();
+  await expect(page.getByText('Hecho: Completar el test de personalidad')).toBeVisible();
+  await expect(tarjeta.locator('[data-paso]')).toHaveCount(0);
+
+  await page.goto(`/postulaciones/${id}`);
+  const proceso = page.locator('[data-proceso]');
+  await expect(proceso).toContainText('Completar el test de personalidad');
+  await expect(proceso).toContainText('Hecho por ti');
+  await sinViolaciones(page);
 });

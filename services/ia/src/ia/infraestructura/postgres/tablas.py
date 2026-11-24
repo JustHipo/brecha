@@ -16,7 +16,7 @@ from sqlalchemy import (
     Table,
     Text,
 )
-from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy.dialects.postgresql import ARRAY, JSONB
 
 metadata = MetaData(schema="ia")
 
@@ -34,6 +34,9 @@ correo = Table(
     Column("fragmento", Text),
     Column("intentos", Integer, nullable=False, server_default="0"),
     Column("creado_en", DateTime(timezone=True), nullable=False),
+    Column("en_respuesta_a", String(998)),
+    Column("referencias", JSONB),
+    Column("enlaces", JSONB),
 )
 
 estado_vigia = Table(
@@ -55,6 +58,7 @@ clasificacion = Table(
     Column("modelo", String(100), nullable=False),
     Column("confianza", Float, nullable=False),
     Column("postulacion_id", String(36)),
+    Column("postulacion_ids", ARRAY(String(36)), nullable=False, server_default="{}"),
     Column("enviada_al_nucleo", Boolean, nullable=False, server_default="false"),
     Column("creada_en", DateTime(timezone=True), nullable=False),
 )

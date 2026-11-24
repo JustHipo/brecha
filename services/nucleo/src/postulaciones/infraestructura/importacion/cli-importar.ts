@@ -13,6 +13,7 @@ import { PrismaRed } from '../../../red/infraestructura/prisma-red';
 import { ImportarFichas } from '../../aplicacion/importar-fichas';
 import { PrismaAjustes } from '../prisma/prisma-ajustes';
 import { PrismaBandeja } from '../prisma/prisma-bandeja';
+import { PrismaPasos } from '../prisma/prisma-pasos';
 import { PrismaConsultas } from '../prisma/prisma-consultas';
 import { PrismaPostulacionRepositorio } from '../prisma/prisma-postulacion.repositorio';
 import { fichasDesdeArtifact } from './desde-artifact';
@@ -32,6 +33,7 @@ async function main() {
   const fichas = new ImportarFichas({
     repo,
     bandeja: new PrismaBandeja(prisma, ids),
+    pasos: new PrismaPasos(prisma, ids),
     consultas,
     reloj,
     ids,

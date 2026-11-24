@@ -1,14 +1,23 @@
 // Dobles en memoria de los puertos de salida, para probar los casos de uso sin base.
 import type { Prioridad } from '../../compartido/dominio/evento-de-dominio';
 import { depsDePrueba } from '../../compartido/dominio/pruebas.prueba';
-import { ConflictoDeVersion, PostulacionDuplicada, SenalDuplicada } from '../dominio/errores';
+import { ConflictoDeVersion, DatoInvalido, PostulacionDuplicada, SenalDuplicada } from '../dominio/errores';
+import { Paso, type DatosPaso, type EstadoDePaso, type PasoRepositorio } from '../dominio/paso';
+import { idDeAviso } from '../dominio/id-de-aviso';
 import { esTerminal } from '../dominio/estado';
 import { Postulacion, type PostulacionDatos } from '../dominio/postulacion';
 import type { PostulacionRepositorio } from '../dominio/postulacion.repositorio';
 import type { Contexto } from './base';
 import { SenalPendiente, type BandejaRepositorio, type DatosPendiente } from '../dominio/senal-pendiente';
 import type { Ajustes, ConsultasDePostulaciones } from './puertos';
-import { aDetalle, aResumen, ordenarTarjetas, type VistaExportacion } from './vistas';
+import {
+  aDetalle,
+  aResumen,
+  aVistaPaso,
+  ordenarPendientes,
+  ordenarTarjetas,
+  type VistaExportacion,
+} from './vistas';
 import type { Reloj } from '../../compartido/dominio/puertos';
 
 export class RepositorioEnMemoria implements PostulacionRepositorio {
@@ -38,10 +47,6 @@ export class RepositorioEnMemoria implements PostulacionRepositorio {
       ) {
         throw new PostulacionDuplicada(d.aviso.url, otra.id);
       }
-      for (const s of d.senales.filter((x) => pend.nuevos.has(x.id) && x.referenciaExterna)) {
-        if (otra.senales.some((o) => o.referenciaExterna === s.referenciaExterna))
-          throw new SenalDuplicada(s.referenciaExterna!);
-      }
     }
     const version = pend.creada ? d.version : d.version + 1;
     this.filas.set(d.id, { ...d, version });
@@ -50,17 +55,84 @@ export class RepositorioEnMemoria implements PostulacionRepositorio {
   }
 }
 
+export class PasosEnMemoria implements PasoRepositorio {
+  readonly filas = new Map<string, DatosPaso>();
+  readonly outbox: string[] = [];
+  constructor(private readonly repo: RepositorioEnMemoria) {}
+  async porId(id: string) {
+    const d = this.filas.get(id);
+    return d ? Paso.reconstituir(d) : null;
+  }
+  async porReferencia(ref: string) {
+    const d = [...this.filas.values()].find((x) => x.referenciaExterna === ref);
+    return d ? Paso.reconstituir(d) : null;
+  }
+  async deLasPostulaciones(ids: readonly string[]) {
+    return [...this.filas.values()]
+      .filter((x) => x.postulacionIds.some((p) => ids.includes(p)))
+      .sort((a, b) => a.pedidoEn.getTime() - b.pedidoEn.getTime())
+      .map((x) => Paso.reconstituir(x));
+  }
+  async estadosDePostulaciones(ids: readonly string[]) {
+    return new Map(
+      ids.flatMap((id) => {
+        const p = this.repo.filas.get(id);
+        return p ? [[id, p.estado] as [string, string]] : [];
+      }),
+    );
+  }
+  async guardar(paso: Paso) {
+    const d = paso.datos();
+    const actual = this.filas.get(d.id);
+    if (!paso.creado && actual?.version !== d.version) throw new ConflictoDeVersion();
+    if (
+      d.referenciaExterna &&
+      [...this.filas.values()].some((x) => x.id !== d.id && x.referenciaExterna === d.referenciaExterna)
+    )
+      throw new DatoInvalido('referenciaExterna', 'Ya hay un paso de ese correo o mensaje');
+    const version = paso.creado ? 0 : d.version + 1;
+    this.filas.set(d.id, { ...d, version });
+    this.outbox.push(...paso.sacarEventos().map((e) => e.tipo));
+    paso.marcarGuardado(version);
+  }
+  de(postulacionId: string): DatosPaso[] {
+    return [...this.filas.values()].filter((x) => x.postulacionIds.includes(postulacionId));
+  }
+}
+
 export class ConsultasEnMemoria implements ConsultasDePostulaciones {
   constructor(
     private readonly repo: RepositorioEnMemoria,
     private readonly reloj: Reloj,
+    private readonly pasosEnMemoria: PasosEnMemoria = new PasosEnMemoria(repo),
   ) {}
   private todas() {
     return [...this.repo.filas.values()];
   }
+  private info() {
+    return new Map(
+      this.todas().map((d) => [d.id, { empresa: d.aviso.empresa, titulo: d.aviso.titulo, estado: d.estado }]),
+    );
+  }
+  async pasos(f: { estado?: EstadoDePaso; postulacionId?: string } = {}) {
+    return [...this.pasosEnMemoria.filas.values()]
+      .filter((x) => !f.estado || x.estado === f.estado)
+      .filter((x) => !f.postulacionId || x.postulacionIds.includes(f.postulacionId))
+      .sort(
+        (a, b) =>
+          Number(a.estado !== 'pendiente') - Number(b.estado !== 'pendiente') ||
+          (a.estado === 'pendiente' ? ordenarPendientes(a, b) : b.pedidoEn.getTime() - a.pedidoEn.getTime()),
+      )
+      .map((x) => aVistaPaso(x, this.info(), this.reloj));
+  }
+  async paso(id: string) {
+    const x = this.pasosEnMemoria.filas.get(id);
+    return x ? aVistaPaso(x, this.info(), this.reloj) : null;
+  }
   async listar(f: Parameters<ConsultasDePostulaciones['listar']>[0], p: { limit: number; offset: number }) {
     const items = this.todas()
-      .map((d) => aResumen(d, this.reloj))
+      .filter((d) => !f.url || d.aviso.url === f.url || idDeAviso(d.aviso.url) === idDeAviso(f.url))
+      .map((d) => aResumen(d, this.reloj, this.pasosEnMemoria.de(d.id)))
       .filter((r) => !f.estados || f.estados.includes(r.estado))
       .filter((r) => !f.plataformas || f.plataformas.includes(r.plataforma))
       .filter((r) => !f.prioridades || f.prioridades.includes(r.prioridad))
@@ -78,7 +150,7 @@ export class ConsultasEnMemoria implements ConsultasDePostulaciones {
   }
   async tablero(f: { etiquetas?: string[] } = {}) {
     const resumenes = this.todas()
-      .map((d) => aResumen(d, this.reloj))
+      .map((d) => aResumen(d, this.reloj, this.pasosEnMemoria.de(d.id)))
       .filter((r) => !f.etiquetas || f.etiquetas.every((e) => r.etiquetas.includes(e)));
     const estados = [
       'sin_decidir',
@@ -100,13 +172,15 @@ export class ConsultasEnMemoria implements ConsultasDePostulaciones {
   }
   async detalle(id: string) {
     const d = this.repo.filas.get(id);
-    return d ? aDetalle(d, this.reloj) : null;
+    return d ? aDetalle(d, this.reloj, this.pasosEnMemoria.de(d.id), this.info()) : null;
   }
   async resumenDesde() {
     return [];
   }
   async exportar(): Promise<VistaExportacion> {
-    const postulaciones = this.todas().map((d) => aDetalle(d, this.reloj));
+    const postulaciones = this.todas().map((d) =>
+      aDetalle(d, this.reloj, this.pasosEnMemoria.de(d.id), this.info()),
+    );
     const porPrioridad: Record<Prioridad, number> = { alta: 0, media: 0, baja: 0 };
     const porEstado: Record<string, number> = {};
     for (const p of postulaciones) {
@@ -137,6 +211,9 @@ export class BandejaEnMemoria implements BandejaRepositorio {
     }
     this.filas.set(d.id, d);
     if (evento) this.eventos.push(evento.tipo);
+  }
+  async referenciaEnBandeja(ref: string) {
+    return [...this.filas.values()].some((x) => x.referenciaExterna === ref);
   }
   async referenciaUsada(ref: string) {
     return (
@@ -169,6 +246,15 @@ export function contextoDePrueba(fecha?: Date) {
   const repo = new RepositorioEnMemoria();
   const ajustes = new AjustesFijos();
   const bandeja = new BandejaEnMemoria(repo);
-  const c: Contexto = { repo, bandeja, consultas: new ConsultasEnMemoria(repo, reloj), reloj, ids, ajustes };
-  return { c, repo, reloj, ajustes, bandeja };
+  const pasos = new PasosEnMemoria(repo);
+  const c: Contexto = {
+    repo,
+    bandeja,
+    pasos,
+    consultas: new ConsultasEnMemoria(repo, reloj, pasos),
+    reloj,
+    ids,
+    ajustes,
+  };
+  return { c, repo, reloj, ajustes, bandeja, pasos };
 }

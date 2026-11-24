@@ -38,6 +38,13 @@ export type ResultadoCsv = Esquemas['ResultadoCsvDto'];
 export type FilaImportada = Esquemas['FilaImportadaDto'];
 export type TipoCsv = Esquemas['TipoCsv'];
 export type EtiquetaEnUso = Esquemas['EtiquetaEnUsoDto'];
+// Pasos pendientes (docs/diseno/pasos.md): lo que cada postulación te pide hacer.
+export type Paso = Esquemas['PasoDto'];
+export type PasoCorto = Esquemas['PasoCortoDto'];
+export type PasoRegistrado = Esquemas['PasoRegistradoDto'];
+export type RegistrarPaso = Esquemas['RegistrarPasoDto'];
+export type EditarPaso = Esquemas['EditarPasoDto'];
+export type EstadoDePaso = Esquemas['EstadoDePaso'];
 export type FiltroDeRed = 'todos' | 'responder' | 'esperando' | 'solicitudes' | 'seguimiento';
 
 export interface ConsultaDeRed {
@@ -133,8 +140,9 @@ export class Api {
   bandeja() {
     return this.http.get<SenalPendiente[]>(`${BASE}/bandeja`);
   }
-  asociarSenal(senalId: string, postulacionId: string) {
-    return this.http.post<Detalle>(`${BASE}/bandeja/${senalId}/asociar`, { postulacionId });
+  /** A una o varias postulaciones: si el correo pidió algo, el paso queda ligado a todas. */
+  asociarSenal(senalId: string, postulacionIds: string[]) {
+    return this.http.post<Detalle>(`${BASE}/bandeja/${senalId}/asociar`, { postulacionIds });
   }
   crearDesdeSenal(senalId: string, aviso: AvisoEntrada) {
     return this.http.post<Detalle>(`${BASE}/bandeja/${senalId}/crear`, { aviso });
@@ -163,6 +171,27 @@ export class Api {
   }
   registrarInteraccionRed(id: string, cuerpo: InteraccionEntrada) {
     return this.http.post<ContactoRedRegistrado>(`${BASE}/red/${id}/interacciones`, cuerpo);
+  }
+
+  // Pasos pendientes (docs/diseno/pasos.md §8).
+  pasos(f: { estado?: EstadoDePaso; postulacionId?: string } = {}) {
+    let params = new HttpParams();
+    if (f.estado) params = params.set('estado', f.estado);
+    if (f.postulacionId) params = params.set('postulacionId', f.postulacionId);
+    return this.http.get<Paso[]>(`${BASE}/pasos`, { params });
+  }
+  registrarPaso(cuerpo: RegistrarPaso) {
+    return this.http.post<PasoRegistrado>(`${BASE}/pasos`, cuerpo);
+  }
+  editarPaso(id: string, cuerpo: EditarPaso) {
+    return this.http.patch<Paso>(`${BASE}/pasos/${id}`, cuerpo);
+  }
+  /** Hecho, descartado o `pendiente` para reabrir. Sin versión: el último cambio gana. */
+  resolverPaso(id: string, estado: EstadoDePaso, nota?: string) {
+    return this.http.post<Paso>(
+      `${BASE}/pasos/${id}/resolver`,
+      nota ? { estado, nota } : { estado },
+    );
   }
 
   etiquetas() {

@@ -66,6 +66,15 @@ import { DialogoAsociar, DialogoConfirmar, DialogoCrearDesdeSenal } from './dial
               <h2 class="m-0 font-sans text-[15px] font-semibold">{{ s.asunto }}</h2>
             }
             <p class="m-0">{{ s.resumen }}</p>
+            @if (s.pasoPropuesto; as p) {
+              <p
+                class="m-0 flex items-center gap-2 rounded-lg bg-acento-suave px-2.5 py-1.5 text-[13px] font-semibold text-tinta"
+                data-pide
+              >
+                <span aria-hidden="true" class="h-4 w-1 rounded-full bg-acento"></span>
+                {{ 'bandeja.pide' | transloco: { paso: p.descripcion } }}
+              </p>
+            }
             <dl class="m-0 flex flex-wrap gap-x-5 gap-y-1 text-[12.5px]">
               <div class="flex gap-1">
                 <dt class="text-tinta-suave">{{ 'bandeja.empresa' | transloco }}</dt>
@@ -163,12 +172,14 @@ export class BandejaPagina {
   }
 
   protected async asociar(s: SenalPendiente): Promise<void> {
-    const id = await this.dialogos.abrir<string, ReturnType<BandejaPagina['contexto']>>(
-      DialogoAsociar,
-      this.contexto(s),
-    );
-    if (!id) return;
-    const r = await this.store.asociar(s, id);
+    const elegidas = await this.dialogos.abrir<string | string[], object>(DialogoAsociar, {
+      ...this.contexto(s),
+      varias: true,
+      marcadas: s.candidatas ?? [],
+    });
+    const ids = typeof elegidas === 'string' ? [elegidas] : (elegidas ?? []);
+    if (!ids.length) return;
+    const r = await this.store.asociar(s, ids);
     if (r.ok) this.avisar('bandeja.asociada', r.detalle);
     else this.avisos.error(r.error);
   }
