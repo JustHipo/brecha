@@ -1160,8 +1160,8 @@ export interface components {
              * @enum {string}
              */
             estado?: "pendiente" | "hecho";
-            /** @default persona */
-            fuente: components["schemas"]["FuenteDePaso"];
+            /** @description Por defecto persona */
+            fuente?: components["schemas"]["FuenteDePaso"];
             /** @description La persona de tu red que lo pidió */
             contactoRedId?: string;
             /** @description Correo o mensaje que lo pidió: no se duplica */

@@ -73,6 +73,13 @@ export type ResultadoRecepcion =
     } & ResultadoDePasos)
   | { destino: 'bandeja'; pendiente: VistaPendiente };
 
+const REGISTRADOR_DEL_PASO: Record<FuenteDeSenal, RegistradorDePaso> = {
+  correo: 'vigia',
+  plataforma: 'vigia',
+  manual: 'persona',
+  ia: 'ia',
+};
+
 const FUENTE_DEL_PASO: Record<FuenteDeSenal, FuenteDePaso> = {
   correo: 'correo',
   plataforma: 'portal',
@@ -232,7 +239,8 @@ export class AsociarSenal {
         postulacionIds: ids,
         paso: d.pasoPropuesto,
         fuente: FUENTE_DEL_PASO[d.fuente],
-        registradoPor: 'persona',
+        // Lo leyó Brecha (o tu IA); la persona solo eligió a qué postulaciones va.
+        registradoPor: REGISTRADOR_DEL_PASO[d.fuente],
         ...(d.referenciaExterna ? { referenciaExterna: d.referenciaExterna } : {}),
         pedidoEn: d.recibidaEn,
       });

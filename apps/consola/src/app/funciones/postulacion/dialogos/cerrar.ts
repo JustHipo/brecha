@@ -44,6 +44,29 @@ import { DialogoBase, ESTILO, type ContextoPostulacion } from './base';
         @if (ctx.a === 'descartado') {
           <p [class]="e.ayuda">{{ 'dialogos.cerrar.avisoDescartado' | transloco }}</p>
         }
+        @if (ctx.pasos?.length) {
+          <div
+            class="flex flex-col gap-1.5 rounded-[10px] bg-acento-suave px-3 py-2.5"
+            data-cerrar-pasos
+          >
+            <label class="flex items-start gap-2 text-[13px] font-semibold text-tinta">
+              <input
+                type="checkbox"
+                formControlName="descartarPasos"
+                class="mt-0.5 accent-acento"
+                id="cerrar-descartar-pasos"
+              />
+              <span>{{
+                'dialogos.cerrar.descartarPasos' | transloco: { n: ctx.pasos.length }
+              }}</span>
+            </label>
+            <ul class="m-0 list-disc pl-9 text-[12.5px] text-tinta-suave">
+              @for (p of ctx.pasos; track $index) {
+                <li>{{ p }}</li>
+              }
+            </ul>
+          </div>
+        }
       </div>
       <div [class]="e.pie">
         <span class="flex-1"></span>
@@ -58,8 +81,8 @@ import { DialogoBase, ESTILO, type ContextoPostulacion } from './base';
   `,
 })
 export class DialogoCerrar extends DialogoBase<
-  ContextoPostulacion & { a: 'rechazado' | 'descartado' },
-  { motivo: string }
+  ContextoPostulacion & { a: 'rechazado' | 'descartado'; pasos?: string[] },
+  { motivo: string; descartarPasos?: boolean }
 > {
   protected readonly e = ESTILO;
   protected readonly form = new FormGroup({
@@ -67,9 +90,16 @@ export class DialogoCerrar extends DialogoBase<
       nonNullable: true,
       validators: [Validators.required, Validators.pattern(/\S/)],
     }),
+    // R17: marcado por defecto; si lo desmarcas, los pasos siguen pendientes en la cerrada.
+    descartarPasos: new FormControl(true, { nonNullable: true }),
   });
 
   protected confirmar(): void {
-    if (this.form.valid) this.cerrar({ motivo: this.form.getRawValue().motivo.trim() });
+    if (!this.form.valid) return;
+    const { motivo, descartarPasos } = this.form.getRawValue();
+    this.cerrar({
+      motivo: motivo.trim(),
+      ...(this.ctx.pasos?.length && descartarPasos ? { descartarPasos: true } : {}),
+    });
   }
 }

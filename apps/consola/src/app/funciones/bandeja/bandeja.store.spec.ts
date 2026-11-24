@@ -67,9 +67,9 @@ describe('BandejaStore', () => {
   });
 
   it('asociar llama a la API, saca la señal y actualiza el tablero', async () => {
-    const r = await store.asociar(store.pendientes()[0]!, 'p1');
+    const r = await store.asociar(store.pendientes()[0]!, ['p1']);
     expect(r).toMatchObject({ ok: true, detalle: { id: 'p1' } });
-    expect(api.asociarSenal).toHaveBeenCalledWith('s1', 'p1');
+    expect(api.asociarSenal).toHaveBeenCalledWith('s1', ['p1']);
     expect(store.pendientes().map((s) => s.id)).toEqual(['s2']);
     expect(tablero.actualizar).toHaveBeenCalledWith(detalle);
     expect(store.ocupadas().size).toBe(0);
@@ -97,7 +97,7 @@ describe('BandejaStore', () => {
 
   it('si la API rechaza, la señal se queda y vuelve el error', async () => {
     api.asociarSenal.mockReturnValue(throwError(() => new ErrorDeApi('YA_EXISTE', 'ya está', 409)));
-    const r = await store.asociar(store.pendientes()[0]!, 'p1');
+    const r = await store.asociar(store.pendientes()[0]!, ['p1']);
     expect(r).toMatchObject({ ok: false, error: { codigo: 'YA_EXISTE' } });
     expect(store.conteo()).toBe(2);
     expect(tablero.actualizar).not.toHaveBeenCalled();
@@ -108,7 +108,7 @@ describe('BandejaStore', () => {
       throwError(() => new ErrorDeApi('NO_ENCONTRADO', 'no está', 404)),
     );
     api.bandeja.mockReturnValue(of([senal({ id: 's2' })]));
-    await store.asociar(store.pendientes()[0]!, 'p1');
+    await store.asociar(store.pendientes()[0]!, ['p1']);
     expect(api.bandeja).toHaveBeenCalledTimes(2);
     expect(store.conteo()).toBe(1);
   });

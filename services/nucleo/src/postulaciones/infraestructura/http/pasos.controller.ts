@@ -66,7 +66,11 @@ export class RegistrarPasoDto {
   @IsOptional()
   @IsIn(['pendiente', 'hecho'])
   estado?: 'pendiente' | 'hecho';
-  @ApiPropertyOptional({ enum: FUENTES_DE_PASO, enumName: 'FuenteDePaso', default: 'persona' })
+  @ApiPropertyOptional({
+    enum: FUENTES_DE_PASO,
+    enumName: 'FuenteDePaso',
+    description: 'Por defecto persona',
+  })
   @IsOptional()
   @IsIn(FUENTES_DE_PASO)
   fuente?: FuenteDePaso;

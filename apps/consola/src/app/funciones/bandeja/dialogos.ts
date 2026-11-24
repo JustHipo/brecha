@@ -1,4 +1,11 @@
-import { ChangeDetectionStrategy, Component, effect, inject, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  effect,
+  inject,
+  signal,
+} from '@angular/core';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { TranslocoPipe } from '@jsverse/transloco';
 import type { Resumen } from '@brecha/contratos';
@@ -32,6 +39,10 @@ interface ContextoSenal {
   cargo?: string;
   /** Clave del título si no es «Asociar a una postulación» (la Red lo usa para ligar). */
   titulo?: string;
+  /** La Bandeja elige varias (pasos.md §7.3): devuelve una lista de ids. */
+  varias?: boolean;
+  /** Las que la IA propuso: salen arriba y marcadas. */
+  marcadas?: string[];
 }
 
 /** Asociar una señal (o ligar un contacto) a una postulación: buscador sobre tus postulaciones. */
@@ -60,18 +71,39 @@ interface ContextoSenal {
           cdkFocusInitial
         />
       </div>
+      @if (ctx.varias && sugeridas().length) {
+        <p class="m-0 text-[12.5px] font-semibold text-tinta-suave">
+          {{ 'bandeja.asociar.sugeridas' | transloco }}
+        </p>
+      }
       <ul
         class="m-0 flex max-h-[300px] list-none flex-col gap-1.5 overflow-y-auto p-0"
         [attr.aria-busy]="buscando()"
         [attr.aria-label]="'bandeja.asociar.resultados' | transloco"
       >
-        @for (p of resultados(); track p.id) {
+        @for (p of lista(); track p.id) {
           <li>
             <button
               type="button"
-              class="flex w-full items-center gap-3 rounded-[10px] border border-linea px-3 py-2 text-left hover:bg-superficie"
-              (click)="cerrar(p.id)"
+              class="flex w-full items-center gap-3 rounded-[10px] border px-3 py-2 text-left hover:bg-superficie"
+              [class.border-acento]="elegidas().has(p.id)"
+              [class.bg-acento-suave]="elegidas().has(p.id)"
+              [class.border-linea]="!elegidas().has(p.id)"
+              [attr.aria-pressed]="ctx.varias ? elegidas().has(p.id) : null"
+              [attr.data-asociar]="p.id"
+              (click)="elegir(p.id)"
             >
+              @if (ctx.varias) {
+                <span
+                  aria-hidden="true"
+                  class="grid size-4 shrink-0 place-items-center rounded border text-[11px] font-bold"
+                  [class.border-acento]="elegidas().has(p.id)"
+                  [class.bg-acento]="elegidas().has(p.id)"
+                  [class.text-fondo]="elegidas().has(p.id)"
+                  [class.border-linea]="!elegidas().has(p.id)"
+                  >{{ elegidas().has(p.id) ? '✓' : '' }}</span
+                >
+              }
               <span class="flex min-w-0 flex-1 flex-col">
                 <span class="font-semibold">{{ p.empresa }}</span>
                 <span class="truncate text-tinta-suave">{{ p.titulo }}</span>
@@ -94,19 +126,56 @@ interface ContextoSenal {
       <button hlmBtn variant="outline" type="button" (click)="cerrar()">
         {{ 'dialogos.cancelar' | transloco }}
       </button>
+      @if (ctx.varias) {
+        <button
+          hlmBtn
+          type="button"
+          [disabled]="!elegidas().size"
+          (click)="cerrar([...elegidas()])"
+          data-asociar-confirmar
+        >
+          {{ 'bandeja.asociar.confirmar' | transloco: { n: elegidas().size } }}
+        </button>
+      }
     </div>
   `,
 })
-export class DialogoAsociar extends DialogoBase<ContextoSenal, string> {
+export class DialogoAsociar extends DialogoBase<ContextoSenal, string | string[]> {
   private readonly api = inject(Api);
   protected readonly e = ESTILO;
-  protected readonly q = signal(this.ctx.empresa ?? '');
+  protected readonly q = signal(this.ctx.marcadas?.length ? '' : (this.ctx.empresa ?? ''));
   protected readonly resultados = signal<Resumen[]>([]);
+  protected readonly sugeridas = signal<Resumen[]>([]);
+  protected readonly elegidas = signal(new Set<string>(this.ctx.marcadas ?? []));
   protected readonly buscando = signal(true);
+  /** Las sugeridas primero, sin repetir las que también salen en la búsqueda. */
+  protected readonly lista = computed(() => {
+    const ids = new Set(this.sugeridas().map((x) => x.id));
+    return [...this.sugeridas(), ...this.resultados().filter((x) => !ids.has(x.id))];
+  });
   private turno = 0;
+
+  protected elegir(id: string): void {
+    if (!this.ctx.varias) {
+      this.cerrar(id);
+      return;
+    }
+    this.elegidas.update((s) => {
+      const n = new Set(s);
+      if (n.has(id)) n.delete(id);
+      else n.add(id);
+      return n;
+    });
+  }
 
   constructor() {
     super();
+    const marcadas = this.ctx.marcadas ?? [];
+    if (marcadas.length) {
+      void Promise.all(
+        marcadas.map((id) => firstValueFrom(this.api.ver(id)).catch(() => null)),
+      ).then((xs) => this.sugeridas.set(xs.filter((x): x is NonNullable<typeof x> => x !== null)));
+    }
     effect(() => {
       const q = this.q().trim();
       const turno = ++this.turno;

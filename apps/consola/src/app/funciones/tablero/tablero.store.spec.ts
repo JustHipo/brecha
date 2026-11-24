@@ -145,3 +145,52 @@ describe('TableroStore', () => {
     expect(store.error()?.codigo).toBe('RED');
   });
 });
+
+describe('TableroStore con pasos pendientes (docs/diseno/pasos.md §7)', () => {
+  const PASO = { id: 'paso1', descripcion: 'Completar el test', plazo: null, diasAlPlazo: null };
+  let api: { tablero: ReturnType<typeof vi.fn>; resolverPaso: ReturnType<typeof vi.fn> };
+  let store: TableroStore;
+
+  beforeEach(async () => {
+    api = {
+      tablero: vi.fn(() => of(tablero(tarjeta({ estado: 'rechazado', pasosPendientes: [PASO] })))),
+      resolverPaso: vi.fn(() => of({})),
+    };
+    TestBed.configureTestingModule({
+      providers: [
+        { provide: Api, useValue: api },
+        { provide: Eventos, useValue: { flujo: () => NEVER } },
+      ],
+    });
+    store = TestBed.inject(TableroStore);
+    await store.cargar();
+  });
+
+  it('cuenta los pasos también en las cerradas y el chip filtra las tarjetas con pasos', () => {
+    expect(store.pasosPendientes()).toBe(1);
+    expect(store.cerradasConPasos()).toBe(1);
+    store.filtros.update((f) => ({ ...f, conPasos: true }));
+    expect(store.hayFiltros()).toBe(true);
+    expect(store.columna('rechazado')?.items).toHaveLength(1);
+  });
+
+  it('«Hecho» saca el paso al tiro y llama a la API; si falla, vuelve', async () => {
+    const t = store.buscar('p1')!;
+    expect(await store.resolverPaso(t, 'paso1')).toBeNull();
+    expect(api.resolverPaso).toHaveBeenCalledWith('paso1', 'hecho');
+    expect(store.buscar('p1')?.pasosPendientes).toEqual([]);
+
+    api.resolverPaso.mockReturnValue(throwError(() => new ErrorDeApi('CONFLICTO', 'x', 409)));
+    const otra = store.buscar('p1')!;
+    store.actualizar({ ...otra, pasosPendientes: [PASO] });
+    const error = await store.resolverPaso(store.buscar('p1')!, 'paso1');
+    expect(error?.codigo).toBe('CONFLICTO');
+    expect(store.buscar('p1')?.pasosPendientes).toEqual([PASO]);
+  });
+
+  it('«Deshacer» reabre el paso y recarga el tablero', async () => {
+    await store.resolverPaso(store.buscar('p1')!, 'paso1', 'pendiente');
+    expect(api.resolverPaso).toHaveBeenCalledWith('paso1', 'pendiente');
+    expect(api.tablero).toHaveBeenCalledTimes(2);
+  });
+});

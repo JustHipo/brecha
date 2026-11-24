@@ -619,7 +619,7 @@ describe('pasos pendientes (docs/diseno/pasos.md)', () => {
     const pasos = await api().get('/pasos').expect(200);
     expect(pasos.body).toHaveLength(1);
     expect(pasos.body[0].postulacionIds.sort()).toEqual([a.id, b.id].sort());
-    expect(pasos.body[0].registradoPor).toBe('persona');
+    expect(pasos.body[0].registradoPor).toBe('vigia');
   });
 
   it('POST /pasos a mano, PATCH, resolver con versión, CONFLICTO y filtro por estado', async () => {

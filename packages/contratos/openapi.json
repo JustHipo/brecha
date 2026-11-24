@@ -4769,7 +4769,7 @@
             "description": "hecho: para anotar algo que ya hiciste"
           },
           "fuente": {
-            "default": "persona",
+            "description": "Por defecto persona",
             "allOf": [
               {
                 "$ref": "#/components/schemas/FuenteDePaso"
