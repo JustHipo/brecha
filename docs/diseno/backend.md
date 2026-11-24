@@ -245,3 +245,14 @@ Escuchar solo en `127.0.0.1` no basta: cualquier página web abierta en tu naveg
 | F1-09 | Con lo de 6.1: token siempre, `Host` y `Origin` |
 | F1-10a | Suma `GET /eventos/stream` (SSE) |
 | F1-10c | MCP por HTTP en `/mcp` (si se aprueba C1) |
+
+## 13. Pasos pendientes (24-nov-2026, D49 a D56)
+
+Detalle en `docs/diseno/pasos.md`. Lo que cambia en el núcleo:
+- **Agregado `Paso`** (`postulaciones/dominio/paso.ts`): texto libre ligado a 1..n postulaciones (tabla `paso_postulacion`), con estado `pendiente`, `hecho` o `descartado`, quién lo cerró y cuándo, y bloqueo optimista. Reglas R15 a R20. Eventos `paso.detectado` (prioridad alta siempre) y `paso.resuelto`.
+- **Señal única por postulación**: `senal.referencia_externa` pasa a `@@unique([postulacionId, referenciaExterna])`; un correo puede ser señal de varias. `RecibirSenal` registra en cada una y crea un solo paso; con varias, D27 no aplica el estado (D53).
+- **Bandeja** con `candidatas` y `paso_propuesto`; `AsociarSenal` acepta varias postulaciones.
+- **Cerrar** una postulación no descarta sus pasos; `descartarPasos` en la transición lo hace (R17, D55). `estaCerrada()` cubre `descartado`, que no es terminal en el dominio.
+- **REST** `/pasos` y **MCP** `listar_pasos`, `registrar_paso`, `resolver_paso`, `editar_paso`, `registrar_interaccion_red` con `paso` y `listar_postulaciones` con `url` (el número del aviso, `id-de-aviso.ts`).
+- **Servicio con IA**: candidatas por código antes del modelo (número del aviso, hilo, ATS, empresa en el texto), prompt con el contexto de cada candidata con ids cortos, verificación de la elección (`dominio/pasos.py`), enlaces solo en local (`dominio/enlaces.py`), Alembic 0006 y `ia pasos reprocesar`.
+

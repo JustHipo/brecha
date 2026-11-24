@@ -156,6 +156,13 @@ Ocho popups que salen la primera vez que se abre la consola, cada uno anclado a 
 
 Indicador de estado del sistema en la barra superior desde F2: «IA lista», «IA no disponible: 12 correos en cola» o «Modelo local: se clasifica con la app abierta».
 
+### 5.1 Pasos pendientes (24-nov-2026, D51)
+- **Tarjeta:** barra azul de 4 px a la izquierda (opción B) y un bloque en `acento-suave` con el paso de plazo más cercano, el plazo (naranja si vence hoy o mañana), «+N» si hay más y **Hecho** (toast con **Deshacer**). También en las tarjetas del panel «Cerradas».
+- **Tablero:** chip «N pasos pendientes» que filtra las tarjetas con pasos; el botón «Cerradas» dice cuántas cerradas esconden uno.
+- **Ficha:** sección **Proceso** (componente `b-proceso`) con los pasos pedidos y hechos en orden, mezclados con los cambios de estado; **Hecho**, **Descartar**, **Editar**, **Reabrir**, **Abrir ↗** y **+ Paso** (pendiente o ya hecho).
+- **Cerrar:** el diálogo de rechazado o descartado lista los pasos pendientes con «Descartar estos pasos» marcado.
+- **Bandeja:** «Pide: …» y asociar a varias postulaciones, con las sugeridas por la IA marcadas.
+
 ## 6. Idioma
 
 - **Transloco 8.4** (D24, decidido el 23-nov): cambia de idioma sin recompilar, que es lo que se necesita para elegirlo en Ajustes. La alternativa integrada de Angular compila una versión por idioma.

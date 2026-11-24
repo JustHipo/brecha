@@ -16,6 +16,7 @@ export class ListarPostulaciones {
     prioridades?: string[];
     etiquetas?: string[];
     q?: string;
+    url?: string;
     limit?: number;
     offset?: number;
   }): Promise<{ items: VistaResumen[]; total: number; limit: number; offset: number }> {
@@ -38,6 +39,7 @@ export class ListarPostulaciones {
     const etiquetas = filtroDeEtiquetas(e.etiquetas);
     if (etiquetas) filtros.etiquetas = etiquetas;
     if (e.q?.trim()) filtros.q = e.q.trim().slice(0, 200);
+    if (e.url?.trim()) filtros.url = e.url.trim().slice(0, 2000);
     const limit = e.limit ?? 50;
     const offset = e.offset ?? 0;
     if (!Number.isInteger(limit) || limit < 1 || limit > 200)

@@ -59,6 +59,10 @@ describe('servidor MCP por HTTP (F1-10c)', () => {
         'exportar_csv',
         'importar_csv',
         'editar_contacto_red',
+        'editar_paso',
+        'listar_pasos',
+        'registrar_paso',
+        'resolver_paso',
         'listar_bandeja',
         'listar_etiquetas',
         'listar_discrepancias',
@@ -224,5 +228,155 @@ describe('servidor MCP por HTTP (F1-10c)', () => {
     const salida = (exp as Texto).content[0]!.text;
     expect(salida).toContain('https://ejemplo.test/mcp');
     expect(salida.split('\n')[0]).toMatch(/^\uFEFF?titulo,empresa,url,plataforma/);
+  });
+
+  it('pasos pendientes: registrar (también en una cerrada), listar, buscar por URL y resolver como IA', async () => {
+    const c = await cliente(t.token('mcp'));
+    const lanek = json(
+      await c.callTool({
+        name: 'crear_postulacion',
+        arguments: {
+          titulo: 'Ingeniero/a de Software Backend & IA',
+          empresa: 'Lanek',
+          url: 'https://www.chiletrabajos.cl/trabajo/ingeniero-de-software-backend-ia-3916453',
+          plataforma: 'chiletrabajos',
+        },
+      }),
+    );
+    await c.callTool({
+      name: 'cambiar_estado',
+      arguments: { id: lanek.id, a: 'descartado', motivo: 'Ya no me interesa' },
+    });
+    const porUrl = json(await c.callTool({ name: 'listar_postulaciones', arguments: { url: '3916453' } }));
+    expect(porUrl.items.map((x: { id: string }) => x.id)).toEqual([lanek.id]);
+
+    const paso = json(
+      await c.callTool({
+        name: 'registrar_paso',
+        arguments: {
+          postulacionIds: [lanek.id],
+          descripcion: 'Completar el test de personalidad',
+          detalle: 'Etapa 2 en Chiletrabajos',
+          plazo: '2026-12-01',
+          referenciaExterna: 'portal:chiletrabajos:3916453:test',
+        },
+      }),
+    );
+    expect(paso).toMatchObject({
+      estado: 'pendiente',
+      fuente: 'portal',
+      registradoPor: 'ia',
+      yaEstaba: false,
+    });
+    const otra = json(
+      await c.callTool({
+        name: 'registrar_paso',
+        arguments: {
+          postulacionIds: [lanek.id],
+          descripcion: 'Completar el test de personalidad',
+          referenciaExterna: 'portal:chiletrabajos:3916453:test',
+        },
+      }),
+    );
+    expect(otra).toMatchObject({ id: paso.id, yaEstaba: true });
+
+    const pendientes = json(await c.callTool({ name: 'listar_pasos', arguments: {} }));
+    expect(pendientes).toHaveLength(1);
+    expect(pendientes[0].postulaciones[0]).toMatchObject({ empresa: 'Lanek', estado: 'descartado' });
+
+    const ficha = json(await c.callTool({ name: 'ver_postulacion', arguments: { id: lanek.id } }));
+    expect(ficha.pasosPendientes).toHaveLength(1);
+
+    const hecho = json(
+      await c.callTool({ name: 'resolver_paso', arguments: { id: paso.id, estado: 'hecho', nota: 'Listo' } }),
+    );
+    expect(hecho).toMatchObject({ estado: 'hecho', cierre: { por: 'ia', nota: 'Listo' } });
+    expect(json(await c.callTool({ name: 'listar_pasos', arguments: {} }))).toHaveLength(0);
+    const malo = await c.callTool({ name: 'resolver_paso', arguments: { id: paso.id, estado: 'hecho' } });
+    expect((malo as Texto).isError).toBe(true);
+    expect(await prisma.outbox.count({ where: { tipo: 'paso.detectado' } })).toBe(1);
+  });
+
+  it('un mensaje de LinkedIn con un pedido deja el paso en las postulaciones del contacto', async () => {
+    const c = await cliente(t.token('mcp'));
+    const p = json(
+      await c.callTool({
+        name: 'crear_postulacion',
+        arguments: {
+          titulo: 'Backend',
+          empresa: 'Ficticia',
+          url: 'https://ejemplo.test/li',
+          plataforma: 'linkedin',
+        },
+      }),
+    );
+    const sinLigar = await c.callTool({
+      name: 'registrar_interaccion_red',
+      arguments: {
+        perfilUrl: 'https://www.linkedin.com/in/persona-ficticia/',
+        nombre: 'Persona Ficticia',
+        tipo: 'mensaje_recibido',
+        resumen: 'Me pide el CV',
+        paso: { descripcion: 'Mandar el CV a Persona' },
+      },
+    });
+    expect((sinLigar as Texto).content[0]!.text).toMatch(/El paso NO se registró/);
+    const r = json(
+      await c.callTool({
+        name: 'registrar_interaccion_red',
+        arguments: {
+          perfilUrl: 'https://www.linkedin.com/in/persona-ficticia/',
+          tipo: 'mensaje_recibido',
+          resumen: 'Me pide el CV actualizado',
+          referenciaExterna: 'linkedin:msg:42',
+          paso: {
+            descripcion: 'Contestar a Persona con tu CV',
+            detalle: 'Responde su mensaje adjuntando el CV en PDF',
+            postulacionIds: [p.id],
+          },
+        },
+      }),
+    );
+    expect(r.paso).toMatchObject({
+      fuente: 'linkedin',
+      registradoPor: 'ia',
+      contactoRedId: r.contacto.id,
+      postulacionIds: [p.id],
+    });
+  });
+
+  it('registrar_senal con varias postulaciones y un paso deja una señal en cada una y un solo paso', async () => {
+    const c = await cliente(t.token('mcp'));
+    const crear = async (n: number) =>
+      json(
+        await c.callTool({
+          name: 'crear_postulacion',
+          arguments: {
+            titulo: `Cargo ${n}`,
+            empresa: 'Tenpo',
+            url: `https://tenpo.teamtailor.com/jobs/${n}000000-cargo`,
+            plataforma: 'sitio_empresa',
+          },
+        }),
+      );
+    const a = await crear(1);
+    const b = await crear(2);
+    const r = json(
+      await c.callTool({
+        name: 'registrar_senal',
+        arguments: {
+          postulacionIds: [a.id, b.id],
+          fuente: 'correo',
+          resumen: 'Completa tu perfil en el portal de Tenpo',
+          confianza: 0.8,
+          referenciaExterna: '<tenpo@x>',
+          paso: { descripcion: 'Completar el perfil en Teamtailor' },
+        },
+      }),
+    );
+    expect(r.senales).toHaveLength(2);
+    expect(r).toMatchObject({ accion: 'creado', paso: { registradoPor: 'ia' } });
+    expect(await prisma.senal.count({ where: { referenciaExterna: '<tenpo@x>' } })).toBe(2);
+    expect(await prisma.paso.count()).toBe(1);
   });
 });

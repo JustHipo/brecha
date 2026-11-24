@@ -48,6 +48,7 @@ import { Dialogos } from './dialogos/dialogos.service';
 import { DialogoEntrevista } from './dialogos/entrevista';
 import { DialogoSenal } from './dialogos/senal';
 import { FichaStore, type InteraccionDeContacto } from './ficha.store';
+import { Proceso } from './proceso';
 import { Transiciones } from './transiciones';
 
 const EMBUDO: EstadoPostulacion[] = [
@@ -93,6 +94,7 @@ interface Etapa {
     CitaAviso,
     PendienteRed,
     ConexionRed,
+    Proceso,
   ],
   providers: [FichaStore],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -202,6 +204,8 @@ interface Etapa {
                   </button>
                 </section>
               }
+
+              <b-proceso [detalle]="d" />
 
               <section
                 aria-labelledby="ficha-resumen"

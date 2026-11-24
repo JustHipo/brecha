@@ -1,9 +1,10 @@
 import type { GeneradorId } from '../../../compartido/dominio/puertos';
-import { esUnicoViolado, type PrismaClient } from '../../../compartido/infraestructura/prisma';
+import { esUnicoViolado, Prisma, type PrismaClient } from '../../../compartido/infraestructura/prisma';
 import { SenalDuplicada } from '../../dominio/errores';
 import type { EstadoPostulacion } from '../../dominio/estado';
 import type { Plataforma } from '../../dominio/objetos-valor/valores';
 import type { FuenteDeSenal } from '../../dominio/partes';
+import type { PropuestaDePaso } from '../../dominio/paso';
 import {
   SenalPendiente,
   type BandejaRepositorio,
@@ -28,6 +29,8 @@ export function filaAPendiente(f: Fila): DatosPendiente {
     ...(f.asunto ? { asunto: f.asunto } : {}),
     ...(f.empresaDetectada ? { empresaDetectada: f.empresaDetectada } : {}),
     ...(f.cargoDetectado ? { cargoDetectado: f.cargoDetectado } : {}),
+    candidatas: f.candidatas ?? [],
+    ...(f.pasoPropuesto ? { pasoPropuesto: f.pasoPropuesto as unknown as PropuestaDePaso } : {}),
     estado: f.estado as EstadoDePendiente,
     ...(f.postulacionId ? { postulacionId: f.postulacionId } : {}),
     ...(f.resueltaEn ? { resueltaEn: f.resueltaEn } : {}),
@@ -57,6 +60,10 @@ export class PrismaBandeja implements BandejaRepositorio {
     return a + b > 0;
   }
 
+  async referenciaEnBandeja(referencia: string): Promise<boolean> {
+    return (await this.prisma.senalPendiente.count({ where: { referenciaExterna: referencia } })) > 0;
+  }
+
   async guardar(
     s: SenalPendiente,
     evento?: { tipo: string; prioridad: 'alta' | 'media' | 'baja' },
@@ -74,6 +81,8 @@ export class PrismaBandeja implements BandejaRepositorio {
       asunto: d.asunto ?? null,
       empresaDetectada: d.empresaDetectada ?? null,
       cargoDetectado: d.cargoDetectado ?? null,
+      candidatas: d.candidatas,
+      pasoPropuesto: d.pasoPropuesto ? { ...d.pasoPropuesto } : Prisma.DbNull,
       estado: d.estado,
       postulacionId: d.postulacionId ?? null,
       resueltaEn: d.resueltaEn ?? null,

@@ -3,6 +3,7 @@
 Ninguna de las dos marca un correo como leído. Este adaptador nunca llama a STORE, MOVE, COPY ni EXPUNGE.
 """
 
+import re
 from collections.abc import Callable, Iterator
 from datetime import UTC, date, datetime
 from email import message_from_bytes, policy
@@ -34,16 +35,24 @@ class _ATexto(HTMLParser):
         super().__init__()
         self.partes: list[str] = []
         self._omitir = 0
+        self._enlace: str | None = None
 
     def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
         if tag in {"script", "style", "head"}:
             self._omitir += 1
         elif tag in {"br", "p", "div", "tr", "li", "h1", "h2", "h3"}:
             self.partes.append("\n")
+        elif tag == "a":
+            href = dict(attrs).get("href") or ""
+            self._enlace = href if href.lower().startswith(("http://", "https://")) else None
 
     def handle_endtag(self, tag: str) -> None:
         if tag in {"script", "style", "head"} and self._omitir:
             self._omitir -= 1
+        elif tag == "a" and self._enlace:
+            # El enlace queda en el texto para el código; al modelo le llega como «[enlace N]» (D54).
+            self.partes.append(f" ({self._enlace})")
+            self._enlace = None
 
     def handle_data(self, data: str) -> None:
         if not self._omitir:
@@ -89,7 +98,14 @@ def a_correo(uid: int, crudo: bytes, interna: datetime | None) -> CorreoLeido:
         recibido_en=(fecha or datetime.now(UTC)).astimezone(UTC),
         texto=texto_de(m),
         masivo=bool(m.get("List-Unsubscribe")) or str(m.get("Precedence", "")).lower() in {"bulk", "list"},
+        en_respuesta_a=next(iter(_ids(m.get("In-Reply-To"))), None),
+        referencias=tuple(_ids(m.get("References"))),
     )
+
+
+def _ids(valor: object) -> list[str]:
+    """Los Message-ID de una cabecera («<a@b> <c@d>»)."""
+    return re.findall(r"<[^<>\s]+>", str(valor or ""))
 
 
 class LectorImap:

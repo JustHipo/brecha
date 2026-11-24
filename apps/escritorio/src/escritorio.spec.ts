@@ -37,6 +37,22 @@ describe('avisos del sistema', () => {
       )?.cuerpo,
     ).toBe('Te invitan a entrevista');
   });
+
+  it('un paso pedido avisa con lo que piden, nombrando la primera postulación', () => {
+    expect(
+      avisoDe(
+        {
+          tipo: 'paso.detectado',
+          datos: { postulacionIds: ['p1', 'p2'], descripcion: 'Completar el test de personalidad' },
+        },
+        'Lanek · Backend',
+      ),
+    ).toEqual({
+      titulo: 'Te piden algo: Lanek · Backend y 1 más',
+      cuerpo: 'Completar el test de personalidad',
+      ruta: '/postulaciones/p1',
+    });
+  });
 });
 
 describe('rutas y puertos', () => {

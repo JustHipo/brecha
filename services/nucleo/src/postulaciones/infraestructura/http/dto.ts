@@ -2,6 +2,7 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Transform, Type } from 'class-transformer';
 import {
   IsArray,
+  IsBoolean,
   IsDateString,
   IsIn,
   IsInt,
@@ -137,6 +138,12 @@ export class TransicionDto {
   @IsIn(ORIGENES_HTTP)
   origen?: (typeof ORIGENES_HTTP)[number];
   @ApiProperty({ description: 'Versión que tenías (bloqueo optimista)' }) @IsInt() @Min(0) version!: number;
+  @ApiPropertyOptional({
+    description: 'Al cerrarla, descartar sus pasos pendientes que solo tocan postulaciones cerradas (R17)',
+  })
+  @IsOptional()
+  @IsBoolean()
+  descartarPasos?: boolean;
 }
 
 export class EditarPostulacionDto {
@@ -286,6 +293,11 @@ export class ListarQueryDto {
   @IsString()
   @MaxLength(200)
   q?: string;
+  @ApiPropertyOptional({ description: 'URL del aviso o solo su número (por ejemplo 3916453)' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(2000)
+  url?: string;
   @ApiPropertyOptional({ default: 50, minimum: 1, maximum: 200 })
   @IsOptional()
   @Type(() => Number)

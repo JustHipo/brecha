@@ -20,6 +20,7 @@ import {
   ResolverDiscrepancia,
   VincularAviso,
 } from '../aplicacion/casos-de-escritura';
+import { EditarPaso, ListarPasos, RegistrarPaso, ResolverPaso } from '../aplicacion/casos-de-pasos';
 import {
   Exportar,
   ListarPostulaciones,
@@ -54,6 +55,10 @@ export class CasosDeUso {
   readonly crearDesdeSenal: CrearDesdeSenal;
   readonly descartarSenal: DescartarSenal;
   readonly vincularAviso: VincularAviso;
+  readonly registrarPaso: RegistrarPaso;
+  readonly listarPasos: ListarPasos;
+  readonly resolverPaso: ResolverPaso;
+  readonly editarPaso: EditarPaso;
 
   constructor(c: Contexto) {
     this.crear = new CrearPostulacion(c);
@@ -79,5 +84,9 @@ export class CasosDeUso {
     this.crearDesdeSenal = new CrearDesdeSenal(c);
     this.descartarSenal = new DescartarSenal(c);
     this.vincularAviso = new VincularAviso(c);
+    this.registrarPaso = new RegistrarPaso(c);
+    this.listarPasos = new ListarPasos(c);
+    this.resolverPaso = new ResolverPaso(c);
+    this.editarPaso = new EditarPaso(c);
   }
 }

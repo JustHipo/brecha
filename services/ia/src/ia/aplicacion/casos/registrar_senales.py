@@ -1,6 +1,8 @@
 """F2-07: cada correo clasificado como de una postulación se asocia y se registra en el núcleo como señal.
 
 Lo que no es de una postulación nunca se envía. El núcleo aplica R11 y D27 y abre discrepancias (R13).
+Si la clasificación ya trae la decisión (pasos.md §5.3), se usa: una o varias postulaciones, el paso que
+pide el correo y los pasos que da por hechos. Si no (correos clasificados antes), la asociación de siempre.
 """
 
 from dataclasses import dataclass, field
@@ -8,6 +10,7 @@ from dataclasses import dataclass, field
 from ia.aplicacion.puertos import (
     ClasificadoPorEnviar,
     ColaDeEnvio,
+    DecisionGuardada,
     Nucleo,
     NucleoNoDisponible,
     SenalParaNucleo,
@@ -25,11 +28,14 @@ class ResumenDeRegistro:
     error: str | None = None
 
 
-def a_senal(c: ClasificadoPorEnviar, postulacion_id: str | None) -> SenalParaNucleo:
+def a_senal(
+    c: ClasificadoPorEnviar, postulacion_id: str | None, decision: DecisionGuardada | None = None
+) -> SenalParaNucleo:
     k = c.clasificacion
+    ids = decision.postulacion_ids if decision else ()
     return SenalParaNucleo(
         referencia_externa=c.message_id,
-        postulacion_id=postulacion_id,
+        postulacion_id=postulacion_id if not ids else None,
         plataforma=k.plataforma,
         resumen=k.resumen,
         estado_sugerido=k.estado_sugerido,
@@ -39,6 +45,10 @@ def a_senal(c: ClasificadoPorEnviar, postulacion_id: str | None) -> SenalParaNuc
         asunto=c.asunto,
         empresa=k.empresa,
         cargo=k.cargo,
+        postulacion_ids=ids,
+        candidatas=decision.candidatas if decision and not ids else (),
+        paso=decision.paso if decision else None,
+        pasos_cumplidos=decision.pasos_cumplidos if decision and ids else (),
     )
 
 
@@ -58,18 +68,24 @@ class RegistrarSenales:
             conocidas = self.nucleo.postulaciones()
             for c in pendientes:
                 k = c.clasificacion
-                a = asociar(k.empresa, k.cargo, k.plataforma, conocidas, c.remitente.rsplit("@", 1)[-1])
-                destino = next((p for p in conocidas if p.id == a.postulacion_id), None)
-                hacia = f"{destino.empresa} · {destino.titulo}" if destino else "bandeja"
+                if c.decision:
+                    ids, motivo = c.decision.postulacion_ids, c.decision.motivo
+                else:
+                    a = asociar(k.empresa, k.cargo, k.plataforma, conocidas, c.remitente.rsplit("@", 1)[-1])
+                    ids = (a.postulacion_id,) if a.postulacion_id else ()
+                    motivo = a.motivo
+                destinos = [f"{p.empresa} · {p.titulo}" for p in conocidas if p.id in ids]
+                hacia = " + ".join(destinos) if destinos else "bandeja"
                 sugerido = k.estado_sugerido or "sin cambio"
+                pide = f" · pide: {c.decision.paso.descripcion}" if c.decision and c.decision.paso else ""
                 r.detalle.append(
                     f"{k.empresa or '-'} · {k.cargo or '-'} · {sugerido} {k.confianza:.2f}"
-                    f" → {hacia} ({a.motivo})"
+                    f" → {hacia} ({motivo}){pide}"
                 )
                 if self.en_seco:
                     continue
-                resp = self.nucleo.registrar_senal(a_senal(c, a.postulacion_id))
-                self.cola.marcar_enviado(c.message_id, a.postulacion_id)
+                resp = self.nucleo.registrar_senal(a_senal(c, ids[0] if ids else None, c.decision))
+                self.cola.marcar_enviado(c.message_id, ids)
                 if resp.destino == "repetida":
                     r.repetidas += 1
                 elif resp.destino == "bandeja":

@@ -2,7 +2,14 @@ import { DestroyRef, Injectable, computed, inject, signal } from '@angular/core'
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import type { Detalle } from '@brecha/contratos';
 import { filter, firstValueFrom, type Observable } from 'rxjs';
-import { Api, type ContactoRed, type InteraccionRed } from '../../nucleo/api/api.service';
+import {
+  Api,
+  type ContactoRed,
+  type EditarPaso,
+  type EstadoDePaso,
+  type InteraccionRed,
+  type RegistrarPaso,
+} from '../../nucleo/api/api.service';
 import { Ia, type AvisoIaDetalle } from '../../nucleo/api/ia.service';
 import { ErrorDeApi } from '../../nucleo/errores/error-de-api';
 import { Eventos } from '../../nucleo/eventos/eventos.service';
@@ -140,5 +147,26 @@ export class FichaStore {
     } finally {
       this.ocupado.set(false);
     }
+  }
+
+  // ── Pasos pendientes (docs/diseno/pasos.md §7.2) ─────────────────────────────
+
+  /** Después de tocar un paso se recargan la ficha y el tablero (el paso puede tocar otras tarjetas). */
+  private async tras(accion: Observable<unknown>): Promise<void> {
+    await firstValueFrom(accion);
+    await this.cargar(this.id, true);
+    void this.tablero.cargar(true);
+  }
+
+  resolverPaso(pasoId: string, estado: EstadoDePaso): Promise<void> {
+    return this.tras(this.api.resolverPaso(pasoId, estado));
+  }
+
+  registrarPaso(cuerpo: Omit<RegistrarPaso, 'postulacionIds'>): Promise<void> {
+    return this.tras(this.api.registrarPaso({ ...cuerpo, postulacionIds: [this.id] }));
+  }
+
+  editarPaso(pasoId: string, cuerpo: EditarPaso): Promise<void> {
+    return this.tras(this.api.editarPaso(pasoId, cuerpo));
   }
 }

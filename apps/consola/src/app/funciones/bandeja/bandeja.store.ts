@@ -59,8 +59,9 @@ export class BandejaStore {
     }
   }
 
-  asociar(senal: SenalPendiente, postulacionId: string): Promise<ResultadoBandeja> {
-    return this.resolver(senal, () => this.api.asociarSenal(senal.id, postulacionId));
+  /** A una o varias postulaciones (pasos.md §7.3). */
+  asociar(senal: SenalPendiente, postulacionIds: string[]): Promise<ResultadoBandeja> {
+    return this.resolver(senal, () => this.api.asociarSenal(senal.id, postulacionIds));
   }
 
   crear(senal: SenalPendiente, aviso: AvisoEntrada): Promise<ResultadoBandeja> {
