@@ -30,6 +30,11 @@ test('Arriendos: la propiedad con punto sale en el mapa y la sin punto, en la li
     comuna: 'Providencia',
   });
 
+  // El worker de MapLibre se sirve aparte (angular.json): si falta, la consola lo dice y el fondo real no carga.
+  const errores: string[] = [];
+  page.on('console', (m) => {
+    if (/worker/i.test(m.text())) errores.push(m.text());
+  });
   await page.goto('/arriendos/mapa');
   const pin = page.locator(`[data-pin="${a.propiedad.id}"]`);
   await expect(pin).toBeVisible();
@@ -37,6 +42,7 @@ test('Arriendos: la propiedad con punto sale en el mapa y la sin punto, en la li
   await expect(page.locator('[data-propiedad-elegida]')).toContainText('Depto con pin');
   await expect(page.getByText(/\d+ sin ubicar/)).toBeVisible();
   await expect(page.getByRole('link', { name: 'Depto sin pin' })).toBeVisible();
+  expect(errores).toEqual([]);
 });
 
 test('Empleo: un pin por comuna con cuántas postulaciones hay', async ({ page, request }) => {

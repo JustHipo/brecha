@@ -39,6 +39,9 @@ const ESTILO_VACIO = {
 
 const SANTIAGO: [number, number] = [-70.65, -33.45];
 
+/** Copiado de node_modules/maplibre-gl/dist por angular.json. */
+export const URL_DEL_WORKER = '/maplibre/maplibre-gl-worker.mjs';
+
 /**
  * Mapa con MapLibre GL JS (P11). Los pines son botones del DOM: se enfocan con teclado y se anuncian.
  * Si no hay internet, se ve un aviso y los pines siguen; si el equipo no puede dibujar el mapa, solo el aviso.
@@ -89,6 +92,9 @@ export class MapaBase {
   private async iniciar(): Promise<void> {
     try {
       this.libre = await import('maplibre-gl');
+      // El worker que dibuja las teselas es un archivo aparte que el build no empaqueta: se copia como recurso
+      // (angular.json) y se le dice a MapLibre dónde está. Sin esto, el fondo real no carga («Worker failed to load»).
+      this.libre.setWorkerUrl(URL_DEL_WORKER);
       const automatico = typeof navigator !== 'undefined' && navigator.webdriver;
       this.mapa = new this.libre.Map({
         container: this.lienzo().nativeElement,
