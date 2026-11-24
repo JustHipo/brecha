@@ -86,17 +86,17 @@ export class AppModule {
         },
         {
           provide: CasosDeRedInyectables,
-          useFactory: (prisma: PrismaClient, reloj: Reloj, ids: GeneradorId) =>
+          useFactory: (prisma: PrismaClient, reloj: Reloj, ids: GeneradorId, flujo: FlujoDeEventos) =>
             new CasosDeRedInyectables(
               new CasosDeRed({
-                red: new PrismaRed(prisma),
+                red: new PrismaRed(prisma, flujo),
                 reloj,
                 ids,
                 existePostulacion: async (id) =>
                   /^[0-9a-f-]{36}$/i.test(id) && (await prisma.postulacion.count({ where: { id } })) > 0,
               }),
             ),
-          inject: [PRISMA, RELOJ, IDS],
+          inject: [PRISMA, RELOJ, IDS, FLUJO],
         },
         { provide: APP_GUARD, useClass: AccesoGuard },
         CicloDeVida,

@@ -1,5 +1,7 @@
-import { Injectable, computed, inject, signal } from '@angular/core';
-import { firstValueFrom } from 'rxjs';
+import { DestroyRef, Injectable, computed, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { debounceTime, filter, firstValueFrom } from 'rxjs';
+import { Eventos } from '../../nucleo/eventos/eventos.service';
 import {
   Api,
   type ContactoRed,
@@ -48,6 +50,23 @@ export function momentoDe(fecha: string, ahora = new Date()): string | undefined
 @Injectable({ providedIn: 'root' })
 export class RedStore {
   private readonly api = inject(Api);
+
+  private readonly eventos = inject(Eventos, { optional: true });
+
+  constructor() {
+    // Cuando tu IA registra algo por MCP, el núcleo avisa por el flujo SSE y la lista se pone al día.
+    const destroy = inject(DestroyRef);
+    queueMicrotask(() =>
+      this.eventos
+        ?.flujo()
+        .pipe(
+          filter((e) => e.tipo.startsWith('red.')),
+          debounceTime(300),
+          takeUntilDestroyed(destroy),
+        )
+        .subscribe(() => void this.cargar(true)),
+    );
+  }
 
   readonly estado = signal<'inicial' | 'cargando' | 'listo' | 'error'>('inicial');
   readonly error = signal<ErrorDeApi | null>(null);

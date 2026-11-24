@@ -36,6 +36,7 @@ let servicios: Servicios;
 let oyente: OyenteDeEventos;
 let saliendo = false;
 let pendientesBandeja = 0;
+let porResponder = 0;
 
 function tokenConsola(): string | null {
   const ruta = join(servicios.instancia, 'token-consola');
@@ -88,6 +89,11 @@ async function contarBandeja(): Promise<void> {
   try {
     const r = await fetch(`${URL_CONSOLA}/api/v1/bandeja`, { headers: { Authorization: `Bearer ${token}` } });
     if (r.ok) pendientesBandeja = ((await r.json()) as unknown[]).length;
+    const red = await fetch(`${URL_CONSOLA}/api/v1/red?filtro=responder`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (red.ok)
+      porResponder = ((await red.json()) as { resumen: { porResponder: number } }).resumen.porResponder;
   } catch {
     // el núcleo todavía no responde
   }
@@ -106,7 +112,8 @@ function actualizarMenu(): void {
   });
   const todoBien =
     servicios.procesos.length === 4 && servicios.procesos.every((p) => p.estado === 'corriendo');
-  tray.setTitle(pendientesBandeja ? ` ${pendientesBandeja}` : '');
+  const pendientes = pendientesBandeja + porResponder;
+  tray.setTitle(pendientes ? ` ${pendientes}` : '');
   tray.setToolTip(todoBien ? 'Brecha: todo funcionando' : 'Brecha: revisando servicios');
   tray.setContextMenu(
     Menu.buildFromTemplate([
@@ -115,7 +122,10 @@ function actualizarMenu(): void {
         label: pendientesBandeja ? `Bandeja: ${pendientesBandeja} por revisar` : 'Bandeja al día',
         click: () => abrir('/bandeja'),
       },
-      { label: 'Tu red de LinkedIn', click: () => abrir('/red') },
+      {
+        label: porResponder ? `Red: ${porResponder} por responder` : 'Tu red de LinkedIn',
+        click: () => abrir('/red'),
+      },
       { type: 'separator' },
       ...(servicios.error ? [{ label: `✕ ${servicios.error}`, enabled: false }] : []),
       ...lineas,

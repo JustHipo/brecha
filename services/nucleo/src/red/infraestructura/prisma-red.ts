@@ -1,4 +1,6 @@
+import { randomUUID } from 'node:crypto';
 import type { PrismaClient } from '../../compartido/infraestructura/prisma';
+import type { OyenteDeEventos } from '../../postulaciones/infraestructura/outbox/outbox';
 import {
   ContactoDeRed,
   type DatosContactoRed,
@@ -33,7 +35,10 @@ function aDatos(f: Fila): DatosContactoRed {
 
 /** Adaptador de salida de la red. Las interacciones van en JSON: son pocas por persona y siempre se leen juntas. */
 export class PrismaRed implements RedRepositorio {
-  constructor(private readonly prisma: PrismaClient) {}
+  constructor(
+    private readonly prisma: PrismaClient,
+    private readonly oyente?: OyenteDeEventos,
+  ) {}
 
   async porId(id: string): Promise<ContactoDeRed | null> {
     if (!/^[0-9a-f-]{36}$/i.test(id)) return null;
@@ -70,5 +75,17 @@ export class PrismaRed implements RedRepositorio {
       create: { id: d.id, creadoEn: d.creadoEn, ...datos },
       update: datos,
     });
+    // Aviso en vivo para la consola y la app (no va al outbox: no es un hecho de una postulación).
+    this.oyente?.publicar([
+      {
+        id: randomUUID(),
+        tipo: 'red.contacto_actualizado',
+        version: 1,
+        ocurridoEn: new Date().toISOString(),
+        prioridad: c.pendiente() === 'responder' ? 'media' : 'baja',
+        correlacionId: null,
+        datos: { contactoId: d.id, nombre: d.nombre, pendiente: c.pendiente() },
+      },
+    ]);
   }
 }
