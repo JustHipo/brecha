@@ -12,6 +12,7 @@ from ia.aplicacion.puertos import (
     PuntoDeLectura,
     RepositorioDeCorreos,
 )
+from ia.dominio.arriendo import PLATAFORMA_ARRIENDO, de_arriendo
 from ia.dominio.correo import CorreoLeido, EstadoDeCorreo
 from ia.dominio.filtro import filtrar
 from ia.dominio.fragmento import fragmento
@@ -36,14 +37,18 @@ class SincronizarCorreo:
         repo: RepositorioDeCorreos,
         ahora: Callable[[], datetime],
         dias_primera_vez: int,
+        dominios_arriendo: Callable[[], frozenset[str]] | None = None,
     ) -> None:
         self.lector = lector
         self.repo = repo
         self.ahora = ahora
         self.dias_primera_vez = dias_primera_vez
+        # Dominios de los canales de arriendo que agregó la persona (los pide al núcleo en cada vuelta).
+        self.dominios_arriendo = dominios_arriendo
 
     def ejecutar(self) -> ResumenDeSincronizacion:
         r = ResumenDeSincronizacion()
+        dominios = self.dominios_arriendo() if self.dominios_arriendo else frozenset[str]()
         punto = self.repo.punto_de_lectura()
         cuando = self.ahora()
         try:
@@ -56,7 +61,7 @@ class SincronizarCorreo:
             for c in self.lector.nuevos(desde_uid, desde_fecha):
                 r.leidos += 1
                 ultimo = max(ultimo or 0, c.uid)
-                destino, plataforma = ingresar(self.repo, c)
+                destino, plataforma = ingresar(self.repo, c, dominios)
                 if destino == "repetido":
                     r.repetidos += 1
                 elif destino in {"filtrado", "red"}:
@@ -73,7 +78,9 @@ class SincronizarCorreo:
         return r
 
 
-def ingresar(repo: RepositorioDeCorreos, c: CorreoLeido) -> tuple[str, str | None]:
+def ingresar(
+    repo: RepositorioDeCorreos, c: CorreoLeido, dominios_arriendo: frozenset[str] = frozenset()
+) -> tuple[str, str | None]:
     """Un correo leído entra a la base: repetido, filtrado (sin asunto ni fragmento) o por clasificar.
 
     Lo usan el vigía y `ia probar-correo` (correos de prueba en archivos, sin tocar el punto de lectura).
@@ -95,6 +102,22 @@ def ingresar(repo: RepositorioDeCorreos, c: CorreoLeido) -> tuple[str, str | Non
             )
         )
         return "red", "linkedin"
+    motivo = de_arriendo(c, dominios_arriendo)
+    if motivo:
+        repo.guardar(
+            CorreoGuardado(
+                c.message_id,
+                c.uid,
+                c.remitente,
+                c.recibido_en,
+                EstadoDeCorreo.PENDIENTE,
+                PLATAFORMA_ARRIENDO,
+                motivo[:200],
+                asunto=c.asunto[:500],
+                fragmento=fragmento(c.texto),
+            )
+        )
+        return "pendiente", PLATAFORMA_ARRIENDO
     f = filtrar(c)
     if not f.pasa:
         repo.guardar(

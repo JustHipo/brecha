@@ -364,6 +364,7 @@ export class Marco {
     { ruta: '/arriendos/bandeja', etiqueta: 'nav.bandeja', icono: ICONOS.bandeja },
     { ruta: '/arriendos/canales', etiqueta: 'nav.canales', icono: ICONOS.canales },
     { ruta: '/arriendos/preguntar', etiqueta: 'nav.preguntar', icono: ICONOS.preguntar },
+    { ruta: '/arriendos/importar', etiqueta: 'nav.importarArriendos', icono: ICONOS.csv },
     { ruta: '/conexiones', etiqueta: 'nav.conexiones', icono: ICONOS.conexiones },
   ];
   protected readonly nav = computed(() =>

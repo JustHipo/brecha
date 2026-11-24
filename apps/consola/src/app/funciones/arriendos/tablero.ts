@@ -185,6 +185,9 @@ export class TarjetaPropiedad {
         <a hlmBtn variant="outline" routerLink="/arriendos/busqueda">{{
           'arriendos.tuBusqueda' | transloco
         }}</a>
+        <a hlmBtn variant="outline" routerLink="/arriendos/importar">{{
+          'nav.importarArriendos' | transloco
+        }}</a>
         <a hlmBtn routerLink="/arriendos/propiedades/nueva"
           >+ {{ 'arriendos.nueva' | transloco }}</a
         >

@@ -25,7 +25,8 @@
     "mapa": "Mapa",
     "canales": "Canales",
     "propiedades": "Propiedades",
-    "busqueda": "Tu búsqueda"
+    "busqueda": "Tu búsqueda",
+    "importarArriendos": "Importar"
   },
   "busqueda": {
     "abrir": "Buscar o ejecutar…",
@@ -1026,5 +1027,32 @@
     "renta_exigida": "Cumplo la renta que piden",
     "aval": "Si piden aval, lo tengo",
     "disponible_desde": "Disponible a más tardar"
+  },
+  "importarArriendo": {
+    "titulo": "Importar avisos",
+    "ayuda": "Pega un aviso, un correo o una lista, o sube un chat exportado de WhatsApp. La IA propone las propiedades y tú eliges cuáles guardar. Los teléfonos no se mandan a la IA.",
+    "texto": "Pegar texto",
+    "whatsapp": "Chat de WhatsApp",
+    "pegaTexto": "Texto del aviso o de la conversación",
+    "buscar": "Buscar propiedades",
+    "archivoChat": "Archivo .txt del chat",
+    "comoExportar": "En WhatsApp: abre el chat → menú → Más → Exportar chat → Sin archivos. Sube el .txt (si viene en .zip, descomprímelo).",
+    "quienEres": "Leí {{n}} mensajes. ¿Cuál eres tú?",
+    "leyendo": "Leyendo con la IA…",
+    "encontradas": "Encontré {{n}} propiedades",
+    "recortado": "el texto era largo: usé lo más reciente",
+    "yaLaSigues": "Ya la sigues ({{titulo}}): se sumará a esa",
+    "creada": "Agregada",
+    "unida": "Sumada a la que ya seguías",
+    "agregarElegidas": "Agregar las elegidas",
+    "algunasFallaron": "Algunas no se pudieron agregar: revísalas",
+    "listo": "Listo: {{n}} agregadas"
+  },
+  "preguntarArriendo": {
+    "ayuda": "Pregunta sobre las propiedades que sigues: cuál conviene, cuáles calzan con tu presupuesto, a quién te toca responder.",
+    "pregunta": "Tu pregunta",
+    "ejemplo": "¿Cuáles cumplen todas mis reglas y tienen visita esta semana?",
+    "preguntar": "Preguntar",
+    "pensando": "Pensando…"
   }
 }

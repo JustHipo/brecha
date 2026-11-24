@@ -25,7 +25,8 @@
     "mapa": "Map",
     "canales": "Channels",
     "propiedades": "Properties",
-    "busqueda": "Your search"
+    "busqueda": "Your search",
+    "importarArriendos": "Import"
   },
   "busqueda": {
     "abrir": "Search or run…",
@@ -1026,5 +1027,32 @@
     "renta_exigida": "I meet the required income",
     "aval": "If they ask for a guarantor, I have one",
     "disponible_desde": "Available by"
+  },
+  "importarArriendo": {
+    "titulo": "Import listings",
+    "ayuda": "Paste a listing, an email or a list, or upload a WhatsApp chat export. The AI suggests properties and you choose which to save. Phone numbers are never sent to the AI.",
+    "texto": "Paste text",
+    "whatsapp": "WhatsApp chat",
+    "pegaTexto": "Listing or conversation text",
+    "buscar": "Find properties",
+    "archivoChat": "Chat .txt file",
+    "comoExportar": "In WhatsApp: open the chat → menu → More → Export chat → Without media. Upload the .txt (unzip it if it comes as .zip).",
+    "quienEres": "I read {{n}} messages. Which one is you?",
+    "leyendo": "Reading with the AI…",
+    "encontradas": "Found {{n}} properties",
+    "recortado": "the text was long: I used the most recent part",
+    "yaLaSigues": "You already follow it ({{titulo}}): it will be added there",
+    "creada": "Added",
+    "unida": "Added to the one you already followed",
+    "agregarElegidas": "Add the selected ones",
+    "algunasFallaron": "Some couldn't be added: check them",
+    "listo": "Done: {{n}} added"
+  },
+  "preguntarArriendo": {
+    "ayuda": "Ask about the properties you follow: which one fits, which match your budget, who you owe a reply.",
+    "pregunta": "Your question",
+    "ejemplo": "Which ones meet all my rules and have a viewing this week?",
+    "preguntar": "Ask",
+    "pensando": "Thinking…"
   }
 }

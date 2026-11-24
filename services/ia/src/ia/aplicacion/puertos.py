@@ -6,6 +6,8 @@ from datetime import date, datetime
 from enum import StrEnum
 from typing import Protocol, runtime_checkable
 
+from ia.dominio.arriendo import ClasificacionArriendo, PropuestaDePropiedad
+from ia.dominio.arriendo import Contacto as ContactoDeArriendo
 from ia.dominio.asociacion import PostulacionConocida
 from ia.dominio.aviso import Aviso
 from ia.dominio.calce import Calce, Perfil, Requisito
@@ -351,3 +353,55 @@ class RedEnNucleo(Protocol):
         self, contacto_id: str, tipo: str, resumen: str, ocurrida_en: datetime, referencia: str
     ) -> bool: ...
     def vincular_contacto_red(self, contacto_id: str, postulacion_id: str) -> None: ...
+
+
+# ── Arriendos (docs/diseno/arriendos.md §7) ────────────────────────────────────
+
+
+@dataclass(frozen=True)
+class CorreoDeArriendo:
+    message_id: str
+    remitente: str
+    asunto: str
+    fragmento: str
+    recibido_en: datetime
+    intentos: int
+
+
+class ColaDeArriendos(Protocol):
+    def pendientes_de_arriendo(self, limite: int) -> list[CorreoDeArriendo]: ...
+    def marcar_arriendo(
+        self, message_id: str, resultado: dict[str, object], modelo: str, confianza: float
+    ) -> None: ...
+    def marcar_intento_fallido(self, message_id: str, maximo: int) -> None: ...
+
+
+@dataclass(frozen=True)
+class SenalDeArriendo:
+    referencia_externa: str
+    resumen: str
+    estado_sugerido: str | None
+    confianza: float
+    recibida_en: datetime
+    remitente: str | None = None
+    asunto: str | None = None
+    url: str | None = None
+    direccion: str | None = None
+    comuna: str | None = None
+    contacto: ContactoDeArriendo | None = None
+
+
+class NucleoDeArriendos(Protocol):
+    def registrar_senal_arriendo(self, s: SenalDeArriendo) -> str: ...
+    def dominios_de_arriendo(self) -> frozenset[str]: ...
+    def propiedades_para_preguntar(self) -> list[dict[str, object]]: ...
+
+
+class ModeloDeArriendos(Protocol):
+    def clasificar_arriendo(
+        self, remitente: str, asunto: str, fragmento: str
+    ) -> tuple[ClasificacionArriendo, Uso]: ...
+    def extraer_arriendos(self, texto: str, es_chat: bool) -> tuple[list[PropuestaDePropiedad], Uso]: ...
+    def responder_arriendos(
+        self, pregunta: str, propiedades: list[dict[str, object]]
+    ) -> tuple[str, list[str], Uso]: ...

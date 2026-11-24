@@ -10,6 +10,7 @@ from ia.aplicacion.puertos import (
     AvisoDePostulacion,
     NucleoNoDisponible,
     RespuestaDelNucleo,
+    SenalDeArriendo,
     SenalParaNucleo,
 )
 from ia.dominio.asociacion import PostulacionConocida
@@ -148,3 +149,73 @@ class NucleoHttp:
         r = self._pedir("PATCH", f"/red/{contacto_id}", json={"vincular": postulacion_id})
         if r.status_code != 200:
             raise NucleoNoDisponible(f"ligar contacto respondió {r.status_code}: {r.text[:200]}")
+
+    # ── Arriendos (docs/diseno/arriendos.md §7) ─────────────────────────────────
+
+    def registrar_senal_arriendo(self, s: SenalDeArriendo) -> str:
+        """Va a la propiedad que tenga esa URL o a la Bandeja de Arriendos. Devuelve el destino."""
+        cuerpo: dict[str, Any] = {
+            "fuente": "correo",
+            "resumen": s.resumen[:2000],
+            "confianza": s.confianza,
+            "recibidaEn": s.recibida_en.isoformat(),
+            "referenciaExterna": s.referencia_externa[:500],
+        }
+        opcionales = {
+            "estadoSugerido": s.estado_sugerido,
+            "remitente": (s.remitente or "")[:300] or None,
+            "asunto": (s.asunto or "")[:500] or None,
+            "url": s.url,
+            "direccion": (s.direccion or "")[:300] or None,
+            "comuna": (s.comuna or "")[:100] or None,
+        }
+        cuerpo.update({k: v for k, v in opcionales.items() if v})
+        if s.contacto and s.contacto.nombre:
+            cuerpo["contacto"] = {
+                k: v
+                for k, v in {
+                    "nombre": s.contacto.nombre[:200],
+                    "telefono": s.contacto.telefono,
+                    "correo": s.contacto.correo,
+                }.items()
+                if v
+            }
+        r = self._pedir("POST", "/arriendos/senales", json=cuerpo)
+        if r.status_code == 400 and "url" in r.text:
+            # Una URL rara del correo no debe perder la señal: se manda sin ella.
+            cuerpo.pop("url", None)
+            r = self._pedir("POST", "/arriendos/senales", json=cuerpo)
+        if r.status_code != 200:
+            raise NucleoNoDisponible(f"señal de arriendo respondió {r.status_code}: {r.text[:200]}")
+        return str(r.json()["destino"])
+
+    def dominios_de_arriendo(self) -> frozenset[str]:
+        r = self._pedir("GET", "/arriendos/canales")
+        if r.status_code != 200:
+            raise NucleoNoDisponible(f"canales respondió {r.status_code}")
+        return frozenset(d for c in r.json() if c.get("activo") for d in c.get("dominios", []))
+
+    def propiedades_para_preguntar(self) -> list[dict[str, object]]:
+        """Lo justo de cada propiedad para responder (sin contactos ni teléfonos)."""
+        r = self._pedir("GET", "/arriendos/propiedades")
+        if r.status_code != 200:
+            raise NucleoNoDisponible(f"propiedades respondió {r.status_code}")
+        return [
+            {
+                "id": p["id"],
+                "titulo": p["titulo"],
+                "estado": p["estado"],
+                "comuna": p.get("comuna"),
+                "direccion": p.get("direccion"),
+                "precioPesos": p.get("precioPesos"),
+                "gastosComunes": p.get("gastosComunes"),
+                "dormitorios": p.get("dormitorios"),
+                "banos": p.get("banos"),
+                "m2": p.get("m2"),
+                "calce": p["calce"].get("puntaje"),
+                "brechas": [b["texto"] for b in p["calce"].get("brechas", [])],
+                "pendiente": p.get("pendiente"),
+                "proximaVisita": p.get("proximaVisita"),
+            }
+            for p in r.json()["items"]
+        ]

@@ -36,7 +36,14 @@ export const RUTAS: Routes = [
     path: 'busqueda',
     loadComponent: () => import('./paginas').then((m) => m.ArriendosBusquedaPagina),
   },
+  {
+    path: 'importar',
+    loadComponent: () => import('./importar').then((m) => m.ArriendosImportarPagina),
+  },
+  {
+    path: 'preguntar',
+    loadComponent: () => import('./preguntar').then((m) => m.ArriendosPreguntarPagina),
+  },
   { path: 'mapa', ...vacia('nav.mapa') },
-  { path: 'preguntar', ...vacia('nav.preguntar') },
   { path: '**', redirectTo: 'tablero' },
 ];

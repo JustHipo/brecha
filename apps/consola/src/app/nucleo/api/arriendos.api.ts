@@ -148,3 +148,75 @@ export class ApiArriendos {
     return this.http.get<MapaArriendos>(`${BASE}/mapa`);
   }
 }
+
+// ── Servicio con IA: importar y preguntar (sin contrato generado: copia de services/ia/entradas/api.py) ──
+
+export interface PropuestaArriendo {
+  titulo: string | null;
+  tipo: TipoDePropiedad;
+  direccion: string | null;
+  comuna: string | null;
+  precio: { monto: number; moneda: 'CLP' | 'UF' } | null;
+  gastosComunes: number | null;
+  dormitorios: number | null;
+  banos: number | null;
+  m2: number | null;
+  estacionamientos: number | null;
+  mascotas: boolean | null;
+  amoblado: boolean | null;
+  url: string | null;
+  requisitos: { rentaVeces: number | null; aval: boolean | null; mesesGarantia: number | null };
+  estadoSugerido: EstadoPropiedad | null;
+  contacto: {
+    nombre: string | null;
+    telefono: string | null;
+    correo: string | null;
+    rol: 'corredor' | 'dueno' | 'conserje' | 'administracion' | 'otro' | null;
+  } | null;
+  nota: string | null;
+  mensajes: number[];
+}
+
+export interface MensajeDeChat {
+  indice: number;
+  fecha: string;
+  autor: string;
+  texto: string;
+  tuyo: boolean;
+}
+
+export interface Extraccion {
+  propuestas: PropuestaArriendo[];
+  mensajes: MensajeDeChat[];
+  recortado: boolean;
+  costoUsd: number;
+}
+
+export interface ChatLeido {
+  autores: string[];
+  mensajes: number;
+  desde: string;
+  hasta: string;
+}
+
+export interface RespuestaArriendos {
+  respuesta: string;
+  citados: { id: string; titulo: string; estado: EstadoPropiedad; comuna: string | null }[];
+  descartados: number;
+  costoUsd: number;
+}
+
+/** Cliente de las rutas de Arriendos del servicio con IA. */
+@Injectable({ providedIn: 'root' })
+export class IaArriendos {
+  private readonly http = inject(HttpClient);
+  leerChat(chat: string) {
+    return this.http.post<ChatLeido>('/api/ia/arriendos/chat', { chat });
+  }
+  extraer(cuerpo: { texto: string } | { chat: string; yo: string | null }) {
+    return this.http.post<Extraccion>('/api/ia/arriendos/extraer', cuerpo);
+  }
+  preguntar(pregunta: string) {
+    return this.http.post<RespuestaArriendos>('/api/ia/arriendos/preguntas', { pregunta });
+  }
+}

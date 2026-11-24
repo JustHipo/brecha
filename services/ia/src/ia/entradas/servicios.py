@@ -6,6 +6,7 @@ from typing import Any
 
 from sqlalchemy import Engine, text
 
+from ia.aplicacion.casos.arriendos import ExtraerArriendos, PreguntarArriendos, RespuestaDeArriendos
 from ia.aplicacion.casos.avisos import (
     AnalizarAvisos,
     AnalizarSinModelo,
@@ -152,4 +153,14 @@ class Servicios:
         m = self.modelo()
         return Preguntar(
             m, m, self.avisos, self.trazas, ahora, self.precios, self.cfg.openai_precio_embeddings
+        ).ejecutar(pregunta)
+
+    # ── Arriendos (docs/diseno/arriendos.md §7) ─────────────────────────────────
+
+    def extraer_arriendos(self) -> ExtraerArriendos:
+        return ExtraerArriendos(self.modelo(), self.trazas, ahora, self.precios)
+
+    def preguntar_arriendos(self, pregunta: str) -> RespuestaDeArriendos:
+        return PreguntarArriendos(
+            self.modelo(), self.nucleo_http(), self.trazas, ahora, self.precios
         ).ejecutar(pregunta)

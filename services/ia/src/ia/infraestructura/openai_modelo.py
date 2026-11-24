@@ -8,9 +8,13 @@ from openai import OpenAI
 from pydantic import BaseModel, Field
 
 from ia.aplicacion.puertos import AvisoParaResponder, ErrorDeModelo, Uso
+from ia.dominio.arriendo import ClasificacionArriendo, PropuestaDePropiedad
+from ia.dominio.arriendo import ClasificacionInvalida as ClasificacionInvalidaArriendo
 from ia.dominio.aviso import Aviso
 from ia.dominio.calce import Requisito
 from ia.dominio.clasificacion import Clasificacion, ClasificacionInvalida
+from ia.dominio.whatsapp import enmascarar
+from ia.infraestructura import openai_arriendos as arr
 
 PROMPT = """Eres el clasificador de correos de Brecha, una app que sigue las postulaciones
 de empleo de una persona.
@@ -211,4 +215,34 @@ class ModeloOpenAI:
         ]
         mensaje = f"Pregunta: {pregunta}\n\nAvisos:\n\n" + "\n\n---\n\n".join(bloques)
         salida, uso = self._parse(PROMPT_PREGUNTA, mensaje, _Respuesta)
+        return salida.respuesta, list(salida.citados), uso
+
+    # ── Arriendos (docs/diseno/arriendos.md §7) ─────────────────────────────────
+
+    def clasificar_arriendo(
+        self, remitente: str, asunto: str, fragmento: str
+    ) -> tuple[ClasificacionArriendo, Uso]:
+        dominio = remitente.rsplit("@", 1)[-1]
+        texto, _ = enmascarar(f"Dominio del remitente: {dominio}\nAsunto: {asunto}\n\n{fragmento}")
+        salida, uso = self._parse(arr.PROMPT_CORREO, texto, arr._Correo)
+        try:
+            return arr.a_clasificacion(salida), uso
+        except ClasificacionInvalidaArriendo as e:
+            raise ErrorDeModelo("respuesta_invalida", str(e)) from e
+
+    def extraer_arriendos(self, texto: str, es_chat: bool) -> tuple[list[PropuestaDePropiedad], Uso]:
+        encabezado = "Chat de WhatsApp:" if es_chat else "Texto:"
+        salida, uso = self._parse(arr.PROMPT_EXTRAER, f"{encabezado}\n\n{texto}", arr._Extraccion)
+        try:
+            return [arr.a_propuesta(p) for p in salida.propiedades], uso
+        except ClasificacionInvalidaArriendo as e:
+            raise ErrorDeModelo("respuesta_invalida", str(e)) from e
+
+    def responder_arriendos(
+        self, pregunta: str, propiedades: list[dict[str, object]]
+    ) -> tuple[str, list[str], Uso]:
+        bloques = "\n\n".join(arr.bloque_de_propiedad(p) for p in propiedades[:80])
+        salida, uso = self._parse(
+            arr.PROMPT_PREGUNTA, f"Pregunta: {pregunta}\n\nPropiedades:\n\n{bloques}", arr._Respuesta
+        )
         return salida.respuesta, list(salida.citados), uso

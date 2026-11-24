@@ -14,13 +14,16 @@ from ia.aplicacion.puertos import (
     AvisoGuardado,
     ConsultaDeEstado,
     Credenciales,
+    ErrorDeModelo,
     FiltrosDeAvisos,
     NucleoNoDisponible,
     TipoDeCredencial,
     estado_de,
 )
+from ia.dominio.arriendo import PropuestaDePropiedad
 from ia.dominio.aviso import Aviso, AvisoInvalido
 from ia.dominio.calce import Perfil
+from ia.dominio.whatsapp import ChatInvalido, autores, leer_chat
 from ia.entradas.servicios import Servicios
 from ia.infraestructura.config import Config, cargar_config
 from ia.infraestructura.imap import LectorImap
@@ -62,6 +65,44 @@ class PerfilEntrada(BaseModel):
 
 class PreguntaEntrada(BaseModel):
     pregunta: str = Field(min_length=3, max_length=500)
+
+
+class ChatEntrada(BaseModel):
+    chat: str = Field(min_length=1, max_length=5_000_000)
+
+
+class ExtraerEntrada(BaseModel):
+    """Un texto pegado, o un chat exportado de WhatsApp con quién eres tú en él."""
+
+    texto: str | None = Field(default=None, max_length=200_000)
+    chat: str | None = Field(default=None, max_length=5_000_000)
+    yo: str | None = Field(default=None, max_length=200)
+
+
+def vista_propuesta(p: PropuestaDePropiedad) -> dict[str, Any]:
+    c = p.contacto
+    return {
+        "titulo": p.titulo,
+        "tipo": p.tipo,
+        "direccion": p.direccion,
+        "comuna": p.comuna,
+        "precio": {"monto": p.precio.monto, "moneda": p.precio.moneda} if p.precio else None,
+        "gastosComunes": p.gastos_comunes,
+        "dormitorios": p.dormitorios,
+        "banos": p.banos,
+        "m2": p.m2,
+        "estacionamientos": p.estacionamientos,
+        "mascotas": p.mascotas,
+        "amoblado": p.amoblado,
+        "url": p.url,
+        "requisitos": {"rentaVeces": p.renta_veces, "aval": p.aval, "mesesGarantia": p.meses_garantia},
+        "estadoSugerido": p.estado_sugerido,
+        "contacto": {"nombre": c.nombre, "telefono": c.telefono, "correo": c.correo, "rol": c.rol}
+        if c
+        else None,
+        "nota": p.nota,
+        "mensajes": list(p.mensajes),
+    }
 
 
 class CredencialCorreo(BaseModel):
@@ -389,6 +430,72 @@ def crear_app(
             "respuesta": r.respuesta.texto,
             "citados": [vista_aviso(g) for g in r.avisos],
             "descartados": len(r.respuesta.descartados),
+            "costoUsd": r.costo_usd,
+        }
+
+    # ── Arriendos (docs/diseno/arriendos.md §7, A5) ─────────────────────────────
+
+    @app.post("/api/ia/arriendos/chat")
+    def leer_chat_arriendo(cuerpo: ChatEntrada, _: Annotated[str, Depends(con_token)]) -> dict[str, Any]:
+        """Lee un chat exportado sin IA: quiénes hablan, para que la persona diga cuál es ella."""
+        try:
+            mensajes = leer_chat(cuerpo.chat)
+            quienes = autores(mensajes)
+        except ChatInvalido as e:
+            raise HTTPException(400, {"codigo": "VALIDACION", "mensaje": str(e), "campo": "chat"}) from e
+        return {
+            "autores": quienes,
+            "mensajes": len(mensajes),
+            "desde": mensajes[0].fecha.isoformat(),
+            "hasta": mensajes[-1].fecha.isoformat(),
+        }
+
+    @app.post("/api/ia/arriendos/extraer")
+    def extraer_arriendo(cuerpo: ExtraerEntrada, _: Annotated[str, Depends(con_token)]) -> dict[str, Any]:
+        """Propiedades sacadas de un texto o de un chat. No guarda: la consola muestra una vista previa."""
+        if not (cuerpo.texto or cuerpo.chat) or (cuerpo.texto and cuerpo.chat):
+            raise HTTPException(
+                400, {"codigo": "VALIDACION", "mensaje": "Manda un texto o un chat", "campo": "texto"}
+            )
+        s = srv()
+        if not s.hay_modelo():
+            raise HTTPException(503, {"codigo": "IA_NO_DISPONIBLE", "mensaje": "Falta la llave de OpenAI"})
+        try:
+            ex = s.extraer_arriendos()
+            r = ex.desde_chat(cuerpo.chat, cuerpo.yo) if cuerpo.chat else ex.desde_texto(cuerpo.texto or "")
+        except ChatInvalido as e:
+            raise HTTPException(400, {"codigo": "VALIDACION", "mensaje": str(e), "campo": "chat"}) from e
+        except ErrorDeModelo as e:
+            raise HTTPException(503, {"codigo": "IA_NO_DISPONIBLE", "mensaje": f"{e.tipo}: {e}"}) from e
+        return {
+            "propuestas": [vista_propuesta(p) for p in r.propuestas],
+            "mensajes": [
+                {
+                    "indice": m.indice,
+                    "fecha": m.fecha.isoformat(),
+                    "autor": m.autor,
+                    "texto": m.texto,
+                    "tuyo": bool(r.yo) and m.autor == r.yo,
+                }
+                for m in r.mensajes
+            ],
+            "recortado": r.recortado,
+            "costoUsd": r.costo_usd,
+        }
+
+    @app.post("/api/ia/arriendos/preguntas")
+    def preguntar_arriendos(cuerpo: PreguntaEntrada, _: Annotated[str, Depends(con_token)]) -> dict[str, Any]:
+        s = srv()
+        if not s.hay_modelo():
+            raise HTTPException(503, {"codigo": "IA_NO_DISPONIBLE", "mensaje": "Falta la llave de OpenAI"})
+        try:
+            r = s.preguntar_arriendos(cuerpo.pregunta.strip())
+        except (ErrorDeModelo, NucleoNoDisponible) as e:
+            raise HTTPException(503, {"codigo": "IA_NO_DISPONIBLE", "mensaje": str(e)[:300]}) from e
+        return {
+            "respuesta": r.texto,
+            "citados": r.citados,
+            "descartados": r.descartados,
             "costoUsd": r.costo_usd,
         }
 

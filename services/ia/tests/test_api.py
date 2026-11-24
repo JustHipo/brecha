@@ -195,3 +195,26 @@ def test_los_secretos_no_salen_en_errores_ni_en_logs(caplog: pytest.LogCaptureFi
     for secreto in (clave_corta, clave_mala, llave_mala, llave_rechazada):
         assert all(secreto not in r.text for r in respuestas), secreto
         assert secreto not in caplog.text, secreto
+
+
+# ── Arriendos (docs/diseno/arriendos.md §7) ─────────────────────────────────
+
+
+def test_leer_un_chat_de_whatsapp_no_usa_ia_y_dice_quien_habla() -> None:
+    c = cliente()
+    h = {"Authorization": "Bearer tok-consola"}
+    chat = "[20/11/26, 10:15:03] Juan: Hola\n[20/11/26, 10:16:00] Ana: Sí, sigue disponible\n"
+    r = c.post("/api/ia/arriendos/chat", json={"chat": chat}, headers=h)
+    assert r.status_code == 200
+    assert r.json()["autores"] == ["Juan", "Ana"] and r.json()["mensajes"] == 2
+    malo = c.post("/api/ia/arriendos/chat", json={"chat": "no es un chat"}, headers=h)
+    assert malo.status_code == 400 and malo.json()["campo"] == "chat"
+    assert c.post("/api/ia/arriendos/chat", json={"chat": chat}).status_code == 401
+
+
+def test_extraer_sin_llave_de_openai_lo_dice_y_pide_texto_o_chat() -> None:
+    c = cliente()
+    h = {"Authorization": "Bearer tok-consola"}
+    assert c.post("/api/ia/arriendos/extraer", json={}, headers=h).status_code == 400
+    r = c.post("/api/ia/arriendos/extraer", json={"texto": "Depto 2D en Ñuñoa"}, headers=h)
+    assert r.status_code == 503 and r.json()["codigo"] == "IA_NO_DISPONIBLE"
