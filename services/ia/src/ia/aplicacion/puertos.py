@@ -194,3 +194,21 @@ class ClasificadoPorEnviar:
 class ColaDeEnvio(Protocol):
     def por_enviar(self, limite: int) -> list[ClasificadoPorEnviar]: ...
     def marcar_enviado(self, message_id: str, postulacion_id: str | None) -> None: ...
+
+
+# ── Estado para Conexiones (F2-08) ─────────────────────────────────────────────
+
+
+@dataclass(frozen=True)
+class EstadoDelServicio:
+    ultima_revision: datetime | None
+    ultimo_error_correo: str | None
+    ultimo_error_ia: str | None
+    en_cola: int
+    clasificados: int
+    gasto_mes_usd: float
+    llamadas_mes: int
+
+
+class ConsultaDeEstado(Protocol):
+    def estado(self, desde_mes: datetime) -> EstadoDelServicio: ...

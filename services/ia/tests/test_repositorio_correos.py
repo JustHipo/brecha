@@ -59,3 +59,18 @@ def test_cola_de_clasificacion(repo: RepositorioPostgresDeCorreos) -> None:
     assert repo.pendientes(10) == [] and repo.en_cola() == 0
     repo.registrar_error_ia("cuota: sin saldo")
     repo.registrar_error_ia(None)
+
+
+def test_estado_para_conexiones(repo: RepositorioPostgresDeCorreos) -> None:
+    from ia.aplicacion.puertos import Traza
+    from ia.infraestructura.postgres.correos import TrazasPostgres
+
+    repo.guardar(g("<1@x>", EstadoDeCorreo.PENDIENTE, "texto"))
+    repo.registrar_revision(PuntoDeLectura(1, 2), datetime(2026, 11, 24, tzinfo=UTC), None)
+    TrazasPostgres(repo.motor).registrar(
+        Traza("clasificar_correo", "m", 10, 2, 0.0012, 5, "ok", datetime.now(UTC))
+    )
+    e = repo.estado(datetime(2026, 11, 1, tzinfo=UTC))
+    assert (
+        (e.en_cola, e.llamadas_mes) == (1, 1) and e.gasto_mes_usd == 0.0012 and e.ultima_revision is not None
+    )

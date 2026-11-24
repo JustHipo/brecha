@@ -53,3 +53,20 @@ def test_estado_y_borrar(monkeypatch: pytest.MonkeyPatch, capsys: pytest.Capture
     assert "sk-prueba" not in salida
     cli.main(["credenciales", "borrar"], ll)
     assert ll.datos == {}
+
+
+def test_una_vuelta_que_falla_no_detiene_al_vigia(caplog: pytest.LogCaptureFixture) -> None:
+    from ia.entradas import vigia
+
+    ll = LlaveroEnMemoria()
+    ll.guardar(TipoDeCredencial.CORREO_USUARIO, "p@e.test")
+    ll.guardar(TipoDeCredencial.CORREO_CLAVE, "x" * 16)
+
+    def rompe():  # type: ignore[no-untyped-def]
+        raise RuntimeError("se cayó")
+
+    with pytest.raises(RuntimeError):
+        vigia.una_vuelta(ll, rompe)
+    # main() envuelve cada vuelta en try/except y sigue; aquí se mira el log de una vuelta sana
+    vigia.una_vuelta(ll, None, None, None)
+    assert "falta la llave de OpenAI" in caplog.text

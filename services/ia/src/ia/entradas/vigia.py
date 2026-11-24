@@ -110,7 +110,10 @@ def main() -> None:
     signal.signal(signal.SIGINT, lambda *_: parar.set())
     log.info("vigía en marcha: cada %s minutos", cfg.vigia_minutos)
     while not parar.is_set():
-        una_vuelta(llavero, sincronizar, clasificar, registrar)
+        try:
+            una_vuelta(llavero, sincronizar, clasificar, registrar)
+        except Exception:  # una vuelta rota no apaga el vigía: queda en el log y se intenta en la próxima
+            log.exception("la vuelta del vigía falló")
         parar.wait(cfg.vigia_minutos * 60)
     log.info("vigía detenido")
 

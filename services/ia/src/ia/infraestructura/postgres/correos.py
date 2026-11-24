@@ -13,6 +13,7 @@ from ia.aplicacion.puertos import (
     ClasificadoPorEnviar,
     CorreoGuardado,
     CorreoPorClasificar,
+    EstadoDelServicio,
     PuntoDeLectura,
     Traza,
 )
@@ -166,6 +167,32 @@ class RepositorioPostgresDeCorreos:
                 .where(clasificacion.c.message_id == message_id)
                 .values(enviada_al_nucleo=True, postulacion_id=postulacion_id)
             )
+
+    # ── Estado para Conexiones (F2-08) ───────────────────────────────────────────
+
+    def estado(self, desde_mes: datetime) -> EstadoDelServicio:
+        with self.motor.connect() as c:
+            v = c.execute(select(estado_vigia).where(estado_vigia.c.id == 1)).first()
+            cola = c.execute(
+                select(func.count())
+                .select_from(correo)
+                .where(correo.c.estado == EstadoDeCorreo.PENDIENTE.value)
+            ).scalar_one()
+            clasificados = c.execute(select(func.count()).select_from(clasificacion)).scalar_one()
+            gasto, llamadas = c.execute(
+                select(func.coalesce(func.sum(traza.c.costo_usd), 0), func.count()).where(
+                    traza.c.creada_en >= desde_mes
+                )
+            ).one()
+        return EstadoDelServicio(
+            ultima_revision=v.ultima_revision if v else None,
+            ultimo_error_correo=v.ultimo_error if v else None,
+            ultimo_error_ia=v.ultimo_error_ia if v else None,
+            en_cola=int(cola),
+            clasificados=int(clasificados),
+            gasto_mes_usd=float(gasto),
+            llamadas_mes=int(llamadas),
+        )
 
 
 class TrazasPostgres:
