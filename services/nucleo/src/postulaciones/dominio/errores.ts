@@ -50,6 +50,16 @@ export class SenalDuplicada extends ErrorDeDominio {
   }
 }
 
+/** La referencia pasó por la bandeja y no está en las postulaciones pedidas: se lleva con «asociar» (ADR 0015). */
+export class SenalEnBandeja extends SenalDuplicada {
+  constructor(referenciaExterna: string, senalId?: string) {
+    super(referenciaExterna);
+    this.message = senalId
+      ? `Este correo ya está en la bandeja: asócialo con asociar_senal (senalId ${senalId})`
+      : 'Este correo ya pasó por la bandeja y está en otra postulación: revisa a cuál se asoció';
+  }
+}
+
 export class ConflictoDeVersion extends ErrorDeDominio {
   readonly codigo = 'CONFLICTO';
   constructor() {
