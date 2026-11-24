@@ -41,6 +41,7 @@ Pasos:
 
 
 5. Importar postulaciones ANTES de conectar Gmail: así la primera revisión del correo ya encuentra mis postulaciones y asocia los correos a cada una (lo que llega antes de importar queda en la Bandeja para asociarlo a mano). En Brecha: «Importar y exportar» en la barra lateral, ahí también hay plantillas para descargar.
+   0) Si Juan me mandó postulaciones.csv y contactos.csv junto con el instalador (ya están en el formato de Brecha), importa esos primero: postulaciones y después contactos. Revisa el informe (cuántas entraron, cuáles ya estaban, errores por línea) y cuéntale el resultado a «windows».
    a) Las que Juan y yo ya seguimos juntos: pídele a «windows» que Juan exporte el CSV desde su Brecha («Importar y exportar» → exportar postulaciones) y me lo mande. Lo importo yo con «Elegir archivo CSV». Primero postulaciones y después contactos, si hay.
    b) Las mías que tengo en otro lado (una planilla, notas, correos): pregúntame dónde están y conviértelas a un postulaciones.csv con estas reglas, y muéstrame el resultado antes de importarlo:
       - UTF-8, separado por comas (no punto y coma), primera fila con el encabezado. Si sale de Excel, «CSV UTF-8 (delimitado por comas)».
