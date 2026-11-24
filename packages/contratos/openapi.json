@@ -1993,6 +1993,88 @@
         ]
       }
     },
+    "/api/v1/perfil": {
+      "get": {
+        "operationId": "verPerfilEmpleo",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PerfilEmpleoDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Tus reglas de búsqueda de empleo, datos e historial",
+        "tags": [
+          "perfil"
+        ]
+      },
+      "put": {
+        "operationId": "cambiarPerfilEmpleo",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CambiarPerfilDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PerfilEmpleoDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Una regla con ese id no existe",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Cambia reglas (de a una o todas) o tus datos, con motivo",
+        "tags": [
+          "perfil"
+        ]
+      }
+    },
     "/api/v1/eventos/stream": {
       "get": {
         "operationId": "flujoDeEventos",
@@ -3888,6 +3970,81 @@
           "diasAlPlazo"
         ]
       },
+      "ChoqueConPerfilDto": {
+        "type": "object",
+        "properties": {
+          "reglaId": {
+            "type": "string"
+          },
+          "dura": {
+            "type": "boolean"
+          },
+          "prioridad": {
+            "type": "number",
+            "description": "Solo blandas"
+          },
+          "regla": {
+            "type": "string",
+            "description": "El texto de la regla"
+          },
+          "texto": {
+            "type": "string",
+            "description": "Por qué choca"
+          }
+        },
+        "required": [
+          "reglaId",
+          "dura",
+          "regla",
+          "texto"
+        ]
+      },
+      "SinDatoDePerfilDto": {
+        "type": "object",
+        "properties": {
+          "reglaId": {
+            "type": "string"
+          },
+          "regla": {
+            "type": "string"
+          },
+          "texto": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "reglaId",
+          "regla",
+          "texto"
+        ]
+      },
+      "RevisionDePerfilDto": {
+        "type": "object",
+        "properties": {
+          "cumpleDuras": {
+            "type": "boolean",
+            "description": "Falso si choca con una regla dura; nunca cambia el estado"
+          },
+          "choques": {
+            "description": "Duras primero",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ChoqueConPerfilDto"
+            }
+          },
+          "sinDato": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SinDatoDePerfilDto"
+            }
+          }
+        },
+        "required": [
+          "cumpleDuras",
+          "choques",
+          "sinDato"
+        ]
+      },
       "ResumenPostulacionDto": {
         "type": "object",
         "properties": {
@@ -3984,6 +4141,16 @@
               "$ref": "#/components/schemas/EstadoPostulacion"
             }
           },
+          "perfil": {
+            "nullable": true,
+            "description": "Choques con tu perfil de búsqueda; null si el perfil no tiene reglas con chequeo",
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/RevisionDePerfilDto"
+              }
+            ]
+          },
           "version": {
             "type": "number"
           },
@@ -4011,6 +4178,7 @@
           "discrepanciasAbiertas",
           "pasosPendientes",
           "transicionesPosibles",
+          "perfil",
           "version",
           "actualizadaEn"
         ]
@@ -5129,6 +5297,16 @@
               "$ref": "#/components/schemas/EstadoPostulacion"
             }
           },
+          "perfil": {
+            "nullable": true,
+            "description": "Choques con tu perfil de búsqueda; null si el perfil no tiene reglas con chequeo",
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/RevisionDePerfilDto"
+              }
+            ]
+          },
           "version": {
             "type": "number"
           },
@@ -5227,6 +5405,7 @@
           "discrepanciasAbiertas",
           "pasosPendientes",
           "transicionesPosibles",
+          "perfil",
           "version",
           "actualizadaEn",
           "aviso",
@@ -6247,6 +6426,324 @@
         },
         "required": [
           "estado"
+        ]
+      },
+      "CriterioDeEmpleo": {
+        "type": "string",
+        "enum": [
+          "titulo",
+          "modalidad_por_region",
+          "sueldo_publicado"
+        ]
+      },
+      "ReglaDePerfilDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "texto": {
+            "type": "string",
+            "description": "La regla en tus palabras"
+          },
+          "criterio": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CriterioDeEmpleo"
+              }
+            ]
+          },
+          "valor": {
+            "type": "object",
+            "description": "Según el criterio. titulo: { incluir: string[], excluir: string[] }. modalidad_por_region: { valparaiso, santiago, otra: (\"remoto\" | \"hibrido\" | \"presencial\")[], noIndicaEsPresencialEn: Plataforma[] }. sueldo_publicado: { minimo?: number } (sin mínimo, tu renta pretendida)",
+            "additionalProperties": true
+          },
+          "dura": {
+            "type": "boolean"
+          },
+          "prioridad": {
+            "type": "number"
+          },
+          "etiquetas": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "descripcion": {
+            "type": "string",
+            "description": "«Dura · Santiago solo híbrido o remoto #ubicacion»"
+          },
+          "porCodigo": {
+            "type": "boolean",
+            "description": "El código la revisa en cada postulación"
+          }
+        },
+        "required": [
+          "id",
+          "texto",
+          "dura",
+          "etiquetas",
+          "descripcion",
+          "porCodigo"
+        ]
+      },
+      "DatosDePerfilSalidaDto": {
+        "type": "object",
+        "properties": {
+          "rentaPretendida": {
+            "type": "number"
+          },
+          "disponibleDesde": {
+            "type": "string",
+            "format": "date"
+          },
+          "notas": {
+            "type": "string"
+          }
+        }
+      },
+      "CambioDePerfilDto": {
+        "type": "object",
+        "properties": {
+          "ocurridoEn": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "origen": {
+            "type": "string"
+          },
+          "motivo": {
+            "type": "string"
+          },
+          "resumen": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "ocurridoEn",
+          "origen",
+          "motivo",
+          "resumen"
+        ]
+      },
+      "EtiquetaDePerfilDto": {
+        "type": "object",
+        "properties": {
+          "etiqueta": {
+            "type": "string"
+          },
+          "total": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "etiqueta",
+          "total"
+        ]
+      },
+      "PerfilEmpleoDto": {
+        "type": "object",
+        "properties": {
+          "reglas": {
+            "description": "Duras primero; después las blandas por prioridad",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ReglaDePerfilDto"
+            }
+          },
+          "datos": {
+            "$ref": "#/components/schemas/DatosDePerfilSalidaDto"
+          },
+          "historial": {
+            "description": "Del más nuevo al más antiguo (30)",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CambioDePerfilDto"
+            }
+          },
+          "criterios": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CriterioDeEmpleo"
+            }
+          },
+          "etiquetas": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EtiquetaDePerfilDto"
+            }
+          },
+          "actualizadaEn": {
+            "type": "string",
+            "nullable": true,
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "reglas",
+          "datos",
+          "historial",
+          "criterios",
+          "etiquetas",
+          "actualizadaEn"
+        ]
+      },
+      "ReglaDePerfilEntradaDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Solo al reemplazar la lista: conserva la regla con ese id"
+          },
+          "texto": {
+            "type": "string",
+            "description": "La regla en tus palabras; con criterio y sin texto, se describe sola"
+          },
+          "criterio": {
+            "description": "Lo que el código revisa en cada postulación; sin él, la regla la aplica tu IA",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CriterioDeEmpleo"
+              }
+            ]
+          },
+          "valor": {
+            "type": "object",
+            "description": "Según el criterio. titulo: { incluir: string[], excluir: string[] }. modalidad_por_region: { valparaiso, santiago, otra: (\"remoto\" | \"hibrido\" | \"presencial\")[], noIndicaEsPresencialEn: Plataforma[] }. sueldo_publicado: { minimo?: number } (sin mínimo, tu renta pretendida)",
+            "additionalProperties": true
+          },
+          "dura": {
+            "type": "boolean",
+            "description": "true = dura (por defecto)"
+          },
+          "prioridad": {
+            "type": "number",
+            "description": "Solo blandas: 1 es la más importante"
+          },
+          "etiquetas": {
+            "description": "Etiquetas libres (minúsculas y sin tildes)",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "CambioDeReglaDePerfilDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "La regla que cambia; solo cambia lo que mandas"
+          },
+          "texto": {
+            "type": "string",
+            "description": "La regla en tus palabras; con criterio y sin texto, se describe sola"
+          },
+          "criterio": {
+            "description": "Lo que el código revisa en cada postulación; sin él, la regla la aplica tu IA",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CriterioDeEmpleo"
+              }
+            ]
+          },
+          "valor": {
+            "type": "object",
+            "description": "Según el criterio. titulo: { incluir: string[], excluir: string[] }. modalidad_por_region: { valparaiso, santiago, otra: (\"remoto\" | \"hibrido\" | \"presencial\")[], noIndicaEsPresencialEn: Plataforma[] }. sueldo_publicado: { minimo?: number } (sin mínimo, tu renta pretendida)",
+            "additionalProperties": true
+          },
+          "dura": {
+            "type": "boolean",
+            "description": "true = dura (por defecto)"
+          },
+          "prioridad": {
+            "type": "number",
+            "description": "Solo blandas: 1 es la más importante"
+          },
+          "etiquetas": {
+            "description": "Etiquetas libres (minúsculas y sin tildes)",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "id"
+        ]
+      },
+      "DatosDePerfilDto": {
+        "type": "object",
+        "properties": {
+          "rentaPretendida": {
+            "type": "number",
+            "nullable": true,
+            "description": "Pesos líquidos"
+          },
+          "disponibleDesde": {
+            "type": "string",
+            "nullable": true,
+            "format": "date"
+          },
+          "notas": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "CambiarPerfilDto": {
+        "type": "object",
+        "properties": {
+          "reglas": {
+            "description": "Reemplaza todas las reglas",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ReglaDePerfilEntradaDto"
+            }
+          },
+          "agregar": {
+            "description": "Reglas nuevas",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ReglaDePerfilEntradaDto"
+            }
+          },
+          "cambiar": {
+            "description": "Cambios a reglas existentes, por id",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CambioDeReglaDePerfilDto"
+            }
+          },
+          "quitar": {
+            "description": "Id de las reglas que se quitan",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "ordenar": {
+            "description": "Id de las blandas en el orden nuevo (P1 primero)",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "datos": {
+            "$ref": "#/components/schemas/DatosDePerfilDto"
+          },
+          "motivo": {
+            "type": "string",
+            "description": "Por qué cambia (queda en el historial)"
+          }
+        },
+        "required": [
+          "motivo"
         ]
       },
       "EventoDto": {

@@ -23,11 +23,13 @@ import {
   type PostulacionDelPaso,
   type VistaExportacion,
   type VistaPaso,
+  type PerfilParaRevisar,
   type VistaResumen,
   type VistaTablero,
 } from '../../aplicacion/vistas';
 import type { DatosPaso, EstadoDePaso } from '../../dominio/paso';
 import { idDeAviso } from '../../dominio/id-de-aviso';
+import { revisarPostulacion, type PerfilEmpleoRepositorio } from '../../dominio/perfil-empleo';
 import { aFecha, deFecha, filaADatos, INCLUIR_TODO } from './mapper';
 import { filaAPaso, INCLUIR_PASO } from './prisma-pasos';
 
@@ -42,6 +44,7 @@ const SELECT_RESUMEN = {
   avisoModalidad: true,
   avisoUbicacion: true,
   avisoCierre: true,
+  avisoSueldoPublicado: true,
   estado: true,
   etiquetas: true,
   prioridadFijada: true,
@@ -71,24 +74,35 @@ export class PrismaConsultas implements ConsultasDePostulaciones {
   constructor(
     private readonly prisma: PrismaClient,
     private readonly reloj: Reloj,
+    /** Sin él, las vistas no traen choques con el perfil (perfil.md §3.3). */
+    private readonly perfil?: PerfilEmpleoRepositorio,
   ) {}
+
+  private async perfilParaRevisar(): Promise<PerfilParaRevisar> {
+    if (!this.perfil) return null;
+    const d = (await this.perfil.leer()).datos();
+    return d.reglas.some((r) => r.criterio) ? d : null;
+  }
 
   async listar(f: FiltrosPostulaciones, p: Pagina) {
     const where = this.donde(f);
     if (f.url) {
       // El filtro por URL busca el número del aviso con `contains`; aquí se descartan los que solo lo contienen de paso.
       const id = idDeAviso(f.url);
-      const filas = await this.prisma.postulacion.findMany({
-        where,
-        select: SELECT_RESUMEN,
-        orderBy: [{ actualizadaEn: 'desc' }, { id: 'asc' }],
-      });
+      const [filas, perfil] = await Promise.all([
+        this.prisma.postulacion.findMany({
+          where,
+          select: SELECT_RESUMEN,
+          orderBy: [{ actualizadaEn: 'desc' }, { id: 'asc' }],
+        }),
+        this.perfilParaRevisar(),
+      ]);
       const items = filas
         .filter((x) => x.avisoUrl === f.url!.trim() || (id !== null && idDeAviso(x.avisoUrl) === id))
-        .map((x) => this.aResumen(x));
+        .map((x) => this.aResumen(x, perfil));
       return { items: items.slice(p.offset, p.offset + p.limit), total: items.length };
     }
-    const [filas, total] = await Promise.all([
+    const [filas, total, perfil] = await Promise.all([
       this.prisma.postulacion.findMany({
         where,
         select: SELECT_RESUMEN,
@@ -97,16 +111,20 @@ export class PrismaConsultas implements ConsultasDePostulaciones {
         skip: p.offset,
       }),
       this.prisma.postulacion.count({ where }),
+      this.perfilParaRevisar(),
     ]);
-    return { items: filas.map((x) => this.aResumen(x)), total };
+    return { items: filas.map((x) => this.aResumen(x, perfil)), total };
   }
 
   async tablero(f: Pick<FiltrosPostulaciones, 'etiquetas'> = {}): Promise<VistaTablero> {
-    const filas = await this.prisma.postulacion.findMany({
-      ...(f.etiquetas?.length ? { where: { etiquetas: { hasEvery: f.etiquetas } } } : {}),
-      select: SELECT_RESUMEN,
-    });
-    const resumenes = filas.map((x) => this.aResumen(x));
+    const [filas, perfil] = await Promise.all([
+      this.prisma.postulacion.findMany({
+        ...(f.etiquetas?.length ? { where: { etiquetas: { hasEvery: f.etiquetas } } } : {}),
+        select: SELECT_RESUMEN,
+      }),
+      this.perfilParaRevisar(),
+    ]);
+    const resumenes = filas.map((x) => this.aResumen(x, perfil));
     return {
       columnas: ESTADOS.map((estado) => {
         const items = resumenes.filter((r) => r.estado === estado).sort(ordenarTarjetas);
@@ -126,8 +144,11 @@ export class PrismaConsultas implements ConsultasDePostulaciones {
     if (!/^[0-9a-f-]{36}$/i.test(id)) return null;
     const fila = await this.prisma.postulacion.findUnique({ where: { id }, include: INCLUIR_TODO });
     if (!fila) return null;
-    const { pasos, info } = await this.pasosCon({ postulaciones: { some: { postulacionId: id } } });
-    return aDetalle(filaADatos(fila), this.reloj, pasos, info);
+    const [{ pasos, info }, perfil] = await Promise.all([
+      this.pasosCon({ postulaciones: { some: { postulacionId: id } } }),
+      this.perfilParaRevisar(),
+    ]);
+    return aDetalle(filaADatos(fila), this.reloj, pasos, info, perfil);
   }
 
   async pasos(f: { estado?: EstadoDePaso; postulacionId?: string } = {}): Promise<VistaPaso[]> {
@@ -294,7 +315,7 @@ export class PrismaConsultas implements ConsultasDePostulaciones {
     };
   }
 
-  private aResumen(x: FilaResumen): VistaResumen {
+  private aResumen(x: FilaResumen, perfil: PerfilParaRevisar): VistaResumen {
     const estado = x.estado as EstadoPostulacion;
     const cierre = x.avisoCierre ? aFecha(x.avisoCierre) : null;
     return {
@@ -329,6 +350,18 @@ export class PrismaConsultas implements ConsultasDePostulaciones {
         .sort(ordenarPendientes)
         .map((p) => aPasoCorto(p, this.reloj)),
       transicionesPosibles: transicionesPosibles(estado, cierre, this.reloj),
+      perfil: perfil
+        ? revisarPostulacion(
+            {
+              titulo: x.avisoTitulo,
+              modalidad: x.avisoModalidad as Modalidad,
+              ubicacion: x.avisoUbicacion,
+              plataforma: x.avisoPlataforma as Plataforma,
+              sueldoPublicado: x.avisoSueldoPublicado,
+            },
+            perfil,
+          )
+        : null,
       version: x.version,
       actualizadaEn: x.actualizadaEn.toISOString(),
     };

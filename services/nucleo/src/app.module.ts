@@ -10,6 +10,9 @@ import { APP_GUARD } from '@nestjs/core';
 import { AccesoController, VerificacionController } from './acceso/acceso.controller';
 import { BandejaController } from './postulaciones/infraestructura/http/bandeja.controller';
 import { PasosController } from './postulaciones/infraestructura/http/pasos.controller';
+import { PerfilController } from './postulaciones/infraestructura/http/perfil.controller';
+import { CasosDePerfil } from './postulaciones/aplicacion/casos-de-perfil';
+import { PrismaPerfilEmpleo } from './postulaciones/infraestructura/prisma/prisma-perfil';
 import { AccesoGuard } from './acceso/acceso.guard';
 import { AccesoService } from './acceso/acceso.service';
 import { AlmacenDeTokens } from './acceso/almacen-de-tokens';
@@ -74,6 +77,7 @@ export class AppModule {
         PostulacionesController,
         BandejaController,
         PasosController,
+        PerfilController,
         EventosController,
         McpController,
         RedController,
@@ -98,12 +102,18 @@ export class AppModule {
               repo: new PrismaPostulacionRepositorio(prisma, ids, flujo),
               bandeja: new PrismaBandeja(prisma, ids, flujo),
               pasos: new PrismaPasos(prisma, ids, flujo),
-              consultas: new PrismaConsultas(prisma, reloj),
+              consultas: new PrismaConsultas(prisma, reloj, new PrismaPerfilEmpleo(prisma)),
               reloj,
               ids,
               ajustes: new PrismaAjustes(prisma),
             }),
           inject: [PRISMA, RELOJ, IDS, FLUJO],
+        },
+        {
+          provide: CasosDePerfil,
+          useFactory: (prisma: PrismaClient, reloj: Reloj, ids: GeneradorId) =>
+            new CasosDePerfil({ perfil: new PrismaPerfilEmpleo(prisma), reloj, ids }),
+          inject: [PRISMA, RELOJ, IDS],
         },
         {
           provide: CasosDeRedInyectables,

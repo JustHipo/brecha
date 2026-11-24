@@ -440,6 +440,24 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/perfil": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Tus reglas de búsqueda de empleo, datos e historial */
+        get: operations["verPerfilEmpleo"];
+        /** Cambia reglas (de a una o todas) o tus datos, con motivo */
+        put: operations["cambiarPerfilEmpleo"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/eventos/stream": {
         parameters: {
             query?: never;
@@ -1046,6 +1064,28 @@ export interface components {
             /** @description Días hasta el plazo (negativo si venció) */
             diasAlPlazo: number | null;
         };
+        ChoqueConPerfilDto: {
+            reglaId: string;
+            dura: boolean;
+            /** @description Solo blandas */
+            prioridad?: number;
+            /** @description El texto de la regla */
+            regla: string;
+            /** @description Por qué choca */
+            texto: string;
+        };
+        SinDatoDePerfilDto: {
+            reglaId: string;
+            regla: string;
+            texto: string;
+        };
+        RevisionDePerfilDto: {
+            /** @description Falso si choca con una regla dura; nunca cambia el estado */
+            cumpleDuras: boolean;
+            /** @description Duras primero */
+            choques: components["schemas"]["ChoqueConPerfilDto"][];
+            sinDato: components["schemas"]["SinDatoDePerfilDto"][];
+        };
         ResumenPostulacionDto: {
             id: string;
             titulo: string;
@@ -1071,6 +1111,8 @@ export interface components {
             /** @description Lo que te piden hacer, el de plazo más cercano primero */
             pasosPendientes: components["schemas"]["PasoCortoDto"][];
             transicionesPosibles: components["schemas"]["EstadoPostulacion"][];
+            /** @description Choques con tu perfil de búsqueda; null si el perfil no tiene reglas con chequeo */
+            perfil: components["schemas"]["RevisionDePerfilDto"] | null;
             version: number;
             /** Format: date-time */
             actualizadaEn: string;
@@ -1348,6 +1390,8 @@ export interface components {
             /** @description Lo que te piden hacer, el de plazo más cercano primero */
             pasosPendientes: components["schemas"]["PasoCortoDto"][];
             transicionesPosibles: components["schemas"]["EstadoPostulacion"][];
+            /** @description Choques con tu perfil de búsqueda; null si el perfil no tiene reglas con chequeo */
+            perfil: components["schemas"]["RevisionDePerfilDto"] | null;
             version: number;
             /** Format: date-time */
             actualizadaEn: string;
@@ -1652,6 +1696,111 @@ export interface components {
             nota?: string;
             /** @description Versión que tenías; si cambió, CONFLICTO */
             version?: number;
+        };
+        /** @enum {string} */
+        CriterioDeEmpleo: "titulo" | "modalidad_por_region" | "sueldo_publicado";
+        ReglaDePerfilDto: {
+            id: string;
+            /** @description La regla en tus palabras */
+            texto: string;
+            criterio?: components["schemas"]["CriterioDeEmpleo"];
+            /** @description Según el criterio. titulo: { incluir: string[], excluir: string[] }. modalidad_por_region: { valparaiso, santiago, otra: ("remoto" | "hibrido" | "presencial")[], noIndicaEsPresencialEn: Plataforma[] }. sueldo_publicado: { minimo?: number } (sin mínimo, tu renta pretendida) */
+            valor?: {
+                [key: string]: unknown;
+            };
+            dura: boolean;
+            prioridad?: number;
+            etiquetas: string[];
+            /** @description «Dura · Santiago solo híbrido o remoto #ubicacion» */
+            descripcion: string;
+            /** @description El código la revisa en cada postulación */
+            porCodigo: boolean;
+        };
+        DatosDePerfilSalidaDto: {
+            rentaPretendida?: number;
+            /** Format: date */
+            disponibleDesde?: string;
+            notas?: string;
+        };
+        CambioDePerfilDto: {
+            /** Format: date-time */
+            ocurridoEn: string;
+            origen: string;
+            motivo: string;
+            resumen: string[];
+        };
+        EtiquetaDePerfilDto: {
+            etiqueta: string;
+            total: number;
+        };
+        PerfilEmpleoDto: {
+            /** @description Duras primero; después las blandas por prioridad */
+            reglas: components["schemas"]["ReglaDePerfilDto"][];
+            datos: components["schemas"]["DatosDePerfilSalidaDto"];
+            /** @description Del más nuevo al más antiguo (30) */
+            historial: components["schemas"]["CambioDePerfilDto"][];
+            criterios: components["schemas"]["CriterioDeEmpleo"][];
+            etiquetas: components["schemas"]["EtiquetaDePerfilDto"][];
+            /** Format: date-time */
+            actualizadaEn: string | null;
+        };
+        ReglaDePerfilEntradaDto: {
+            /** @description Solo al reemplazar la lista: conserva la regla con ese id */
+            id?: string;
+            /** @description La regla en tus palabras; con criterio y sin texto, se describe sola */
+            texto?: string;
+            /** @description Lo que el código revisa en cada postulación; sin él, la regla la aplica tu IA */
+            criterio?: components["schemas"]["CriterioDeEmpleo"];
+            /** @description Según el criterio. titulo: { incluir: string[], excluir: string[] }. modalidad_por_region: { valparaiso, santiago, otra: ("remoto" | "hibrido" | "presencial")[], noIndicaEsPresencialEn: Plataforma[] }. sueldo_publicado: { minimo?: number } (sin mínimo, tu renta pretendida) */
+            valor?: {
+                [key: string]: unknown;
+            };
+            /** @description true = dura (por defecto) */
+            dura?: boolean;
+            /** @description Solo blandas: 1 es la más importante */
+            prioridad?: number;
+            /** @description Etiquetas libres (minúsculas y sin tildes) */
+            etiquetas?: string[];
+        };
+        CambioDeReglaDePerfilDto: {
+            /** @description La regla que cambia; solo cambia lo que mandas */
+            id: string;
+            /** @description La regla en tus palabras; con criterio y sin texto, se describe sola */
+            texto?: string;
+            /** @description Lo que el código revisa en cada postulación; sin él, la regla la aplica tu IA */
+            criterio?: components["schemas"]["CriterioDeEmpleo"];
+            /** @description Según el criterio. titulo: { incluir: string[], excluir: string[] }. modalidad_por_region: { valparaiso, santiago, otra: ("remoto" | "hibrido" | "presencial")[], noIndicaEsPresencialEn: Plataforma[] }. sueldo_publicado: { minimo?: number } (sin mínimo, tu renta pretendida) */
+            valor?: {
+                [key: string]: unknown;
+            };
+            /** @description true = dura (por defecto) */
+            dura?: boolean;
+            /** @description Solo blandas: 1 es la más importante */
+            prioridad?: number;
+            /** @description Etiquetas libres (minúsculas y sin tildes) */
+            etiquetas?: string[];
+        };
+        DatosDePerfilDto: {
+            /** @description Pesos líquidos */
+            rentaPretendida?: number | null;
+            /** Format: date */
+            disponibleDesde?: string | null;
+            notas?: string | null;
+        };
+        CambiarPerfilDto: {
+            /** @description Reemplaza todas las reglas */
+            reglas?: components["schemas"]["ReglaDePerfilEntradaDto"][];
+            /** @description Reglas nuevas */
+            agregar?: components["schemas"]["ReglaDePerfilEntradaDto"][];
+            /** @description Cambios a reglas existentes, por id */
+            cambiar?: components["schemas"]["CambioDeReglaDePerfilDto"][];
+            /** @description Id de las reglas que se quitan */
+            quitar?: string[];
+            /** @description Id de las blandas en el orden nuevo (P1 primero) */
+            ordenar?: string[];
+            datos?: components["schemas"]["DatosDePerfilDto"];
+            /** @description Por qué cambia (queda en el historial) */
+            motivo: string;
         };
         EventoDto: {
             id: string;
@@ -3709,6 +3858,65 @@ export interface operations {
             };
             /** @description CONFLICTO */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorDto"];
+                };
+            };
+        };
+    };
+    verPerfilEmpleo: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PerfilEmpleoDto"];
+                };
+            };
+        };
+    };
+    cambiarPerfilEmpleo: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CambiarPerfilDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PerfilEmpleoDto"];
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorDto"];
+                };
+            };
+            /** @description Una regla con ese id no existe */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };

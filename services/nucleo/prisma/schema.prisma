@@ -297,6 +297,15 @@ model CanalArriendo {
   @@map("canal_arriendo")
 }
 
+/// El perfil de búsqueda de Empleo (una sola fila, id = 1): reglas, datos e historial (docs/diseno/perfil.md).
+model PerfilEmpleo {
+  id            Int      @id
+  datos         Json
+  actualizadaEn DateTime @map("actualizada_en") @db.Timestamptz(3)
+
+  @@map("perfil_empleo")
+}
+
 /// La búsqueda de arriendo (una sola fila, id = 1): reglas, datos de la persona e historial.
 model BusquedaArriendo {
   id            Int      @id
