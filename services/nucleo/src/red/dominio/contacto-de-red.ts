@@ -72,7 +72,9 @@ export function perfilNormalizado(url: unknown): string {
   const t = textoObligatorio('perfilUrl', url, 500).trim();
   const m = /^(?:https?:\/\/)?(?:[a-z]{2,3}\.)?(?:www\.)?linkedin\.com\/in\/([^/?#\s]+)/i.exec(t);
   if (!m?.[1]) throw new DatoInvalido('perfilUrl', 'Tiene que ser un perfil de LinkedIn (linkedin.com/in/…)');
-  return `https://www.linkedin.com/in/${decodeURIComponent(m[1]).toLowerCase()}`;
+  const id = decodeURIComponent(m[1]);
+  // El id interno (ACoAA…) distingue mayúsculas; el nombre de perfil elegido por la persona, no.
+  return `https://www.linkedin.com/in/${/^AC[a-zA-Z]AA/.test(id) ? id : id.toLowerCase()}`;
 }
 
 const opcional = (campo: string, v: unknown, max: number) =>
