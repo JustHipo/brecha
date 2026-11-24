@@ -9,7 +9,13 @@ from datetime import UTC, datetime
 from sqlalchemy import Engine, func, select, update
 from sqlalchemy.dialects.postgresql import insert
 
-from ia.aplicacion.puertos import CorreoGuardado, CorreoPorClasificar, PuntoDeLectura, Traza
+from ia.aplicacion.puertos import (
+    ClasificadoPorEnviar,
+    CorreoGuardado,
+    CorreoPorClasificar,
+    PuntoDeLectura,
+    Traza,
+)
 from ia.dominio.clasificacion import Clasificacion
 from ia.dominio.correo import EstadoDeCorreo
 from ia.infraestructura.postgres.tablas import clasificacion, correo, estado_vigia, traza
@@ -126,6 +132,39 @@ class RepositorioPostgresDeCorreos:
                 insert(estado_vigia)
                 .values(id=1, ultimo_error_ia=error)
                 .on_conflict_do_update(index_elements=["id"], set_={"ultimo_error_ia": error})
+            )
+
+    # ── Cola de envío al núcleo (F2-07) ─────────────────────────────────────────
+
+    def por_enviar(self, limite: int) -> list[ClasificadoPorEnviar]:
+        with self.motor.connect() as c:
+            filas = c.execute(
+                select(
+                    clasificacion.c.message_id,
+                    clasificacion.c.resultado,
+                    correo.c.remitente,
+                    correo.c.asunto,
+                    correo.c.recibido_en,
+                )
+                .join(correo, correo.c.message_id == clasificacion.c.message_id)
+                .where(clasificacion.c.enviada_al_nucleo.is_(False))
+                .where(clasificacion.c.resultado["es_postulacion"].astext == "true")
+                .order_by(correo.c.recibido_en)
+                .limit(limite)
+            ).all()
+        return [
+            ClasificadoPorEnviar(
+                f.message_id, Clasificacion(**f.resultado), f.remitente, f.asunto or "", f.recibido_en
+            )
+            for f in filas
+        ]
+
+    def marcar_enviado(self, message_id: str, postulacion_id: str | None) -> None:
+        with self.motor.begin() as c:
+            c.execute(
+                update(clasificacion)
+                .where(clasificacion.c.message_id == message_id)
+                .values(enviada_al_nucleo=True, postulacion_id=postulacion_id)
             )
 
 

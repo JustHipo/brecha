@@ -6,6 +6,7 @@ from datetime import date, datetime
 from enum import StrEnum
 from typing import Protocol
 
+from ia.dominio.asociacion import PostulacionConocida
 from ia.dominio.clasificacion import Clasificacion
 from ia.dominio.correo import CorreoLeido, EstadoDeCorreo
 
@@ -145,3 +146,51 @@ class ColaDeClasificacion(Protocol):
     def marcar_clasificado(self, message_id: str, clasificacion: Clasificacion, modelo: str) -> None: ...
     def marcar_intento_fallido(self, message_id: str, maximo: int) -> None: ...
     def registrar_error_ia(self, error: str | None) -> None: ...
+
+
+# ── Núcleo y registro de señales (F2-07, backend.md C3) ────────────────────────
+
+
+class NucleoNoDisponible(Exception):
+    """El núcleo no respondió: las señales esperan a la próxima vuelta."""
+
+
+@dataclass(frozen=True)
+class SenalParaNucleo:
+    referencia_externa: str  # Message-ID: el núcleo no la duplica
+    postulacion_id: str | None  # None: va a la bandeja
+    plataforma: str
+    resumen: str
+    estado_sugerido: str | None
+    confianza: float
+    recibida_en: datetime
+    remitente: str
+    asunto: str
+    empresa: str | None
+    cargo: str | None
+
+
+@dataclass(frozen=True)
+class RespuestaDelNucleo:
+    destino: str  # postulacion | bandeja | repetida
+    aplicada: bool
+    estado: str | None
+
+
+class Nucleo(Protocol):
+    def postulaciones(self) -> list[PostulacionConocida]: ...
+    def registrar_senal(self, senal: SenalParaNucleo) -> RespuestaDelNucleo: ...
+
+
+@dataclass(frozen=True)
+class ClasificadoPorEnviar:
+    message_id: str
+    clasificacion: Clasificacion
+    remitente: str
+    asunto: str
+    recibido_en: datetime
+
+
+class ColaDeEnvio(Protocol):
+    def por_enviar(self, limite: int) -> list[ClasificadoPorEnviar]: ...
+    def marcar_enviado(self, message_id: str, postulacion_id: str | None) -> None: ...

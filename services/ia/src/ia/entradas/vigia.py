@@ -7,11 +7,13 @@ from collections.abc import Callable
 from datetime import UTC, datetime
 
 from ia.aplicacion.casos.clasificar_pendientes import ClasificarPendientes, ResumenDeClasificacion
+from ia.aplicacion.casos.registrar_senales import RegistrarSenales, ResumenDeRegistro
 from ia.aplicacion.casos.sincronizar_correo import ResumenDeSincronizacion, SincronizarCorreo
 from ia.aplicacion.puertos import Credenciales, TipoDeCredencial, estado_de
 from ia.infraestructura.config import cargar_config
 from ia.infraestructura.imap import LectorImap
 from ia.infraestructura.llavero import Llavero
+from ia.infraestructura.nucleo_http import NucleoHttp, leer_token
 from ia.infraestructura.openai_modelo import ModeloOpenAI
 from ia.infraestructura.postgres.correos import RepositorioPostgresDeCorreos, TrazasPostgres
 from ia.infraestructura.postgres.motor import crear_motor
@@ -23,6 +25,7 @@ def una_vuelta(
     credenciales: Credenciales,
     sincronizar: Callable[[], ResumenDeSincronizacion] | None = None,
     clasificar: Callable[[], ResumenDeClasificacion] | None = None,
+    registrar: Callable[[], ResumenDeRegistro] | None = None,
 ) -> list[str]:
     """Una revisión. Sin credenciales no falla: dice qué falta y sigue esperando (nada silencioso)."""
     estado = estado_de(credenciales)
@@ -58,6 +61,18 @@ def una_vuelta(
             )
     elif not estado.openai:
         log.warning("falta la llave de OpenAI: los correos quedan en cola")
+    if registrar is not None:
+        g = registrar()
+        if g.error:
+            log.error("%s (las señales esperan a la próxima vuelta)", g.error)
+        elif g.a_postulacion or g.a_bandeja or g.repetidas:
+            log.info(
+                "señales: %s a postulaciones (%s aplicadas solas), %s a la bandeja, %s repetidas",
+                g.a_postulacion,
+                g.aplicadas,
+                g.a_bandeja,
+                g.repetidas,
+            )
     return faltan
 
 
@@ -83,12 +98,19 @@ def main() -> None:
         precios = (cfg.openai_precio_entrada, cfg.openai_precio_salida)
         return ClasificarPendientes(modelo, repo, trazas, lambda: datetime.now(UTC), precios).ejecutar()
 
+    def registrar() -> ResumenDeRegistro:
+        try:
+            nucleo = NucleoHttp(cfg.nucleo_url, leer_token(cfg.carpeta_instancia))
+        except Exception as e:
+            return ResumenDeRegistro(error=str(e))
+        return RegistrarSenales(nucleo, repo).ejecutar()
+
     parar = threading.Event()
     signal.signal(signal.SIGTERM, lambda *_: parar.set())
     signal.signal(signal.SIGINT, lambda *_: parar.set())
     log.info("vigía en marcha: cada %s minutos", cfg.vigia_minutos)
     while not parar.is_set():
-        una_vuelta(llavero, sincronizar, clasificar)
+        una_vuelta(llavero, sincronizar, clasificar, registrar)
         parar.wait(cfg.vigia_minutos * 60)
     log.info("vigía detenido")
 
