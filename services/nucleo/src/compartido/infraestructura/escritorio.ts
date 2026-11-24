@@ -1,9 +1,18 @@
 import { existsSync } from 'node:fs';
 import { request } from 'node:http';
-import { join, normalize, resolve } from 'node:path';
+import { join, posix, resolve } from 'node:path';
 import type { INestApplication } from '@nestjs/common';
 import type { NextFunction, Request, Response } from 'express';
 import express from 'express';
+
+/**
+ * ¿Es una ruta de la API (o del MCP o de la documentación) y no de la consola? Se normaliza como URL (posix):
+ * `path.normalize` en Windows cambia `/` por `\\` y entonces ninguna ruta parecía de la API (todo GET devolvía
+ * index.html, también `acceso/verificar`, que usa la IA).
+ */
+export function esDeLaApi(rutaUrl: string): boolean {
+  return /^\/(api|mcp|docs)(\/|$)/.test(posix.normalize(rutaUrl));
+}
 
 /**
  * Modo app de escritorio (F3): el núcleo sirve la consola compilada y reenvía `/api/ia` al servicio con IA,
@@ -44,8 +53,7 @@ export function montarConsolaYProxyDeIa(
     // Rutas de la consola (Angular): todo GET que no sea de la API vuelve a index.html.
     // Se revisa en cada pedido: si la consola se está recompilando, se avisa en vez de quedar sin montar.
     http.use((req: Request, res: Response, siguiente: NextFunction) => {
-      const ruta = normalize(req.path);
-      if (req.method !== 'GET' || /^\/(api|mcp|docs)(\/|$)/.test(ruta)) return siguiente();
+      if (req.method !== 'GET' || esDeLaApi(req.path)) return siguiente();
       const indice = join(dir, 'index.html');
       if (!existsSync(indice)) {
         res

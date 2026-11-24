@@ -144,6 +144,8 @@ export class Servicios {
       CONSOLA_ORIGEN: `http://127.0.0.1:${PUERTOS.nucleo}`,
       NUCLEO_URL: `http://127.0.0.1:${PUERTOS.nucleo}`,
       BRECHA_LLAVERO: process.env.BRECHA_LLAVERO ?? servicioDelLlavero(this.r.ia),
+      // En Windows Python escribe en la página de códigos del sistema; el registro lee UTF-8.
+      PYTHONUTF8: '1',
     };
     await this.migrarIa(k, comun);
 

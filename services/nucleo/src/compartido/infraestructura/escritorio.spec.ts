@@ -6,7 +6,7 @@ import { join } from 'node:path';
 import request from 'supertest';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { appDePrueba, type AppDePrueba } from './app-de-pruebas.prueba';
-import { montarConsolaYProxyDeIa } from './escritorio';
+import { esDeLaApi, montarConsolaYProxyDeIa } from './escritorio';
 
 let t: AppDePrueba;
 let ia: Server;
@@ -44,6 +44,22 @@ beforeAll(async () => {
 afterAll(async () => {
   await t.app.close();
   ia.close();
+});
+
+describe('rutas de la API frente a las de la consola', () => {
+  it('reconoce la API, el MCP y la documentación sin importar el sistema', () => {
+    for (const r of [
+      '/api/v1/postulaciones/tablero',
+      '/api',
+      '/mcp',
+      '/docs/',
+      '/x/../api/v1/salud',
+      '//api/v1',
+    ])
+      expect(esDeLaApi(r), r).toBe(true);
+    for (const r of ['/tablero', '/postulaciones/1', '/apis', '/', '/ajustes'])
+      expect(esDeLaApi(r), r).toBe(false);
+  });
 });
 
 describe('modo app de escritorio', () => {
