@@ -158,7 +158,7 @@ def probar_correo(args: argparse.Namespace, llavero: Credenciales) -> int:
 
     from ia.aplicacion.casos.clasificar_pendientes import ClasificarPendientes
     from ia.aplicacion.casos.registrar_senales import RegistrarSenales
-    from ia.aplicacion.casos.sincronizar_correo import ingresar
+    from ia.aplicacion.casos.sincronizar_correo import conocidos_de, ingresar
     from ia.entradas.servicios import ahora
     from ia.infraestructura.imap import a_correo
     from ia.infraestructura.postgres.correos import RepositorioPostgresDeCorreos
@@ -170,9 +170,11 @@ def probar_correo(args: argparse.Namespace, llavero: Credenciales) -> int:
         p for a in args.archivos for p in (Path(a).glob("*.eml") if Path(a).is_dir() else [Path(a)])
     )
     ids: list[str] = []
+    # Igual que el vigía: los remitentes y las empresas conocidas pasan el filtro.
+    conocidos = conocidos_de(repo)
     for ruta in archivos:
         c = a_correo(0, ruta.read_bytes(), None)
-        destino, plataforma = ingresar(repo, c)
+        destino, plataforma = ingresar(repo, c, conocidos)
         ids.append(c.message_id)
         print(f"{ruta.name}: {destino} ({plataforma or 'sin plataforma'})")
     if not s.hay_modelo():
@@ -250,7 +252,11 @@ def evaluar(args: argparse.Namespace, llavero: Credenciales) -> int:
             )
             for c in d["casos"]
         ]
-        rc = EvaluarCorreos(modelo, conocidas).ejecutar(casos)
+        dominios: dict[str, tuple[str, ...]] = {}
+        for p in d["postulaciones"]:
+            for dom in p.get("dominios", []):
+                dominios[dom] = (*dominios.get(dom, ()), p["id"])
+        rc = EvaluarCorreos(modelo, conocidas, dominios).ejecutar(casos)
         print(
             f"Correos: {rc.casos} casos · estado {rc.tasa_estado:.0%} (mínimo 80 %) · "
             f"asociación {rc.tasa_asociacion:.0%} (mínimo 75 %) · "

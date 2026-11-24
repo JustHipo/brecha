@@ -64,8 +64,13 @@ def test_el_dominio_lleva_a_su_postulacion_y_con_varias_elige_el_modelo() -> Non
         conocidas=[FULLSTACK],
         del_dominio=("fs",),
     )
-    assert una[0].segura and una[0].motivo == "mismo dominio que un correo de esa postulación"
-    assert decidir(una, []).postulacion_ids == ("fs",)
+    # El dominio es candidata fuerte, pero el modelo confirma: la empresa puede escribir por un cargo nuevo.
+    assert not una[0].segura and una[0].respaldo and una[0].empresa_coincide
+    assert una[0].motivo == "mismo dominio que un correo de esa postulación"
+    assert decidir(una, ["fs"]).postulacion_ids == ("fs",)
+    assert decidir(una, []).postulacion_ids == ()  # el modelo dijo «ninguna»: a la bandeja, con la sugerencia
+    assert decidir(una, []).candidatas == ("fs",)
+    assert decidir(una, None).postulacion_ids == ("fs",)  # sin contexto para el modelo, decide el dominio
 
     otra = PostulacionConocida("fs2", "FullStack", "Data Engineer", "otra", True)
     varias = candidatas(
@@ -77,8 +82,9 @@ def test_el_dominio_lleva_a_su_postulacion_y_con_varias_elige_el_modelo() -> Non
         conocidas=[FULLSTACK, otra],
         del_dominio=("fs", "fs2"),
     )
-    assert {c.id for c in varias} == {"fs", "fs2"} and not any(c.segura for c in varias)
+    assert {c.id for c in varias} == {"fs", "fs2"} and not any(c.segura or c.respaldo for c in varias)
     assert decidir(varias, ["fs2"]).postulacion_ids == ("fs2",)
+    assert decidir(varias, None).postulacion_ids == ()
 
 
 def test_un_dominio_compartido_no_lleva_a_ninguna_postulacion() -> None:

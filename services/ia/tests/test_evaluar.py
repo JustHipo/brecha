@@ -93,21 +93,28 @@ def _set() -> tuple[list[PostulacionConocida], list[CasoDeCorreo], dict[str, dic
     return conocidas, casos, {c["id"]: c for c in d["casos"]}
 
 
+def _dominios() -> dict[str, tuple[str, ...]]:
+    d = json.loads(SET.read_text(encoding="utf-8"))
+    return {dom: (p["id"],) for p in d["postulaciones"] for dom in p.get("dominios", [])}
+
+
 def test_el_set_inventado_pasa_con_un_modelo_que_acierta() -> None:
     conocidas, casos, crudos = _set()
-    r = EvaluarCorreos(ModeloQueLeeElSet(crudos, {}), conocidas).ejecutar(casos)
-    assert r.casos == 14 and r.pasa, r.fallos
-    assert r.pasos_esperados == 2 and r.pasos_detectados == 2 and r.pasos_inventados == 0
+    r = EvaluarCorreos(ModeloQueLeeElSet(crudos, {}), conocidas, _dominios()).ejecutar(casos)
+    assert r.casos == 16 and r.pasa, r.fallos
+    assert r.pasos_esperados == 3 and r.pasos_detectados == 3 and r.pasos_inventados == 0
 
 
 def test_un_paso_inventado_pasa_y_dos_no() -> None:
     from dataclasses import replace
 
     conocidas, casos, crudos = _set()
-    uno = EvaluarCorreos(ModeloQueLeeElSet(crudos, {}, ("c13",)), conocidas).ejecutar(casos)
+    uno = EvaluarCorreos(ModeloQueLeeElSet(crudos, {}, ("c13",)), conocidas, _dominios()).ejecutar(casos)
     assert uno.pasos_inventados == 1 and uno.pasa
     casos = [replace(c, paso_esperado=False) if c.id == "c01" else c for c in casos]
-    dos = EvaluarCorreos(ModeloQueLeeElSet(crudos, {}, ("c01", "c13")), conocidas).ejecutar(casos)
+    dos = EvaluarCorreos(ModeloQueLeeElSet(crudos, {}, ("c01", "c13")), conocidas, _dominios()).ejecutar(
+        casos
+    )
     assert dos.pasos_inventados == 2 and not dos.pasa
 
 
@@ -116,7 +123,7 @@ def test_dos_falsos_rechazos_no_pasan_aunque_el_resto_acierte() -> None:
     r = EvaluarCorreos(
         ModeloQueLeeElSet(crudos, {"c01": "rechazado", "c03": "rechazado"}), conocidas
     ).ejecutar(casos)
-    assert r.falsos_rechazos == 2 and r.tasa_estado == 12 / 14
+    assert r.falsos_rechazos == 2 and r.tasa_estado == 14 / 16
     assert not r.pasa
 
 

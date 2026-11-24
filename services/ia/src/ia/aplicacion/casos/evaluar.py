@@ -14,12 +14,13 @@ from datetime import UTC, datetime
 
 from ia.aplicacion.casos.clasificar_pendientes import resolver
 from ia.aplicacion.puertos import AvisoGuardado, CorreoPorClasificar, ErrorDeModelo, ModeloDeLenguaje
-from ia.dominio.asociacion import PostulacionConocida
+from ia.dominio.asociacion import PostulacionConocida, normalizar_empresa
 from ia.dominio.correo import CorreoLeido
 from ia.dominio.enlaces import marcar_enlaces
 from ia.dominio.filtro import filtrar
 from ia.dominio.fragmento import fragmento
 from ia.dominio.pasos import ContextoDePostulacion, candidatas, para_modelo
+from ia.dominio.reglas import dominio_compartido
 
 UMBRAL_ESTADO = 0.80
 UMBRAL_ASOCIACION = 0.75
@@ -86,9 +87,17 @@ class ResultadoDeCorreos:
 class EvaluarCorreos:
     """El camino del vigía (filtro, fragmento, modelo y asociación), sin tocar la base ni el núcleo."""
 
-    def __init__(self, modelo: ModeloDeLenguaje, postulaciones: list[PostulacionConocida]) -> None:
+    def __init__(
+        self,
+        modelo: ModeloDeLenguaje,
+        postulaciones: list[PostulacionConocida],
+        dominios: dict[str, tuple[str, ...]] | None = None,
+    ) -> None:
         self.modelo = modelo
         self.postulaciones = postulaciones
+        # Como el vigía: los dominios que ya escribieron por cada postulación y las empresas conocidas.
+        self.dominios = {d.lower(): ids for d, ids in (dominios or {}).items() if not dominio_compartido(d)}
+        self.empresas = frozenset(e for p in postulaciones if (e := normalizar_empresa(p.empresa)))
 
     def ejecutar(self, casos: list[CasoDeCorreo]) -> ResultadoDeCorreos:
         r = ResultadoDeCorreos()
@@ -104,7 +113,7 @@ class EvaluarCorreos:
                 texto=c.texto,
                 masivo=False,
             )
-            f = filtrar(correo)
+            f = filtrar(correo, frozenset(self.dominios), self.empresas)
             estado: str | None = None
             ids: tuple[str, ...] = ()
             pide = False
@@ -117,6 +126,7 @@ class EvaluarCorreos:
                     dominio_remitente=correo.dominio,
                     textos=(c.asunto, texto, *enlaces),
                     conocidas=self.postulaciones,
+                    del_dominio=self.dominios.get(correo.dominio, ()),
                 )
                 lista_modelo = para_modelo(
                     [
@@ -127,7 +137,8 @@ class EvaluarCorreos:
                             "en_proceso" if x.postulacion.activa else "rechazado",
                         )
                         for x in lista
-                    ]
+                    ],
+                    {x.id: x.motivo for x in lista},
                 )
                 try:
                     k, _ = self.modelo.clasificar_correo(

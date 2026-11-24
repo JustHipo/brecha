@@ -184,7 +184,7 @@ def clasificar_con_contexto(
         del_dominio=del_dominio,
     )
     contextos = nucleo.contexto([x.id for x in lista]) if lista else []
-    lista_modelo = para_modelo(contextos)
+    lista_modelo = para_modelo(contextos, {x.id: x.motivo for x in lista})
     clasif, uso = modelo.clasificar_correo(
         c.remitente, c.asunto, c.fragmento, c.plataforma, candidatas=lista_modelo, hoy=hoy
     )

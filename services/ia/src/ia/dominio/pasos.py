@@ -58,6 +58,8 @@ class Candidata:
     puntaje: float
     segura: bool = False
     empresa_coincide: bool = False
+    # El único destino de los correos de ese dominio: decide solo si el modelo no tuvo contexto.
+    respaldo: bool = False
 
     @property
     def id(self) -> str:
@@ -95,15 +97,18 @@ def candidatas(
     for p in conocidas:
         if p.id in del_hilo and p.id not in por_id:
             por_id[p.id] = Candidata(p, "mismo hilo", 1.0, segura=True)
-    # El dominio del remitente ya escribió por una postulación: si es una sola, va ahí (regla segura);
-    # si fueron varias (la misma empresa por varios cargos), son candidatas y el modelo elige.
+    # El dominio del remitente ya escribió por una postulación: es una candidata fuerte, pero el modelo la
+    # confirma (la misma empresa puede escribir por un cargo nuevo). Si el modelo no tuvo contexto y fue una
+    # sola postulación, decide el dominio (`respaldo`).
     # Un dominio compartido (correo personal, portal o sistema de selección) no dice de qué empresa es.
     if dominio_compartido(dominio_remitente):
         del_dominio = ()
     unica = len(set(del_dominio)) == 1
     for p in conocidas:
         if p.id in del_dominio and p.id not in por_id:
-            por_id[p.id] = Candidata(p, "mismo dominio que un correo de esa postulación", 1.0, unica, True)
+            por_id[p.id] = Candidata(
+                p, "mismo dominio que un correo de esa postulación", 1.0, False, True, respaldo=unica
+            )
 
     nombre_empresa = empresa or empresa_del_ats(dominio_remitente)
     e = normalizar_empresa(nombre_empresa) if nombre_empresa else ""
@@ -153,7 +158,8 @@ def decidir(lista: list[Candidata], elegidas: list[str] | None, clasica: str | N
     - Las seguras mandan; el modelo puede sumar otras si son candidatas con la empresa coincidente.
     - Sin seguras, se acepta lo que eligió el modelo si todo está entre las candidatas con la empresa
       coincidente. Si eligió algo que no cumple, o nada, va a la bandeja.
-    - `elegidas is None` (sin contexto para el modelo): se usa la asociación de antes (`clasica`).
+    - `elegidas is None` (sin contexto para el modelo): se usa la asociación de antes (`clasica`) o, si
+      no hay, el único destino del dominio del remitente. Con un «ninguna» explícito, el dominio no manda.
     """
     ids = tuple(c.id for c in lista)
     seguras = [c.id for c in lista if c.segura]
@@ -166,6 +172,9 @@ def decidir(lista: list[Candidata], elegidas: list[str] | None, clasica: str | N
         # Sin contexto, o el modelo no vio la postulación que calza por empresa y cargo: la de antes.
         if clasica:
             return Decision((clasica,), todas, "asociación por empresa y cargo")
+        respaldo = [c.id for c in lista if c.respaldo]
+        if elegidas is None and len(respaldo) == 1:
+            return Decision((respaldo[0],), todas, "mismo dominio que un correo de esa postulación")
         return Decision((), todas, "sin candidata clara")
     if elegidas and all(x in validas for x in elegidas):
         return Decision(tuple(dict.fromkeys(elegidas)), todas, "elegida por el modelo")
@@ -204,10 +213,12 @@ class CandidataParaModelo:
     corto: str  # p1, p2…
     contexto: ContextoDePostulacion
     pasos_cortos: dict[str, str] = field(default_factory=dict)  # s1 → id real
+    motivo: str | None = None  # por qué es candidata (el modelo lo usa para confirmar)
 
     def texto(self, hoy: str) -> str:
         c = self.contexto
-        lineas = [f"{self.corto}: {c.empresa} · {c.titulo} · estado {c.estado}"]
+        por = f" · candidata por: {self.motivo}" if self.motivo else ""
+        lineas = [f"{self.corto}: {c.empresa} · {c.titulo} · estado {c.estado}{por}"]
         inverso = {v: k for k, v in self.pasos_cortos.items()}
         pendientes = [p for p in c.pasos if p.estado == "pendiente"]
         cerrados = [p for p in c.pasos if p.estado != "pendiente"]
@@ -225,7 +236,9 @@ class CandidataParaModelo:
         return "\n".join(lineas)
 
 
-def para_modelo(contextos: list[ContextoDePostulacion]) -> list[CandidataParaModelo]:
+def para_modelo(
+    contextos: list[ContextoDePostulacion], motivos: dict[str, str] | None = None
+) -> list[CandidataParaModelo]:
     salida: list[CandidataParaModelo] = []
     n = 0
     for i, c in enumerate(contextos, start=1):
@@ -234,5 +247,5 @@ def para_modelo(contextos: list[ContextoDePostulacion]) -> list[CandidataParaMod
             if p.estado == "pendiente":
                 n += 1
                 cortos[f"s{n}"] = p.id
-        salida.append(CandidataParaModelo(f"p{i}", c, cortos))
+        salida.append(CandidataParaModelo(f"p{i}", c, cortos, (motivos or {}).get(c.id)))
     return salida

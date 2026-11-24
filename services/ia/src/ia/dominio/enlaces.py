@@ -8,7 +8,7 @@ guardan los de dominios del remitente o de plataformas conocidas; los demás se 
 import re
 from urllib.parse import urlparse
 
-from ia.dominio.reglas import DOMINIOS_DE_PLATAFORMAS, DOMINIOS_DE_SELECCION
+from ia.dominio.reglas import DOMINIOS_DE_AGENDA, DOMINIOS_DE_PLATAFORMAS, DOMINIOS_DE_SELECCION
 
 _URL = re.compile(r"https?://[^\s<>()\"']+", re.IGNORECASE)
 MAXIMO_ENLACES = 10
@@ -23,7 +23,7 @@ def _registrable(dominio: str) -> str:
 
 def _de_confianza(host: str, dominio_remitente: str | None) -> bool:
     h = host.lower().strip(".")
-    conocidos = (*DOMINIOS_DE_PLATAFORMAS, *DOMINIOS_DE_SELECCION)
+    conocidos = (*DOMINIOS_DE_PLATAFORMAS, *DOMINIOS_DE_SELECCION, *DOMINIOS_DE_AGENDA)
     if any(h == d or h.endswith("." + d) for d in conocidos):
         return True
     if not dominio_remitente:

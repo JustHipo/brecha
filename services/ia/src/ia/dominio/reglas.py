@@ -96,6 +96,15 @@ INVITACIONES_DE_CALENDARIO: tuple[str, ...] = (
     "calendly",
 )
 
+# Donde se agenda o se hace la reunión: el enlace del paso («Elige un horario», «Únete a la llamada»).
+DOMINIOS_DE_AGENDA: tuple[str, ...] = (
+    "calendly.com",
+    "cal.com",
+    "meet.google.com",
+    "zoom.us",
+    "teams.microsoft.com",
+)
+
 # Correo de uso personal: un dominio de estos no dice de qué empresa es el remitente.
 DOMINIOS_GENERICOS: tuple[str, ...] = (
     "gmail.com",

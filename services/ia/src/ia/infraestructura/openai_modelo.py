@@ -28,8 +28,10 @@ Decide:
   compras, alertas de empleos nuevos o mensajes de reclutadores sin un proceso en curso: false.
 - estado_sugerido (solo si es_postulacion):
   postulado = confirma que la postulación se envió o se recibió;
-  en_proceso = la revisan, pasó de etapa, le piden una prueba o completar algo;
-  entrevista = la invitan a una entrevista o le piden agendarla;
+  en_proceso = la revisan, pasó de etapa, le piden una prueba, completar algo o elegir un horario para
+    una entrevista o llamada que todavía no tiene fecha;
+  entrevista = una entrevista o llamada ya agendada, con fecha y hora (una invitación de calendario o una
+    confirmación);
   oferta = le hacen una oferta;
   rechazado = no sigue en el proceso;
   ninguno = es de una postulación pero no cambia su estado (por ejemplo, «tu postulación fue vista»).
@@ -58,10 +60,13 @@ sus pasos pendientes (s1, s2…), los pasos ya hechos o descartados y sus últim
   doy); si no, null.
   enlace: el número N de «[enlace N]» donde se hace el paso, si aparece; si no, null.
   mismo_que: si solo recuerda un paso pendiente que ya aparece en una candidata, su id (s1…); si no, null.
-  NO son pasos: «completa tu perfil para destacar», alertas de empleos, boletines, encuestas, ni avisos de que
-  la postulación fue vista.
+  NO son pasos: «completa tu perfil para destacar», alertas de empleos, boletines, encuestas, avisos de que
+  la postulación fue vista, ni responder la asistencia de una invitación de calendario (Yes/Maybe/No,
+  Sí/Quizás/No): la reunión ya está agendada.
 - pasos_cumplidos: ids de pasos pendientes (s1…) que este correo da por hechos («recibimos tu test», «gracias
   por completar la evaluación»), con tu confianza de 0 a 1. Usa 0,9 o más solo si lo dice de forma explícita.
+  Una invitación de calendario o una confirmación con fecha y hora de la entrevista o llamada que le pidieron
+  agendar da por hecho, de forma explícita, el paso de agendarla o elegir un horario: confianza 0,95.
 - Usa los pasos hechos y los correos anteriores como contexto: un recordatorio de algo que la persona ya hizo
   no es un paso nuevo, y un paso hecho ayuda a entender en qué etapa va el proceso.
 """

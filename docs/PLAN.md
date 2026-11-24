@@ -180,6 +180,8 @@ Una pyme registra sus importaciones y las sigue por hitos, con RAG sobre normati
 | D58 | Firma del instalador de Windows | **Sin firma** | Azure Artifact Signing no acepta personas ni empresas de Chile; un certificado OV no quita el aviso de SmartScreen para una sola instalación. Smart App Control se revisa en el equipo |
 | D59 | CI de la app de escritorio | **Workflow «App de escritorio»** con jobs de Windows y macOS que arman la app, la instalan y la prueban (prueba de humo); el instalador y el .dmg quedan como artefactos | Corre en PRs que tocan la app, los servicios o la consola, y a mano |
 | D60 | Conectar Gmail | **Guía de 4 pasos en Ajustes** para la contraseña de aplicación; cada persona conecta su propia cuenta | La contraseña se prueba antes de guardarse y nunca vuelve a la pantalla, a archivos ni a registros |
+| D61 | Agendar una reunión | Un correo que pide **elegir un horario** deja el paso y sugiere `en_proceso`; la **invitación de calendario o la confirmación con fecha** sugiere `entrevista` y da por hecho el paso de agendar (confianza 0,95), así que con D27 y D52 la postulación avanza y el paso se cierra solos. Responder la asistencia de una invitación no es un paso | Plan de Juan del 24-nov-2026; probado de punta a punta con OpenAI real (Pumas inventado y la forma real de FullStack) |
+| D62 | Dominio conocido | Un dominio que ya escribió por una postulación es **candidata fuerte, no regla segura**: el modelo la confirma (la misma empresa puede escribir por otro cargo); sin contexto para el modelo, decide el dominio. Portales, ATS y correo personal nunca cuentan | Revisión de la sesión «windows»; casos c15 y c16 del set |
 
 ### 6.1 D8: lo que pidió Juan después del checkpoint de F0
 
