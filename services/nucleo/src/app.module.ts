@@ -9,6 +9,7 @@ import {
 import { APP_GUARD } from '@nestjs/core';
 import { AccesoController, VerificacionController } from './acceso/acceso.controller';
 import { BandejaController } from './postulaciones/infraestructura/http/bandeja.controller';
+import { PasosController } from './postulaciones/infraestructura/http/pasos.controller';
 import { AccesoGuard } from './acceso/acceso.guard';
 import { AccesoService } from './acceso/acceso.service';
 import { AlmacenDeTokens } from './acceso/almacen-de-tokens';
@@ -25,6 +26,7 @@ import { McpController } from './postulaciones/infraestructura/mcp/mcp.controlle
 import { PrismaAjustes } from './postulaciones/infraestructura/prisma/prisma-ajustes';
 import { PrismaBandeja } from './postulaciones/infraestructura/prisma/prisma-bandeja';
 import { PrismaConsultas } from './postulaciones/infraestructura/prisma/prisma-consultas';
+import { PrismaPasos } from './postulaciones/infraestructura/prisma/prisma-pasos';
 import { PrismaPostulacionRepositorio } from './postulaciones/infraestructura/prisma/prisma-postulacion.repositorio';
 import { CasosDeRed } from './red/aplicacion/casos-de-red';
 import { CasosDeRedInyectables } from './red/infraestructura/casos-de-red.provider';
@@ -71,6 +73,7 @@ export class AppModule {
         VerificacionController,
         PostulacionesController,
         BandejaController,
+        PasosController,
         EventosController,
         McpController,
         RedController,
@@ -94,6 +97,7 @@ export class AppModule {
             new CasosDeUso({
               repo: new PrismaPostulacionRepositorio(prisma, ids, flujo),
               bandeja: new PrismaBandeja(prisma, ids, flujo),
+              pasos: new PrismaPasos(prisma, ids, flujo),
               consultas: new PrismaConsultas(prisma, reloj),
               reloj,
               ids,
@@ -133,6 +137,7 @@ export class AppModule {
                 fichas: new ImportarFichas({
                   repo,
                   bandeja: new PrismaBandeja(prisma, ids, flujo),
+                  pasos: new PrismaPasos(prisma, ids, flujo),
                   consultas,
                   reloj,
                   ids,

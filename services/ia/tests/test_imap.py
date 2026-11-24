@@ -103,3 +103,22 @@ def test_si_el_texto_plano_viene_vacio_usa_el_html() -> None:
     c = a_correo(1, m.as_bytes(), None)
     assert "fue enviada correctamente" in c.texto
     assert c.masivo is True
+
+
+def test_cabeceras_del_hilo_y_enlaces_del_html() -> None:
+    from ia.infraestructura.imap import a_correo, html_a_texto
+
+    crudo = (
+        b"From: Chiletrabajos <info@chiletrabajos.cl>\r\n"
+        b"Subject: Continua tu Postulacion #3916453\r\n"
+        b"Message-ID: <nuevo@ct>\r\n"
+        b"In-Reply-To: <previo@ct>\r\n"
+        b"References: <raiz@ct> <previo@ct>\r\n"
+        b"Content-Type: text/plain; charset=utf-8\r\n\r\n"
+        b"Completa el test de personalidad para seguir en el proceso.\r\n"
+    )
+    c = a_correo(7, crudo, None)
+    assert c.en_respuesta_a == "<previo@ct>" and c.referencias == ("<raiz@ct>", "<previo@ct>")
+    texto = html_a_texto('<p>Haz <a href="https://www.chiletrabajos.cl/test?t=1">clic aquí</a></p>')
+    assert "clic aquí (https://www.chiletrabajos.cl/test?t=1)" in texto
+    assert "mailto" not in html_a_texto('<a href="mailto:a@b.cl">correo</a>')

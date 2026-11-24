@@ -14,6 +14,7 @@ from ia.dominio.calce import Calce, Perfil, Requisito
 from ia.dominio.clasificacion import Clasificacion
 from ia.dominio.correo import CorreoLeido, EstadoDeCorreo
 from ia.dominio.linkedin import AvisoDeLinkedin
+from ia.dominio.pasos import CandidataParaModelo, ContextoDePostulacion
 
 
 class TipoDeCredencial(StrEnum):
@@ -81,6 +82,10 @@ class CorreoGuardado:
     motivo: str
     asunto: str | None = None  # solo si pasó el filtro
     fragmento: str | None = None  # solo si pasó el filtro
+    # Pasos pendientes (docs/diseno/pasos.md §5): el hilo y los enlaces de confianza, que no van al modelo.
+    en_respuesta_a: str | None = None
+    referencias: tuple[str, ...] = ()
+    enlaces: tuple[str, ...] = ()
 
 
 class RepositorioDeCorreos(Protocol):
@@ -116,7 +121,13 @@ class Uso:
 
 class ModeloDeLenguaje(Protocol):
     def clasificar_correo(
-        self, remitente: str, asunto: str, fragmento: str, plataforma_detectada: str | None
+        self,
+        remitente: str,
+        asunto: str,
+        fragmento: str,
+        plataforma_detectada: str | None,
+        candidatas: list[CandidataParaModelo] | None = None,
+        hoy: str | None = None,
     ) -> tuple[Clasificacion, Uso]: ...
 
 
@@ -144,13 +155,54 @@ class CorreoPorClasificar:
     fragmento: str
     plataforma: str | None
     intentos: int
+    en_respuesta_a: str | None = None
+    referencias: tuple[str, ...] = ()
+    enlaces: tuple[str, ...] = ()
+    recibido_en: datetime | None = None
+
+
+@dataclass(frozen=True)
+class PasoParaNucleo:
+    """El paso que pide un correo, con ids y enlaces reales (ya verificados por el código)."""
+
+    descripcion: str
+    detalle: str | None = None
+    plazo: str | None = None
+    enlace: str | None = None
+    mismo_que: str | None = None
+
+
+@dataclass(frozen=True)
+class DecisionGuardada:
+    """A qué postulaciones va el correo y qué pasos toca (pasos.md §5.3), lista para el núcleo."""
+
+    postulacion_ids: tuple[str, ...]
+    candidatas: tuple[str, ...]
+    motivo: str
+    paso: PasoParaNucleo | None = None
+    pasos_cumplidos: tuple[tuple[str, float], ...] = ()
 
 
 class ColaDeClasificacion(Protocol):
     def pendientes(self, limite: int) -> list[CorreoPorClasificar]: ...
-    def marcar_clasificado(self, message_id: str, clasificacion: Clasificacion, modelo: str) -> None: ...
+    def marcar_clasificado(
+        self,
+        message_id: str,
+        clasificacion: Clasificacion,
+        modelo: str,
+        decision: DecisionGuardada | None = None,
+    ) -> None: ...
+    def del_hilo(self, message_ids: tuple[str, ...]) -> tuple[str, ...]: ...
+
     def marcar_intento_fallido(self, message_id: str, maximo: int) -> None: ...
     def registrar_error_ia(self, error: str | None) -> None: ...
+
+
+class CorreosYaClasificados(Protocol):
+    """Para reprocesar (pasos.md §5.7): los correos de postulaciones ya clasificados desde una fecha."""
+
+    def clasificados_desde(self, desde: datetime) -> list[CorreoPorClasificar]: ...
+    def del_hilo(self, message_ids: tuple[str, ...]) -> tuple[str, ...]: ...
 
 
 # ── Núcleo y registro de señales (F2-07, backend.md C3) ────────────────────────
@@ -173,6 +225,11 @@ class SenalParaNucleo:
     asunto: str
     empresa: str | None
     cargo: str | None
+    # Pasos pendientes: varias postulaciones, las candidatas para la bandeja y lo que pide el correo.
+    postulacion_ids: tuple[str, ...] = ()
+    candidatas: tuple[str, ...] = ()
+    paso: PasoParaNucleo | None = None
+    pasos_cumplidos: tuple[tuple[str, float], ...] = ()
 
 
 @dataclass(frozen=True)
@@ -187,6 +244,25 @@ class Nucleo(Protocol):
     def registrar_senal(self, senal: SenalParaNucleo) -> RespuestaDelNucleo: ...
 
 
+class FuenteDeContexto(Protocol):
+    """Lo que el clasificador sabe de cada candidata: estado, pasos y últimos correos (pasos.md §5.2)."""
+
+    def postulaciones(self) -> list[PostulacionConocida]: ...
+    def contexto(self, ids: list[str]) -> list[ContextoDePostulacion]: ...
+
+
+class NucleoConPasos(FuenteDeContexto, Protocol):
+    def registrar_paso(
+        self,
+        postulacion_ids: list[str],
+        paso: PasoParaNucleo,
+        fuente: str,
+        referencia: str | None,
+        pedido_en: datetime | None,
+        contacto_red_id: str | None = None,
+    ) -> bool: ...
+
+
 @dataclass(frozen=True)
 class ClasificadoPorEnviar:
     message_id: str
@@ -194,11 +270,12 @@ class ClasificadoPorEnviar:
     remitente: str
     asunto: str
     recibido_en: datetime
+    decision: DecisionGuardada | None = None
 
 
 class ColaDeEnvio(Protocol):
     def por_enviar(self, limite: int) -> list[ClasificadoPorEnviar]: ...
-    def marcar_enviado(self, message_id: str, postulacion_id: str | None) -> None: ...
+    def marcar_enviado(self, message_id: str, postulacion_ids: tuple[str, ...]) -> None: ...
 
 
 # ── Estado para Conexiones (F2-08) ─────────────────────────────────────────────
@@ -344,15 +421,30 @@ class ColaDeRed(Protocol):
     ) -> None: ...
 
 
+@dataclass(frozen=True)
+class ContactoRegistrado:
+    id: str
+    postulacion_ids: tuple[str, ...] = ()
+
+
 class RedEnNucleo(Protocol):
     def postulaciones(self) -> list[PostulacionConocida]: ...
     def registrar_contacto_red(
         self, nombre: str, perfil_url: str, titular: str | None, empresa: str | None
-    ) -> str: ...
+    ) -> ContactoRegistrado: ...
     def registrar_interaccion_red(
         self, contacto_id: str, tipo: str, resumen: str, ocurrida_en: datetime, referencia: str
     ) -> bool: ...
     def vincular_contacto_red(self, contacto_id: str, postulacion_id: str) -> None: ...
+    def registrar_paso(
+        self,
+        postulacion_ids: list[str],
+        paso: PasoParaNucleo,
+        fuente: str,
+        referencia: str | None,
+        pedido_en: datetime | None,
+        contacto_red_id: str | None = None,
+    ) -> bool: ...
 
 
 # ── Arriendos (docs/diseno/arriendos.md §7) ────────────────────────────────────

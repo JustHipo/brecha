@@ -43,13 +43,13 @@ class NucleoFalso:
 class ColaFalsa:
     def __init__(self, items: list[ClasificadoPorEnviar]) -> None:
         self.items = items
-        self.enviados: dict[str, str | None] = {}
+        self.enviados: dict[str, tuple[str, ...]] = {}
 
     def por_enviar(self, limite: int) -> list[ClasificadoPorEnviar]:
         return [i for i in self.items if i.message_id not in self.enviados][:limite]
 
-    def marcar_enviado(self, message_id: str, postulacion_id: str | None) -> None:
-        self.enviados[message_id] = postulacion_id
+    def marcar_enviado(self, message_id: str, postulacion_ids: tuple[str, ...]) -> None:
+        self.enviados[message_id] = postulacion_ids
 
 
 ITEMS = [
@@ -70,7 +70,7 @@ def test_envia_asocia_y_cuenta() -> None:
     nucleo, cola = NucleoFalso(), ColaFalsa(list(ITEMS))
     r = RegistrarSenales(nucleo, cola).ejecutar()
     assert (r.a_postulacion, r.aplicadas, r.a_bandeja, r.repetidas) == (1, 1, 1, 1)
-    assert cola.enviados == {"<1@x>": "p1", "<2@x>": None, "<rep@x>": "p1"}
+    assert cola.enviados == {"<1@x>": ("p1",), "<2@x>": (), "<rep@x>": ("p1",)}
     assert (
         nucleo.enviadas[0].referencia_externa == "<1@x>" and nucleo.enviadas[0].estado_sugerido == "rechazado"
     )

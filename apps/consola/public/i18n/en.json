@@ -329,7 +329,8 @@
       "motivo": "Reason",
       "motivoPlaceholder": "For example: a rejection email arrived",
       "avisoDescartado": "If something arrives about this application, I'll let you know with low priority.",
-      "confirmar": "Confirm"
+      "confirmar": "Confirm",
+      "descartarPasos": "Dismiss its {{n}} pending step(s)"
     },
     "entrevista": {
       "titulo": "Schedule interview",
@@ -425,7 +426,9 @@
       "titulo": "Link to an application",
       "buscar": "Search applications",
       "resultados": "Applications found",
-      "sinResultados": "No applications match that text."
+      "sinResultados": "No applications match that text.",
+      "sugeridas": "Suggested by the AI",
+      "confirmar": "Link to {{n}}"
     },
     "crear": {
       "titulo": "Create an application from this signal",
@@ -436,7 +439,8 @@
       "titulo": "Dismiss this signal?",
       "texto": "It leaves the inbox and is not linked to any application. This cannot be undone.",
       "confirmar": "Dismiss"
-    }
+    },
+    "pide": "Asks: {{paso}}"
   },
   "conexiones": {
     "titulo": "Connections",
@@ -809,6 +813,64 @@
     "iaApagada": "The AI service is not running: once it is back you will see what you are missing.",
     "sinPerfil": "Load your profile in Settings to see which tools you are missing.",
     "porAnalizar": "Not compared with your profile yet: it shows up in a few minutes."
+  },
+  "pasos": {
+    "tePiden": "Asked of you",
+    "hecho": "Done",
+    "marcarHecho": "Mark as done: {{paso}}",
+    "marcado": "Done: {{paso}}",
+    "deshacer": "Undo",
+    "vencio": "was due {{fecha}}",
+    "venceHoy": "due today",
+    "venceManana": "due tomorrow",
+    "vence": "due {{fecha}}",
+    "filtro": "{{n}} pending step(s)",
+    "enCerradas": "{{n}} with a pending step",
+    "proceso": "Process",
+    "nPendientes": "{{n}} pending",
+    "agregar": "Step",
+    "descripcion": "What they ask",
+    "descripcionEjemplo": "For example: Send my CV to Daniel",
+    "detalle": "Details (optional)",
+    "plazo": "Due date (optional)",
+    "yaLoHice": "Already done",
+    "guardar": "Save step",
+    "hitoEstado": "Moved to {{estado}}",
+    "plazoEl": "due {{fecha}}",
+    "tambien": "also in {{otras}}",
+    "sugerencia": "An email seems to say you already did it",
+    "abrir": "Open",
+    "descartar": "Dismiss",
+    "editar": "Edit",
+    "reabrir": "Reopen",
+    "vacio": "What each stage asks of you (a test, your CV, scheduling a call) and what you already did shows up here.",
+    "estado": {
+      "pendiente": "Pending",
+      "hecho": "Done",
+      "descartado": "Dismissed"
+    },
+    "fuente": {
+      "correo": "By email",
+      "linkedin": "On LinkedIn",
+      "portal": "On the job site",
+      "persona": "Added by hand"
+    },
+    "por": {
+      "vigia": "read by Brecha",
+      "ia": "added by your AI",
+      "persona": "added by you"
+    },
+    "cerradoPor": {
+      "persona": "you",
+      "ia": "your AI",
+      "correo": "an email",
+      "sistema": "Brecha"
+    },
+    "cierre": {
+      "hecho": "Done by {{por}} on {{fecha}}",
+      "descartado": "Dismissed by {{por}} on {{fecha}}",
+      "pendiente": ""
+    }
   },
   "foco": {
     "empleo": "Jobs",

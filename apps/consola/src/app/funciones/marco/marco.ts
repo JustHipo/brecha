@@ -126,7 +126,7 @@ const PUNTOS = [
                 }}</span>
               }
               <kbd class="rounded-[5px] border border-linea px-[5px] text-[11px] text-tinta-suave"
-                >⌘{{ f.atajo }}</kbd
+                >{{ teclaFoco }}{{ f.atajo }}</kbd
               >
             </button>
           }
@@ -296,7 +296,9 @@ const PUNTOS = [
             <path d="M20 20l-3.5-3.5"></path>
           </svg>
           <span class="flex-1">{{ 'busqueda.abrir' | transloco }}</span>
-          <kbd class="rounded-[5px] border border-linea px-[5px] text-[11px]">⌘K</kbd>
+          <kbd class="rounded-[5px] border border-linea px-[5px] text-[11px]">{{
+            teclaBuscar
+          }}</kbd>
         </button>
         <div
           role="group"
@@ -339,6 +341,13 @@ export class Marco {
   private readonly transloco = inject(TranslocoService);
   private readonly router = inject(Router);
   private readonly recorrido = inject(RecorridoStore);
+
+  /** El atajo de la búsqueda como se escribe en cada sistema (en Windows no existe ⌘). */
+  protected readonly teclaBuscar = /Mac|iPhone|iPad/.test(globalThis.navigator?.userAgent ?? '')
+    ? '⌘K'
+    : 'Ctrl K';
+  /** Lo mismo para los atajos del foco: ⌘1 en macOS, Ctrl 1 en Windows. */
+  protected readonly teclaFoco = this.teclaBuscar.startsWith('⌘') ? '⌘' : 'Ctrl ';
 
   protected readonly foco = inject(Foco);
   protected readonly focos: { id: FocoId; color: string; atajo: string }[] = [

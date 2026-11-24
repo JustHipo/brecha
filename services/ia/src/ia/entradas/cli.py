@@ -178,7 +178,7 @@ def probar_correo(args: argparse.Namespace, llavero: Credenciales) -> int:
     if not s.hay_modelo():
         print("Falta la llave de OpenAI: los correos quedan en cola.", file=sys.stderr)
         return 1
-    k = ClasificarPendientes(s.modelo(), repo, s.trazas, ahora, s.precios).ejecutar()
+    k = ClasificarPendientes(s.modelo(), repo, s.trazas, ahora, s.precios, nucleo=s.nucleo_http()).ejecutar()
     print(
         f"Clasificados: {k.clasificados} (USD {k.costo_usd:.5f}){' · error: ' + k.error if k.error else ''}"
     )
@@ -232,12 +232,21 @@ def evaluar(args: argparse.Namespace, llavero: Credenciales) -> int:
     if args.correos:
         d = json.loads(Path(args.correos).read_text(encoding="utf-8"))
         conocidas = [
-            PostulacionConocida(p["id"], p["empresa"], p["titulo"], p["plataforma"], p.get("activa", True))
+            PostulacionConocida(
+                p["id"], p["empresa"], p["titulo"], p["plataforma"], p.get("activa", True), p.get("url", "")
+            )
             for p in d["postulaciones"]
         ]
         casos = [
             CasoDeCorreo(
-                c["id"], c["remitente"], c["asunto"], c["texto"], c.get("estado"), c.get("postulacion")
+                c["id"],
+                c["remitente"],
+                c["asunto"],
+                c["texto"],
+                c.get("estado"),
+                c.get("postulacion"),
+                tuple(c["postulaciones"]) if "postulaciones" in c else None,
+                c.get("paso"),
             )
             for c in d["casos"]
         ]
@@ -245,7 +254,9 @@ def evaluar(args: argparse.Namespace, llavero: Credenciales) -> int:
         print(
             f"Correos: {rc.casos} casos · estado {rc.tasa_estado:.0%} (mínimo 80 %) · "
             f"asociación {rc.tasa_asociacion:.0%} (mínimo 75 %) · "
-            f"falsos rechazos {rc.falsos_rechazos} (máximo 1)"
+            f"falsos rechazos {rc.falsos_rechazos} (máximo 1) · "
+            f"pasos {rc.tasa_pasos:.0%} de {rc.pasos_esperados} (mínimo 80 %), "
+            f"inventados {rc.pasos_inventados} (máximo 1)"
             f" → {'PASA' if rc.pasa else 'NO PASA'}"
         )
         for f in rc.fallos:
@@ -320,6 +331,39 @@ def red(args: argparse.Namespace, llavero: Credenciales) -> int:
     return 0
 
 
+def pasos(args: argparse.Namespace, llavero: Credenciales) -> int:
+    """Pasos pendientes (pasos.md §5.7): vuelve a mirar los correos leídos y crea los pasos que pidieron."""
+    from ia.aplicacion.casos.reprocesar_pasos import ReprocesarPasos
+    from ia.entradas.servicios import ahora
+    from ia.infraestructura.postgres.correos import RepositorioPostgresDeCorreos
+
+    s = _servicios(llavero)
+    if not s.hay_modelo():
+        print("Falta la llave de OpenAI (Ajustes de la consola o «ia credenciales openai»).", file=sys.stderr)
+        return 1
+    r = ReprocesarPasos(
+        s.modelo(),
+        s.nucleo_http(),
+        RepositorioPostgresDeCorreos(s.motor),
+        s.trazas,
+        ahora,
+        s.precios,
+        en_seco=args.en_seco,
+    ).ejecutar(args.dias)
+    for d in r.detalle:
+        print(f"  · {d}")
+    print(
+        f"Revisados {r.revisados} correos de los últimos {args.dias} días: {r.pasos_nuevos} pasos nuevos, "
+        f"{r.ya_estaban} ya estaban, {r.recordatorios} recordatorios (USD {r.costo_usd:.5f})."
+    )
+    if args.en_seco:
+        print("En seco: no se creó nada. Quita --en-seco para crearlos.")
+    if r.error:
+        print(r.error, file=sys.stderr)
+        return 1
+    return 0
+
+
 def main(argv: list[str] | None = None, llavero: Credenciales | None = None) -> int:
     parser = argparse.ArgumentParser(prog="ia", description="Herramientas del servicio con IA de Brecha")
     sub = parser.add_subparsers(dest="comando", required=True)
@@ -339,6 +383,10 @@ def main(argv: list[str] | None = None, llavero: Credenciales | None = None) -> 
     ev = sub.add_parser("evaluar", help="Medir la clasificación y Preguntar contra los umbrales de D30")
     ev.add_argument("--correos", help="set de correos (JSON)")
     ev.add_argument("--preguntas", help="set de preguntas (JSON)")
+    ps = sub.add_parser("pasos", help="Crear los pasos pendientes de los correos ya leídos")
+    ps.add_argument("accion", choices=["reprocesar"])
+    ps.add_argument("--dias", type=int, default=30)
+    ps.add_argument("--en-seco", action="store_true", help="solo mostrar lo que crearía")
     pc = sub.add_parser("probar-correo", help="Pasar correos de prueba (.eml) por el camino del vigía")
     pc.add_argument("archivos", nargs="+", help="archivos .eml o carpetas con .eml")
     args = parser.parse_args(argv)
@@ -359,6 +407,8 @@ def main(argv: list[str] | None = None, llavero: Credenciales | None = None) -> 
                 return evaluar(args, ll)
             case "red":
                 return red(args, ll)
+            case "pasos":
+                return pasos(args, ll)
     except KeyboardInterrupt:
         print("\nCancelado.", file=sys.stderr)
         return 130

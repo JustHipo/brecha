@@ -8,12 +8,15 @@ import httpx
 
 from ia.aplicacion.puertos import (
     AvisoDePostulacion,
+    ContactoRegistrado,
     NucleoNoDisponible,
+    PasoParaNucleo,
     RespuestaDelNucleo,
     SenalDeArriendo,
     SenalParaNucleo,
 )
 from ia.dominio.asociacion import PostulacionConocida
+from ia.dominio.pasos import ContextoDePostulacion, PasoConocido
 
 TERMINALES = {"rechazado", "aceptada", "descartado"}
 
@@ -78,6 +81,14 @@ class NucleoHttp:
             cuerpo["empresaDetectada"] = s.empresa[:200]
         if s.cargo:
             cuerpo["cargoDetectado"] = s.cargo[:300]
+        if s.postulacion_ids:
+            cuerpo["postulacionIds"] = list(s.postulacion_ids)
+        if s.candidatas:
+            cuerpo["candidatas"] = list(s.candidatas)[:8]
+        if s.paso:
+            cuerpo["paso"] = _paso(s.paso)
+        if s.pasos_cumplidos:
+            cuerpo["pasosCumplidos"] = [{"id": i, "confianza": c} for i, c in s.pasos_cumplidos]
         r = self._pedir("POST", "/senales", json=cuerpo)
         if r.status_code == 409 and r.json().get("codigo") == "YA_EXISTE":
             return RespuestaDelNucleo("repetida", False, None)
@@ -87,6 +98,59 @@ class NucleoHttp:
         if d["destino"] == "bandeja":
             return RespuestaDelNucleo("bandeja", False, None)
         return RespuestaDelNucleo("postulacion", bool(d["senal"]["aplicada"]), d["postulacion"]["estado"])
+
+    def contexto(self, ids: list[str]) -> list[ContextoDePostulacion]:
+        """Estado, pasos y últimos correos de cada candidata (pasos.md §5.2), en el mismo orden."""
+        salida: list[ContextoDePostulacion] = []
+        for id in ids:
+            r = self._pedir("GET", f"/postulaciones/{id}")
+            if r.status_code == 404:
+                continue
+            if r.status_code != 200:
+                raise NucleoNoDisponible(f"ver postulación respondió {r.status_code}")
+            d = r.json()
+            pasos = tuple(
+                PasoConocido(
+                    p["id"],
+                    p["descripcion"],
+                    p["estado"],
+                    p.get("plazo"),
+                    (p.get("cierre") or {}).get("por"),
+                    ((p.get("cierre") or {}).get("en") or "")[:10] or None,
+                )
+                for p in d.get("pasos", [])
+            )
+            senales = tuple((x["recibidaEn"][:10], x["resumen"]) for x in d.get("senales", [])[:3])
+            salida.append(
+                ContextoDePostulacion(d["id"], d["empresa"], d["titulo"], d["estado"], pasos, senales)
+            )
+        return salida
+
+    def registrar_paso(
+        self,
+        postulacion_ids: list[str],
+        paso: PasoParaNucleo,
+        fuente: str,
+        referencia: str | None,
+        pedido_en: datetime | None,
+        contacto_red_id: str | None = None,
+    ) -> bool:
+        """Crea un paso (idempotente por referencia). Verdadero si es nuevo."""
+        cuerpo: dict[str, Any] = {
+            "postulacionIds": postulacion_ids,
+            **_paso(paso, con_mismo_que=False),
+            "fuente": fuente,
+        }
+        if referencia:
+            cuerpo["referenciaExterna"] = referencia[:500]
+        if pedido_en:
+            cuerpo["pedidoEn"] = pedido_en.isoformat()
+        if contacto_red_id:
+            cuerpo["contactoRedId"] = contacto_red_id
+        r = self._pedir("POST", "/pasos", json=cuerpo)
+        if r.status_code != 201:
+            raise NucleoNoDisponible(f"registrar paso respondió {r.status_code}: {r.text[:200]}")
+        return not bool(r.json().get("yaEstaba"))
 
     def aviso_de(self, postulacion_id: str) -> AvisoDePostulacion | None:
         r = self._pedir("GET", f"/postulaciones/{postulacion_id}")
@@ -120,7 +184,7 @@ class NucleoHttp:
 
     def registrar_contacto_red(
         self, nombre: str, perfil_url: str, titular: str | None, empresa: str | None
-    ) -> str:
+    ) -> ContactoRegistrado:
         cuerpo: dict[str, Any] = {"nombre": nombre[:200], "perfilUrl": perfil_url[:500]}
         if titular:
             cuerpo["titular"] = titular[:300]
@@ -129,7 +193,8 @@ class NucleoHttp:
         r = self._pedir("POST", "/red", json=cuerpo)
         if r.status_code != 201:
             raise NucleoNoDisponible(f"registrar contacto respondió {r.status_code}: {r.text[:200]}")
-        return str(r.json()["id"])
+        d = r.json()
+        return ContactoRegistrado(str(d["id"]), tuple(d.get("postulacionIds") or ()))
 
     def registrar_interaccion_red(
         self, contacto_id: str, tipo: str, resumen: str, ocurrida_en: datetime, referencia: str
@@ -219,3 +284,16 @@ class NucleoHttp:
             }
             for p in r.json()["items"]
         ]
+
+
+def _paso(p: PasoParaNucleo, con_mismo_que: bool = True) -> dict[str, Any]:
+    cuerpo: dict[str, Any] = {"descripcion": p.descripcion[:120]}
+    if p.detalle:
+        cuerpo["detalle"] = p.detalle[:2000]
+    if p.plazo:
+        cuerpo["plazo"] = p.plazo
+    if p.enlace:
+        cuerpo["enlace"] = p.enlace[:2000]
+    if con_mismo_que and p.mismo_que:
+        cuerpo["mismoQue"] = p.mismo_que
+    return cuerpo

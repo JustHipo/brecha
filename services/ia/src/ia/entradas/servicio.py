@@ -5,7 +5,7 @@ Subcomandos:
 - `vigia`: el vigía del correo y los avisos (`--comprobar` solo revisa que todo se importe).
 - `migrar`: `alembic upgrade head` con las migraciones que van dentro del ejecutable.
 - `comprobar`: importa todo lo que el servicio usa al correr y sale (0 si está completo).
-- `credenciales`, `avisos`, `perfil`, `preguntar`, `probar-correo`, `red` y `evaluar`: la CLI `ia`.
+- `credenciales`, `avisos`, `perfil`, `preguntar`, `probar-correo`, `red`, `evaluar` y `pasos`: la CLI `ia`.
 
 Funciona igual desde el código (`uv run brecha-ia ...`) y empaquetado con PyInstaller.
 """
@@ -22,7 +22,16 @@ from pydantic import ValidationError
 
 from ia.infraestructura.config import ConfigInvalida, cargar_config, esta_empaquetado
 
-COMANDOS_DE_LA_CLI = ("credenciales", "avisos", "perfil", "preguntar", "probar-correo", "red", "evaluar")
+COMANDOS_DE_LA_CLI = (
+    "credenciales",
+    "avisos",
+    "perfil",
+    "preguntar",
+    "probar-correo",
+    "red",
+    "evaluar",
+    "pasos",
+)
 SALIDA_CONFIG_INVALIDA = 78  # EX_CONFIG de sysexits.h: la app distingue "falta configuración" de un fallo
 
 # Lo que el servicio importa en tiempo de ejecución, incluso lo que uvicorn y keyring cargan por nombre.
@@ -155,12 +164,25 @@ def _parser() -> argparse.ArgumentParser:
         ("probar-correo", "Pasar correos de prueba (.eml) por el camino del vigía"),
         ("red", "Traer los avisos de LinkedIn del correo a tu red"),
         ("evaluar", "Medir la clasificación y Preguntar contra los umbrales de D30"),
+        ("pasos", "Crear los pasos pendientes de los correos ya leídos"),
     ):
         sub.add_parser(nombre, help=f"{ayuda} (brecha-ia {nombre} --help)")
     return parser
 
 
+def salida_en_utf8() -> None:
+    """En Windows la consola usa la página de códigos del sistema y el registro de la app lee UTF-8.
+
+    El ejecutable de PyInstaller ignora PYTHONUTF8 (no lee las variables PYTHON*), así que se fija aquí.
+    """
+    for flujo in (sys.stdout, sys.stderr):
+        reconfigurar = getattr(flujo, "reconfigure", None)
+        if reconfigurar is not None:
+            reconfigurar(encoding="utf-8", errors="replace")
+
+
 def main(argv: list[str] | None = None) -> int:
+    salida_en_utf8()
     argumentos = sys.argv[1:] if argv is None else argv
     try:
         if argumentos and argumentos[0] in COMANDOS_DE_LA_CLI:

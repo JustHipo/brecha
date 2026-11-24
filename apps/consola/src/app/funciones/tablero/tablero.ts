@@ -17,7 +17,7 @@ import { Api } from '../../nucleo/api/api.service';
 import { Avisos } from '../../nucleo/avisos';
 import { Formato } from '../../nucleo/idioma/idioma';
 import { Transiciones } from '../postulacion/transiciones';
-import { Tarjeta } from './tarjeta';
+import { Tarjeta, type PasoHecho } from './tarjeta';
 import { ABIERTOS, CERRADOS, SIN_FILTROS, TableroStore } from './tablero.store';
 
 /** Tablero (ui.md §4.2, F1-13): columnas por estado, arrastrar con validación y «Mover a…» con teclado. */
@@ -92,6 +92,23 @@ import { ABIERTOS, CERRADOS, SIN_FILTROS, TableroStore } from './tablero.store';
             </button>
           }
         </div>
+        @if (store.pasosPendientes() || store.filtros().conPasos) {
+          <button
+            type="button"
+            data-filtro-pasos
+            class="flex h-[34px] items-center gap-1.5 rounded-full border px-3 text-[12.5px] font-semibold"
+            [class.border-acento]="store.filtros().conPasos"
+            [class.bg-acento-suave]="store.filtros().conPasos"
+            [class.text-acento]="store.filtros().conPasos"
+            [class.border-linea]="!store.filtros().conPasos"
+            [class.text-tinta]="!store.filtros().conPasos"
+            [attr.aria-pressed]="store.filtros().conPasos"
+            (click)="alternarPasos()"
+          >
+            <span aria-hidden="true" class="h-3.5 w-1 rounded-full bg-acento"></span>
+            {{ 'pasos.filtro' | transloco: { n: store.pasosPendientes() } }}
+          </button>
+        }
         @if (store.etiquetasEnUso().length) {
           <label class="flex items-center gap-1.5 text-[12.5px] text-tinta-suave">
             <span>{{ 'etiquetas.filtro' | transloco }}</span>
@@ -234,6 +251,7 @@ import { ABIERTOS, CERRADOS, SIN_FILTROS, TableroStore } from './tablero.store';
                     [tarjeta]="t"
                     [fechaCorta]="fechaCorta"
                     (mover)="moverConTeclado($event)"
+                    (hecho)="marcarHecho($event)"
                   >
                     <div
                       *cdkDragPlaceholder
@@ -270,6 +288,13 @@ import { ABIERTOS, CERRADOS, SIN_FILTROS, TableroStore } from './tablero.store';
                   >{{ 'estados.' + c | transloco }} {{ store.columna(c)?.total ?? 0 }}</span
                 >
               }
+              @if (store.cerradasConPasos()) {
+                <span
+                  class="rounded-full bg-acento-suave px-2 py-0.5 text-center text-[11px] font-semibold text-acento"
+                  data-cerradas-con-pasos
+                  >{{ 'pasos.enCerradas' | transloco: { n: store.cerradasConPasos() } }}</span
+                >
+              }
               <span aria-hidden="true">▸</span>
             </button>
             <hlm-sheet-content *hlmSheetPortal="let ctx" class="w-[420px] overflow-y-auto">
@@ -287,6 +312,7 @@ import { ABIERTOS, CERRADOS, SIN_FILTROS, TableroStore } from './tablero.store';
                         [tarjeta]="t"
                         [fechaCorta]="fechaCorta"
                         (mover)="moverConTeclado($event)"
+                        (hecho)="marcarHecho($event)"
                       />
                     }
                   </section>
@@ -394,6 +420,30 @@ export class TableroPagina {
         ? f.prioridades.filter((x) => x !== p)
         : [...f.prioridades, p],
     }));
+  }
+
+  protected alternarPasos(): void {
+    this.store.filtros.update((f) => ({ ...f, conPasos: !f.conPasos }));
+  }
+
+  /** «Hecho» en la tarjeta: sale el paso y el toast ofrece deshacer (pasos.md §7.1). */
+  protected async marcarHecho(e: PasoHecho): Promise<void> {
+    const error = await this.store.resolverPaso(e.tarjeta, e.pasoId, 'hecho');
+    if (error) {
+      this.avisos.error(error);
+      return;
+    }
+    this.avisos.exito(
+      'pasos.marcado',
+      { paso: e.descripcion },
+      {
+        clave: 'pasos.deshacer',
+        hacer: () =>
+          void this.store.resolverPaso(e.tarjeta, e.pasoId, 'pendiente').then((x) => {
+            if (x) this.avisos.error(x);
+          }),
+      },
+    );
   }
 
   protected limpiar(): void {

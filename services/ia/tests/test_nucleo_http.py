@@ -123,3 +123,85 @@ def test_aviso_de_lee_la_foto_del_aviso_de_la_postulacion() -> None:
         None,
     )
     assert nucleo(manejar).aviso_de("p404") is None
+
+
+def test_senal_con_varias_postulaciones_paso_y_cumplidos() -> None:
+    from dataclasses import replace
+
+    from ia.aplicacion.puertos import PasoParaNucleo
+
+    cuerpos: list[dict[str, object]] = []
+
+    def manejar(p: httpx.Request) -> httpx.Response:
+        cuerpos.append(json.loads(p.content))
+        return httpx.Response(
+            201, json={"destino": "postulacion", "senal": {"aplicada": False}, "postulacion": {"estado": "x"}}
+        )
+
+    s = replace(
+        SENAL,
+        postulacion_id=None,
+        postulacion_ids=("p1", "p2"),
+        paso=PasoParaNucleo(
+            "Completar el test", plazo="2026-11-30", enlace="https://x.test", mismo_que="s-real"
+        ),
+        pasos_cumplidos=(("viejo", 0.95),),
+    )
+    nucleo(manejar).registrar_senal(s)
+    c = cuerpos[0]
+    assert "postulacionId" not in c and c["postulacionIds"] == ["p1", "p2"]
+    assert c["paso"] == {
+        "descripcion": "Completar el test",
+        "plazo": "2026-11-30",
+        "enlace": "https://x.test",
+        "mismoQue": "s-real",
+    }
+    assert c["pasosCumplidos"] == [{"id": "viejo", "confianza": 0.95}]
+
+
+def test_contexto_y_registrar_paso() -> None:
+    from ia.aplicacion.puertos import PasoParaNucleo
+
+    pedidos: list[httpx.Request] = []
+
+    def manejar(p: httpx.Request) -> httpx.Response:
+        pedidos.append(p)
+        if p.method == "GET" and p.url.path.endswith("/no"):
+            return httpx.Response(404, json={})
+        if p.method == "GET":
+            return httpx.Response(
+                200,
+                json={
+                    "id": "p1",
+                    "empresa": "Lanek",
+                    "titulo": "Backend",
+                    "estado": "rechazado",
+                    "pasos": [
+                        {
+                            "id": "s",
+                            "descripcion": "Test",
+                            "estado": "hecho",
+                            "plazo": None,
+                            "cierre": {"por": "ia", "en": "2026-11-23T10:00:00.000Z"},
+                        }
+                    ],
+                    "senales": [{"recibidaEn": "2026-11-23T10:03:05.000Z", "resumen": "Te piden un test"}],
+                },
+            )
+        return httpx.Response(201, json={"yaEstaba": False})
+
+    n = nucleo(manejar)
+    [c] = n.contexto(["p1", "no"])
+    assert (
+        c.estado == "rechazado" and c.pasos[0].cerrado_por == "ia" and c.pasos[0].cerrado_en == "2026-11-23"
+    )
+    assert c.senales == (("2026-11-23", "Te piden un test"),)
+    assert n.registrar_paso(["p1"], PasoParaNucleo("Leer el mensaje"), "linkedin", "<m>#0#leer", None, "c1")
+    cuerpo = json.loads(pedidos[-1].content)
+    assert cuerpo == {
+        "postulacionIds": ["p1"],
+        "descripcion": "Leer el mensaje",
+        "fuente": "linkedin",
+        "referenciaExterna": "<m>#0#leer",
+        "contactoRedId": "c1",
+    }

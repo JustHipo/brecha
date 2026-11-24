@@ -68,3 +68,10 @@ export function esDeAvance(estado: EstadoPostulacion): boolean {
 export function ordenDe(estado: EstadoPostulacion): number | undefined {
   return ORDEN[estado];
 }
+
+/** Las que viven en el panel «Cerradas» del tablero: las terminales más las que descartaste. */
+export const CERRADOS: readonly EstadoPostulacion[] = ['aceptada', 'rechazado', 'descartado'];
+
+export function estaCerrada(estado: EstadoPostulacion): boolean {
+  return CERRADOS.includes(estado);
+}

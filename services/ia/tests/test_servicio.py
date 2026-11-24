@@ -25,6 +25,19 @@ def test_los_comandos_de_la_cli_van_a_la_cli(monkeypatch: pytest.MonkeyPatch, co
     assert recibido == [[comando, "estado"]]
 
 
+def test_todo_subcomando_de_la_cli_se_puede_usar_desde_el_ejecutable(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    """Si la CLI suma un comando y el ejecutable no lo deja pasar, la app instalada no lo puede correr."""
+    import re
+
+    with pytest.raises(SystemExit):
+        cli.main(["--help"])
+    opciones = re.search(r"\{([a-z,-]+)\}", capsys.readouterr().out)
+    assert opciones is not None
+    assert set(opciones.group(1).split(",")) == set(servicio.COMANDOS_DE_LA_CLI)
+
+
 def test_desde_el_codigo_las_migraciones_estan_en_services_ia() -> None:
     base = servicio.carpeta_de_migraciones()
     assert (base / "alembic.ini").is_file()
@@ -51,3 +64,22 @@ def test_sin_configuracion_sale_con_ex_config(
     monkeypatch.delenv("BRECHA_DIR", raising=False)
     assert servicio.main(["vigia"]) == servicio.SALIDA_CONFIG_INVALIDA
     assert "Falta BRECHA_DIR" in capsys.readouterr().err
+
+
+def test_la_salida_queda_en_utf8() -> None:
+    import io
+    import sys
+
+    from ia.entradas import servicio
+
+    antes = sys.stdout, sys.stderr
+    try:
+        sys.stdout = io.TextIOWrapper(io.BytesIO(), encoding="cp1252")
+        sys.stderr = io.TextIOWrapper(io.BytesIO(), encoding="cp1252")
+        servicio.salida_en_utf8()
+        assert sys.stdout.encoding == "utf-8" and sys.stderr.encoding == "utf-8"
+        print("vigía en marcha")
+        sys.stdout.flush()
+        assert "vigía".encode() in sys.stdout.buffer.getvalue()  # type: ignore[attr-defined]
+    finally:
+        sys.stdout, sys.stderr = antes

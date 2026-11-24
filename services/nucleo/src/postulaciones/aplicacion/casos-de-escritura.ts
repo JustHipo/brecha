@@ -12,6 +12,8 @@ import {
 import type { FuenteDeSenal, ResultadoDeEntrevista, Senal, TipoDeEntrevista } from '../dominio/partes';
 import { Postulacion } from '../dominio/postulacion';
 import { deps, detalleOFalla, modificar, type Contexto } from './base';
+import { cerradorDe, descartarPasosDeCerrada } from './casos-de-pasos';
+import { estaCerrada } from '../dominio/estado';
 import type { VistaDetalle } from './vistas';
 
 export interface EntradaCanal {
@@ -80,6 +82,8 @@ export class CambiarEstado {
     canal?: EntradaCanal;
     origen: Origen;
     version?: number;
+    /** R17: al cerrarla, descartar sus pasos pendientes (el diálogo de cerrar lo trae marcado). */
+    descartarPasos?: boolean;
   }): Promise<VistaDetalle> {
     if (e.version === undefined && e.origen !== 'senal' && e.origen !== 'ia') {
       throw new DatoInvalido('version', 'Falta la versión de la postulación');
@@ -97,6 +101,9 @@ export class CambiarEstado {
         deps(this.c),
       ),
     );
+    if (e.descartarPasos && estaCerrada(e.a)) {
+      await descartarPasosDeCerrada(this.c.pasos, e.id, cerradorDe(e.origen), this.c.reloj);
+    }
     return detalleOFalla(this.c, e.id);
   }
 }
@@ -147,14 +154,18 @@ export class RegistrarSenal {
     referenciaExterna?: string;
     remitente?: string;
     asunto?: string;
+    /** D27 con varias postulaciones (pasos.md P4): con más de una, la señal queda como sugerencia. */
+    sinAplicar?: boolean;
   }): Promise<{ senal: Senal; postulacion: VistaDetalle }> {
-    const [aplicarSeguras, umbral] = await Promise.all([
+    const [seguras, umbral] = await Promise.all([
       this.c.ajustes.aplicarSenalesSeguras(),
       this.c.ajustes.umbralConfianza(),
     ]);
-    const { id, ...datos } = e;
-    // La referencia externa no se repite ni en las postulaciones ni en la bandeja (ADR 0015).
-    if (datos.referenciaExterna && (await this.c.bandeja.referenciaUsada(datos.referenciaExterna))) {
+    const { id, sinAplicar, ...datos } = e;
+    const aplicarSeguras = seguras && !sinAplicar;
+    // Una referencia que está en la bandeja se lleva a la postulación con «asociar», no por aquí (ADR 0015).
+    // En las postulaciones es única por postulación: un mismo correo puede tocar varias (pasos.md §4.2).
+    if (datos.referenciaExterna && (await this.c.bandeja.referenciaEnBandeja(datos.referenciaExterna))) {
       throw new SenalDuplicada(datos.referenciaExterna);
     }
     const senal = await modificar(this.c, id, undefined, (p) =>

@@ -189,3 +189,58 @@ def test_responder_devuelve_texto_y_citas() -> None:
     )
     assert (texto, citados) == ("Backend en Ficticia", ["a1"])
     assert "[id: a1]" in s.pedidos[0].content.decode()
+
+
+def test_con_candidatas_manda_el_contexto_sin_uuid_y_lee_paso_y_cumplidos() -> None:
+    from ia.dominio.pasos import ContextoDePostulacion, PasoConocido, para_modelo
+
+    salida = {
+        **SALIDA,
+        "plataforma": "chiletrabajos",
+        "estado_sugerido": "en_proceso",
+        "postulaciones": ["p1", "p1"],
+        "paso": {
+            "descripcion": "Completar el test de personalidad",
+            "detalle": "Etapa 2",
+            "plazo": "30-11-2026",  # mal formado: se descarta
+            "enlace": 1,
+            "mismo_que": None,
+        },
+        "pasos_cumplidos": [{"id": "s1", "confianza": 0.4}],
+    }
+    sim = Simulado(respuesta(salida))
+    candidatas = para_modelo(
+        [
+            ContextoDePostulacion(
+                "01a209db-369f-7d65-8269-6396b74a0753",
+                "Lanek",
+                "Backend & IA",
+                "rechazado",
+                (PasoConocido("01a2-paso", "Enviar el CV", "pendiente"),),
+            )
+        ]
+    )
+    c, _ = sim.modelo().clasificar_correo(
+        "info@chiletrabajos.cl",
+        "Continua tu Postulacion",
+        "[enlace 1]",
+        "chiletrabajos",
+        candidatas,
+        "2026-11-24",
+    )
+    assert c.postulaciones == ("p1",)
+    assert c.paso is not None and c.paso.plazo is None and c.paso.enlace == 1
+    assert c.pasos_cumplidos[0].id == "s1"
+    cuerpo = json.loads(sim.pedidos[0].content)
+    enviado = json.dumps(cuerpo["messages"], ensure_ascii=False)
+    assert "01a209db" not in enviado and "01a2-paso" not in enviado
+    assert "p1: Lanek" in enviado and "Hoy es 2026-11-24" in enviado
+    esquema = json.dumps(cuerpo["response_format"])
+    assert "pasos_cumplidos" in esquema
+
+
+def test_sin_candidatas_el_esquema_es_el_de_siempre() -> None:
+    sim = Simulado(respuesta(SALIDA))
+    c, _ = sim.modelo().clasificar_correo("a@b.test", "x", "y", None)
+    assert c.postulaciones is None and c.paso is None
+    assert "pasos_cumplidos" not in json.dumps(json.loads(sim.pedidos[0].content)["response_format"])

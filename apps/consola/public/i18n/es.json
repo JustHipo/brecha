@@ -329,7 +329,8 @@
       "motivo": "Motivo",
       "motivoPlaceholder": "Por ejemplo: llegó un correo de rechazo",
       "avisoDescartado": "Si llega algo de esta postulación te avisaré con prioridad baja.",
-      "confirmar": "Confirmar"
+      "confirmar": "Confirmar",
+      "descartarPasos": "Descartar sus {{n}} paso(s) pendiente(s)"
     },
     "entrevista": {
       "titulo": "Agendar entrevista",
@@ -425,7 +426,9 @@
       "titulo": "Asociar a una postulación",
       "buscar": "Buscar postulación",
       "resultados": "Postulaciones encontradas",
-      "sinResultados": "No hay postulaciones con ese texto."
+      "sinResultados": "No hay postulaciones con ese texto.",
+      "sugeridas": "Sugeridas por la IA",
+      "confirmar": "Asociar a {{n}}"
     },
     "crear": {
       "titulo": "Crear postulación con esta señal",
@@ -436,7 +439,8 @@
       "titulo": "¿Descartar esta señal?",
       "texto": "Sale de la bandeja y no se asocia a ninguna postulación. No se puede deshacer.",
       "confirmar": "Descartar"
-    }
+    },
+    "pide": "Pide: {{paso}}"
   },
   "conexiones": {
     "titulo": "Conexiones",
@@ -809,6 +813,64 @@
     "iaApagada": "El servicio con IA no está corriendo: cuando vuelva verás qué te falta.",
     "sinPerfil": "Carga tu perfil en Ajustes para ver qué herramientas te faltan.",
     "porAnalizar": "Todavía no se compara con tu perfil: aparece en unos minutos."
+  },
+  "pasos": {
+    "tePiden": "Te piden",
+    "hecho": "Hecho",
+    "marcarHecho": "Marcar como hecho: {{paso}}",
+    "marcado": "Hecho: {{paso}}",
+    "deshacer": "Deshacer",
+    "vencio": "venció el {{fecha}}",
+    "venceHoy": "vence hoy",
+    "venceManana": "vence mañana",
+    "vence": "vence el {{fecha}}",
+    "filtro": "{{n}} paso(s) pendiente(s)",
+    "enCerradas": "{{n}} con paso pendiente",
+    "proceso": "Proceso",
+    "nPendientes": "{{n}} pendiente(s)",
+    "agregar": "Paso",
+    "descripcion": "Qué te piden",
+    "descripcionEjemplo": "Por ejemplo: Mandar el CV a Daniel",
+    "detalle": "Detalle (opcional)",
+    "plazo": "Plazo (opcional)",
+    "yaLoHice": "Ya lo hice",
+    "guardar": "Guardar paso",
+    "hitoEstado": "Pasó a {{estado}}",
+    "plazoEl": "plazo {{fecha}}",
+    "tambien": "también en {{otras}}",
+    "sugerencia": "Un correo parece decir que ya lo hiciste",
+    "abrir": "Abrir",
+    "descartar": "Descartar",
+    "editar": "Editar",
+    "reabrir": "Reabrir",
+    "vacio": "Aquí aparece lo que te pide cada etapa (un test, mandar el CV, agendar una llamada) y lo que ya hiciste.",
+    "estado": {
+      "pendiente": "Pendiente",
+      "hecho": "Hecho",
+      "descartado": "Descartado"
+    },
+    "fuente": {
+      "correo": "Por correo",
+      "linkedin": "Por LinkedIn",
+      "portal": "En el portal",
+      "persona": "Anotado a mano"
+    },
+    "por": {
+      "vigia": "lo leyó Brecha",
+      "ia": "lo anotó tu IA",
+      "persona": "lo anotaste tú"
+    },
+    "cerradoPor": {
+      "persona": "ti",
+      "ia": "tu IA",
+      "correo": "un correo",
+      "sistema": "Brecha"
+    },
+    "cierre": {
+      "hecho": "Hecho por {{por}} el {{fecha}}",
+      "descartado": "Descartado por {{por}} el {{fecha}}",
+      "pendiente": ""
+    }
   },
   "foco": {
     "empleo": "Empleo",

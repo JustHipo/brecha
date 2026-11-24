@@ -140,6 +140,15 @@
             }
           },
           {
+            "name": "url",
+            "required": false,
+            "in": "query",
+            "description": "URL del aviso o solo su número (por ejemplo 3916453)",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
             "name": "limit",
             "required": false,
             "in": "query",
@@ -1727,6 +1736,260 @@
         "summary": "El servicio con IA liga el aviso analizado y su calce",
         "tags": [
           "bandeja"
+        ]
+      }
+    },
+    "/api/v1/pasos": {
+      "get": {
+        "operationId": "listarPasos",
+        "parameters": [
+          {
+            "name": "estado",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "$ref": "#/components/schemas/EstadoDePaso"
+            }
+          },
+          {
+            "name": "postulacionId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PasoDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Pendientes primero (por plazo) y después los cerrados, del más nuevo al más antiguo",
+        "tags": [
+          "pasos"
+        ]
+      },
+      "post": {
+        "operationId": "registrarPaso",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegistrarPasoDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PasoRegistradoDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "VALIDACION",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "NO_ENCONTRADO",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Anota un paso pendiente o ya hecho",
+        "tags": [
+          "pasos"
+        ]
+      }
+    },
+    "/api/v1/pasos/{id}": {
+      "patch": {
+        "operationId": "editarPaso",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EditarPasoDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PasoDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "VALIDACION",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "NO_ENCONTRADO",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "CONFLICTO",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "pasos"
+        ]
+      }
+    },
+    "/api/v1/pasos/{id}/resolver": {
+      "post": {
+        "operationId": "resolverPaso",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResolverPasoDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PasoDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "VALIDACION",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "NO_ENCONTRADO",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "CONFLICTO",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Hecho, descartado o reabrir (pendiente)",
+        "tags": [
+          "pasos"
         ]
       }
     },
@@ -3598,6 +3861,33 @@
           "baja"
         ]
       },
+      "PasoCortoDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "descripcion": {
+            "type": "string"
+          },
+          "plazo": {
+            "type": "string",
+            "format": "date",
+            "nullable": true
+          },
+          "diasAlPlazo": {
+            "type": "number",
+            "nullable": true,
+            "description": "Días hasta el plazo (negativo si venció)"
+          }
+        },
+        "required": [
+          "id",
+          "descripcion",
+          "plazo",
+          "diasAlPlazo"
+        ]
+      },
       "ResumenPostulacionDto": {
         "type": "object",
         "properties": {
@@ -3681,6 +3971,13 @@
           "discrepanciasAbiertas": {
             "type": "number"
           },
+          "pasosPendientes": {
+            "description": "Lo que te piden hacer, el de plazo más cercano primero",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PasoCortoDto"
+            }
+          },
           "transicionesPosibles": {
             "type": "array",
             "items": {
@@ -3712,6 +4009,7 @@
           "fechaPostulacion",
           "senalesNuevas",
           "discrepanciasAbiertas",
+          "pasosPendientes",
           "transicionesPosibles",
           "version",
           "actualizadaEn"
@@ -3858,7 +4156,8 @@
               "cambio",
               "senal",
               "discrepancia",
-              "nota"
+              "nota",
+              "paso"
             ]
           },
           "descripcion": {
@@ -4496,6 +4795,244 @@
           "resueltaEn"
         ]
       },
+      "PostulacionDelPasoDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "empresa": {
+            "type": "string"
+          },
+          "titulo": {
+            "type": "string"
+          },
+          "estado": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/EstadoPostulacion"
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "empresa",
+          "titulo",
+          "estado"
+        ]
+      },
+      "EstadoDePaso": {
+        "type": "string",
+        "enum": [
+          "pendiente",
+          "hecho",
+          "descartado"
+        ]
+      },
+      "FuenteDePaso": {
+        "type": "string",
+        "enum": [
+          "correo",
+          "linkedin",
+          "portal",
+          "persona"
+        ]
+      },
+      "RegistradorDePaso": {
+        "type": "string",
+        "enum": [
+          "vigia",
+          "ia",
+          "persona"
+        ]
+      },
+      "CerradorDePaso": {
+        "type": "string",
+        "enum": [
+          "persona",
+          "ia",
+          "correo",
+          "sistema"
+        ]
+      },
+      "CierreDePasoDto": {
+        "type": "object",
+        "properties": {
+          "por": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CerradorDePaso"
+              }
+            ]
+          },
+          "en": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "nota": {
+            "type": "string",
+            "nullable": true
+          },
+          "referenciaExterna": {
+            "type": "string",
+            "nullable": true,
+            "description": "El correo que lo dio por hecho"
+          }
+        },
+        "required": [
+          "por",
+          "en",
+          "nota",
+          "referenciaExterna"
+        ]
+      },
+      "SugerenciaDeCierreDto": {
+        "type": "object",
+        "properties": {
+          "referenciaExterna": {
+            "type": "string",
+            "nullable": true
+          },
+          "confianza": {
+            "type": "number"
+          },
+          "en": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "referenciaExterna",
+          "confianza",
+          "en"
+        ]
+      },
+      "PasoDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "descripcion": {
+            "type": "string"
+          },
+          "plazo": {
+            "type": "string",
+            "format": "date",
+            "nullable": true
+          },
+          "diasAlPlazo": {
+            "type": "number",
+            "nullable": true,
+            "description": "Días hasta el plazo (negativo si venció)"
+          },
+          "postulacionIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "postulaciones": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PostulacionDelPasoDto"
+            }
+          },
+          "detalle": {
+            "type": "string",
+            "nullable": true
+          },
+          "enlace": {
+            "type": "string",
+            "nullable": true
+          },
+          "estado": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/EstadoDePaso"
+              }
+            ]
+          },
+          "fuente": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/FuenteDePaso"
+              }
+            ]
+          },
+          "registradoPor": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/RegistradorDePaso"
+              }
+            ]
+          },
+          "contactoRedId": {
+            "type": "string",
+            "nullable": true
+          },
+          "referenciaExterna": {
+            "type": "string",
+            "nullable": true
+          },
+          "cierre": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CierreDePasoDto"
+              }
+            ]
+          },
+          "sugerenciaCierre": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/SugerenciaDeCierreDto"
+              }
+            ]
+          },
+          "pedidoEn": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Cuándo te lo pidieron"
+          },
+          "creadoEn": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "actualizadoEn": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "version": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "id",
+          "descripcion",
+          "plazo",
+          "diasAlPlazo",
+          "postulacionIds",
+          "postulaciones",
+          "detalle",
+          "enlace",
+          "estado",
+          "fuente",
+          "registradoPor",
+          "contactoRedId",
+          "referenciaExterna",
+          "cierre",
+          "sugerenciaCierre",
+          "pedidoEn",
+          "creadoEn",
+          "actualizadoEn",
+          "version"
+        ]
+      },
       "DetallePostulacionDto": {
         "type": "object",
         "properties": {
@@ -4579,6 +5116,13 @@
           "discrepanciasAbiertas": {
             "type": "number"
           },
+          "pasosPendientes": {
+            "description": "Lo que te piden hacer, el de plazo más cercano primero",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PasoCortoDto"
+            }
+          },
           "transicionesPosibles": {
             "type": "array",
             "items": {
@@ -4652,6 +5196,13 @@
               "$ref": "#/components/schemas/DiscrepanciaDto"
             }
           },
+          "pasos": {
+            "description": "El proceso: todos los pasos, en el orden en que te los pidieron",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PasoDto"
+            }
+          },
           "creadaEn": {
             "type": "string",
             "format": "date-time"
@@ -4674,6 +5225,7 @@
           "fechaPostulacion",
           "senalesNuevas",
           "discrepanciasAbiertas",
+          "pasosPendientes",
           "transicionesPosibles",
           "version",
           "actualizadaEn",
@@ -4686,6 +5238,7 @@
           "historial",
           "senales",
           "discrepancias",
+          "pasos",
           "creadaEn"
         ]
       },
@@ -4861,6 +5414,10 @@
           "version": {
             "type": "number",
             "description": "Versión que tenías (bloqueo optimista)"
+          },
+          "descartarPasos": {
+            "type": "boolean",
+            "description": "Al cerrarla, descartar sus pasos pendientes que solo tocan postulaciones cerradas (R17)"
           }
         },
         "required": [
@@ -5053,12 +5610,87 @@
           "decision"
         ]
       },
+      "PasoPedidoDto": {
+        "type": "object",
+        "properties": {
+          "descripcion": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 120
+          },
+          "detalle": {
+            "type": "string",
+            "maxLength": 2000
+          },
+          "plazo": {
+            "type": "string",
+            "format": "date"
+          },
+          "enlace": {
+            "type": "string",
+            "maxLength": 2000
+          },
+          "mismoQue": {
+            "type": "string",
+            "description": "Id de un paso pendiente que este correo solo recuerda (R19)"
+          }
+        },
+        "required": [
+          "descripcion"
+        ]
+      },
+      "PasoCumplidoDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "confianza": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          }
+        },
+        "required": [
+          "id",
+          "confianza"
+        ]
+      },
       "SenalRecibidaEntradaDto": {
         "type": "object",
         "properties": {
           "postulacionId": {
             "type": "string",
             "description": "Sin postulación, la señal va a la bandeja"
+          },
+          "postulacionIds": {
+            "description": "Varias postulaciones: una señal en cada una",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "candidatas": {
+            "description": "Sin postulación: las propuestas sin certeza",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "paso": {
+            "description": "Lo que el correo pide hacer",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PasoPedidoDto"
+              }
+            ]
+          },
+          "pasosCumplidos": {
+            "description": "Pasos pendientes que este correo da por hechos",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PasoCumplidoDto"
+            }
           },
           "fuente": {
             "allOf": [
@@ -5122,6 +5754,31 @@
           "confianza"
         ]
       },
+      "SenalEnPostulacionDto": {
+        "type": "object",
+        "properties": {
+          "postulacionId": {
+            "type": "string"
+          },
+          "senalId": {
+            "type": "string",
+            "nullable": true
+          },
+          "aplicada": {
+            "type": "boolean"
+          },
+          "repetida": {
+            "type": "boolean",
+            "description": "Ya estaba registrada en esa postulación"
+          }
+        },
+        "required": [
+          "postulacionId",
+          "senalId",
+          "aplicada",
+          "repetida"
+        ]
+      },
       "EstadoDePendiente": {
         "type": "string",
         "enum": [
@@ -5182,6 +5839,15 @@
           "cargoDetectado": {
             "type": "string"
           },
+          "candidatas": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "pasoPropuesto": {
+            "$ref": "#/components/schemas/PasoPedidoDto"
+          },
           "estado": {
             "allOf": [
               {
@@ -5209,6 +5875,7 @@
           "resumen",
           "confianza",
           "recibidaEn",
+          "candidatas",
           "estado",
           "resueltaEn",
           "creadaEn"
@@ -5225,10 +5892,53 @@
             ]
           },
           "senal": {
-            "$ref": "#/components/schemas/SenalDto"
+            "description": "La primera señal nueva",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/SenalDto"
+              }
+            ]
           },
           "postulacion": {
             "$ref": "#/components/schemas/DetallePostulacionDto"
+          },
+          "senales": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SenalEnPostulacionDto"
+            }
+          },
+          "paso": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PasoDto"
+              }
+            ]
+          },
+          "accion": {
+            "type": "string",
+            "enum": [
+              "creado",
+              "recordado",
+              "ya_estaba"
+            ],
+            "nullable": true
+          },
+          "cerrados": {
+            "description": "Pasos que este correo cerró",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "sugeridos": {
+            "description": "Pasos que quedaron con la sugerencia de cierre",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
           },
           "pendiente": {
             "$ref": "#/components/schemas/SenalPendienteDto"
@@ -5243,11 +5953,15 @@
         "properties": {
           "postulacionId": {
             "type": "string"
+          },
+          "postulacionIds": {
+            "description": "A varias postulaciones a la vez",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
           }
-        },
-        "required": [
-          "postulacionId"
-        ]
+        }
       },
       "CrearDesdeSenalDto": {
         "type": "object",
@@ -5273,6 +5987,267 @@
             "maximum": 1
           }
         }
+      },
+      "RegistrarPasoDto": {
+        "type": "object",
+        "properties": {
+          "postulacionIds": {
+            "description": "Una o más postulaciones, abiertas o cerradas",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "descripcion": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 120,
+            "description": "Texto libre corto: lo que se ve en la tarjeta"
+          },
+          "detalle": {
+            "type": "string",
+            "maxLength": 2000,
+            "description": "Qué piden exactamente y cómo"
+          },
+          "plazo": {
+            "type": "string",
+            "format": "date"
+          },
+          "enlace": {
+            "type": "string",
+            "maxLength": 2000
+          },
+          "estado": {
+            "type": "string",
+            "enum": [
+              "pendiente",
+              "hecho"
+            ],
+            "description": "hecho: para anotar algo que ya hiciste"
+          },
+          "fuente": {
+            "description": "Por defecto persona",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/FuenteDePaso"
+              }
+            ]
+          },
+          "contactoRedId": {
+            "type": "string",
+            "description": "La persona de tu red que lo pidió"
+          },
+          "referenciaExterna": {
+            "type": "string",
+            "maxLength": 500,
+            "description": "Correo o mensaje que lo pidió: no se duplica"
+          },
+          "pedidoEn": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Cuándo te lo pidieron"
+          },
+          "nota": {
+            "type": "string",
+            "maxLength": 1000
+          }
+        },
+        "required": [
+          "postulacionIds",
+          "descripcion"
+        ]
+      },
+      "PasoRegistradoDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "descripcion": {
+            "type": "string"
+          },
+          "plazo": {
+            "type": "string",
+            "format": "date",
+            "nullable": true
+          },
+          "diasAlPlazo": {
+            "type": "number",
+            "nullable": true,
+            "description": "Días hasta el plazo (negativo si venció)"
+          },
+          "postulacionIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "postulaciones": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PostulacionDelPasoDto"
+            }
+          },
+          "detalle": {
+            "type": "string",
+            "nullable": true
+          },
+          "enlace": {
+            "type": "string",
+            "nullable": true
+          },
+          "estado": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/EstadoDePaso"
+              }
+            ]
+          },
+          "fuente": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/FuenteDePaso"
+              }
+            ]
+          },
+          "registradoPor": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/RegistradorDePaso"
+              }
+            ]
+          },
+          "contactoRedId": {
+            "type": "string",
+            "nullable": true
+          },
+          "referenciaExterna": {
+            "type": "string",
+            "nullable": true
+          },
+          "cierre": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CierreDePasoDto"
+              }
+            ]
+          },
+          "sugerenciaCierre": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/SugerenciaDeCierreDto"
+              }
+            ]
+          },
+          "pedidoEn": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Cuándo te lo pidieron"
+          },
+          "creadoEn": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "actualizadoEn": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "version": {
+            "type": "number"
+          },
+          "yaEstaba": {
+            "type": "boolean",
+            "description": "Ese correo o mensaje ya había creado este paso"
+          }
+        },
+        "required": [
+          "id",
+          "descripcion",
+          "plazo",
+          "diasAlPlazo",
+          "postulacionIds",
+          "postulaciones",
+          "detalle",
+          "enlace",
+          "estado",
+          "fuente",
+          "registradoPor",
+          "contactoRedId",
+          "referenciaExterna",
+          "cierre",
+          "sugerenciaCierre",
+          "pedidoEn",
+          "creadoEn",
+          "actualizadoEn",
+          "version",
+          "yaEstaba"
+        ]
+      },
+      "EditarPasoDto": {
+        "type": "object",
+        "properties": {
+          "version": {
+            "type": "number"
+          },
+          "descripcion": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 120
+          },
+          "detalle": {
+            "type": "string",
+            "nullable": true,
+            "maxLength": 2000,
+            "description": "null lo borra"
+          },
+          "plazo": {
+            "type": "string",
+            "format": "date",
+            "nullable": true
+          },
+          "enlace": {
+            "type": "string",
+            "nullable": true,
+            "maxLength": 2000
+          },
+          "postulacionIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "version"
+        ]
+      },
+      "ResolverPasoDto": {
+        "type": "object",
+        "properties": {
+          "estado": {
+            "description": "pendiente lo reabre",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/EstadoDePaso"
+              }
+            ]
+          },
+          "nota": {
+            "type": "string",
+            "maxLength": 1000
+          },
+          "version": {
+            "type": "number",
+            "description": "Versión que tenías; si cambió, CONFLICTO"
+          }
+        },
+        "required": [
+          "estado"
+        ]
       },
       "EventoDto": {
         "type": "object",
