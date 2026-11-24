@@ -27,9 +27,9 @@ class EstadoDeCredenciales:
     def faltantes(self) -> list[str]:
         falta = []
         if not self.correo:
-            falta.append("correo (uv run ia credenciales correo)")
+            falta.append("correo (en Ajustes de la consola)")
         if not self.openai:
-            falta.append("OpenAI (uv run ia credenciales openai)")
+            falta.append("OpenAI (en Ajustes de la consola)")
         return falta
 
 

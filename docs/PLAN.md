@@ -155,6 +155,11 @@ Una pyme registra sus importaciones y las sigue por hitos, con RAG sobre normati
 | D33 | Primera sincronización del correo | **Últimos 60 días** | Después, solo lo nuevo |
 | D34 | Modelo para clasificar correos | **`gpt-6-luna`** (USD 0,10 entrada y 0,50 salida por millón de tokens, página oficial del 24-nov-2026), con salida estructurada | Probado con 27 correos reales: USD 0,0045 en total. Se cambia en `OPENAI_MODELO` |
 | D35 | Correos que envía la persona | **Cuentan como señal** (por ejemplo, de `postulado` cuando postula por correo directo) | Pasan el mismo filtro y la misma clasificación que los demás |
+| D36 | PostgreSQL en la app instalada | **Adentro de la app**: PostgreSQL 17.12 de `@embedded-postgres/darwin-arm64` con el pgvector de Homebrew para PostgreSQL 17, en 127.0.0.1:5434 y solo TCP | Se instala sin Docker. Verificado: crea la base, aplica las migraciones y responde consultas de vectores (24-nov-2026) |
+| D37 | Servicio con IA en la app | **Binario con PyInstaller** (`brecha-ia`, 46 MB, onedir) | Funciona sin internet ni Python instalado |
+| D38 | Alcance para cerrar el desarrollo | **F3 sin RabbitMQ más F7**: app de escritorio, Ajustes, notificaciones, validación con IA y hooks leyendo el outbox; instalador y README. F4 queda para después | Para una sola persona, el outbox ya garantiza que no se pierdan eventos |
+| D39 | Firma de la app | **Sin firma de Apple** (firma ad hoc) | Uso personal; macOS pregunta una vez por el acceso al llavero |
+| D40 | Red de LinkedIn | **Contactos, solicitudes y mensajes en el núcleo, ligados a postulaciones**, actualizados por la IA de la persona por MCP (LinkedIn no tiene API) | Pedido de Juan el 23-nov-2026: saber con quién habla en cada postulación y por qué vía |
 
 ### 6.1 D8: lo que pidió Juan después del checkpoint de F0
 
@@ -264,7 +269,7 @@ Cada fase termina con un checkpoint: la revisas, la pruebas y decides si seguimo
 - **Hecho cuando:** un correo real de rechazo o de entrevista aparece como señal en la postulación correcta, y los dos sets pasan en el porcentaje que fijemos al empezar F2.
 
 ### F3: Segundo plano, eventos, validación y notificaciones
-**Estado**: ⬜ Pendiente
+**Estado**: 🔄 En curso (24-nov-2026): app de escritorio, PostgreSQL embebido, IA compilada, notificaciones, Ajustes de credenciales y red de LinkedIn listos; faltan validación con IA y hooks (D38)
 - RabbitMQ y el publicador del outbox; consumidores idempotentes.
 - **Validación de movimientos:** cada cambio manual dispara una revisión contra las señales (y, si hace falta, una búsqueda de la IA en las fuentes). Si no calza, se crea una discrepancia y se avisa.
 - **Notificaciones con prioridad:** alta como aviso del sistema operativo y en la consola; baja solo en la consola y en el resumen diario.

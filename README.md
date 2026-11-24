@@ -4,7 +4,7 @@ Seguimiento personal de postulaciones de empleo. Juntas en un tablero las postul
 
 Brecha se instala y corre en tu máquina: no hay servidor central, cuentas ni nube. Tus datos no salen de tu equipo.
 
-> Estado: **fase F1** (núcleo, consola y MCP). Las fuentes automáticas (lector de correo, IA) llegan en F2 y la app de escritorio en F3. El plan completo está en [`docs/PLAN.md`](docs/PLAN.md) y las decisiones en [`docs/adr/`](docs/adr/).
+> Estado: **F2 y F3 en curso**. Ya funcionan el núcleo, la consola y el MCP (F1); el lector de correo con IA, los avisos con calce y Preguntar (F2); y la app de escritorio para macOS con tu red de LinkedIn (F3). El plan completo está en [`docs/PLAN.md`](docs/PLAN.md) y las decisiones en [`docs/adr/`](docs/adr/).
 
 ## Cómo está hecho
 
@@ -22,9 +22,26 @@ Brecha se instala y corre en tu máquina: no hay servidor central, cuentas ni nu
 - **Consola** (`apps/consola`): Angular 22 (standalone, signals), Spartan sobre Tailwind 4, Transloco (español e inglés) y Angular CDK para arrastrar y soltar. Los tipos de la API salen del contrato OpenAPI (`packages/contratos`): si el contrato cambia, la consola no compila.
 - **Seguridad local** (ADR 0010 y 0019): el núcleo escucha solo en `127.0.0.1`, siempre pide token, rechaza un `Host` o un `Origin` ajenos y admite una clave local opcional (argon2id).
 
-## Correrlo
+## Instalar la app (macOS, Apple Silicon)
 
-Requisitos: Node 22.22 o más, pnpm 11 y Docker (solo para PostgreSQL en desarrollo).
+Brecha se instala como una app que vive en la barra de menú: al iniciar sesión arranca callada, levanta su propia base de datos (PostgreSQL 17 con pgvector, sin Docker), el núcleo, el servicio con IA y el vigía del correo, y te avisa con notificaciones del sistema cuando una postulación se mueve sola.
+
+```bash
+pnpm install
+brew install pgvector        # pgvector compilado para PostgreSQL 17, que la app lleva adentro
+pnpm --filter escritorio empaquetar
+open apps/escritorio/empaquetado/app/*.dmg
+```
+
+- Arrastra Brecha a Aplicaciones. No está firmada por Apple (D39): la primera vez ábrela con clic derecho → Abrir.
+- En **Ajustes** guarda tu correo de Gmail con una contraseña de aplicación y tu llave de OpenAI: se prueban antes de guardarse, quedan en el llavero de macOS y nunca se muestran. macOS te pedirá una vez permiso para que Brecha lea el llavero.
+- Tus datos quedan en `~/Library/Application Support/Brecha` y los registros en `~/Library/Logs/Brecha`.
+- Si venías del entorno de desarrollo, abre la app una vez y trae tus datos de Docker con `node apps/escritorio/scripts/importar-desde-docker.mjs`.
+- Cerrar la ventana no apaga Brecha; para salir, usa «Salir de Brecha» en la barra de menú.
+
+## Correrlo en desarrollo
+
+Requisitos: Node 22.22 o más, pnpm 11, uv y Docker (solo para PostgreSQL en desarrollo).
 
 ```bash
 cp .env.example .env
@@ -55,7 +72,11 @@ Con el núcleo corriendo, el token de MCP está en `.brecha/token-mcp` (permisos
 claude mcp add --transport http --scope local brecha http://127.0.0.1:4300/mcp --header "Authorization: Bearer $(cat .brecha/token-mcp)"
 ```
 
-Herramientas: `listar_postulaciones`, `ver_postulacion`, `crear_postulacion`, `cambiar_estado`, `editar_postulacion`, `agregar_nota`, `agregar_contacto`, `agendar_entrevista`, `registrar_senal`, `aplicar_senal`, `listar_discrepancias`, `resolver_discrepancia`, `resumen` y `exportar`. Lo que haga la IA queda con origen `ia` y pasa por las mismas reglas que la consola.
+Herramientas: `listar_postulaciones`, `ver_postulacion`, `crear_postulacion`, `cambiar_estado`, `editar_postulacion`, `agregar_nota`, `agregar_contacto`, `agendar_entrevista`, `registrar_senal`, `aplicar_senal`, `listar_bandeja`, `asociar_senal`, `listar_discrepancias`, `resolver_discrepancia`, `resumen` y `exportar`. Lo que haga la IA queda con origen `ia` y pasa por las mismas reglas que la consola.
+
+**Tu red de LinkedIn.** LinkedIn no tiene API, así que tu IA la revisa desde tu navegador y la registra con `listar_red`, `ver_contacto_red`, `registrar_contacto_red`, `registrar_interaccion_red` y `editar_contacto_red`: contactos, solicitudes de conexión y mensajes, cada uno ligado a sus postulaciones. Brecha calcula a quién le toca responder y te muestra, en la ficha de cada postulación, con quién estás hablando y por qué vía.
+
+Con la app instalada, el token está en `~/Library/Application Support/Brecha/instancia/token-mcp`.
 
 ## Pruebas
 
@@ -72,7 +93,9 @@ pnpm turbo run e2e                          # Playwright del flujo principal, co
 
 ```
 apps/consola          Angular 22 + Spartan + Tailwind 4
+apps/escritorio       Electron: la app de macOS (barra de menú y supervisor)
 services/nucleo       NestJS 12 hexagonal + Prisma 7 + MCP
+services/ia           Python 3.13: vigía del correo, avisos, calce y Preguntar
 packages/contratos    openapi.json y tipos generados
 packages/config       tsconfig y ESLint compartidos
 datos/ejemplo         datos inventados para probar

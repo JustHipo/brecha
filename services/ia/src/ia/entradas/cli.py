@@ -125,7 +125,7 @@ def perfil(args: argparse.Namespace, llavero: Credenciales) -> int:
 def preguntar(args: argparse.Namespace, llavero: Credenciales) -> int:
     s = _servicios(llavero)
     if not s.hay_modelo():
-        print("Falta la llave de OpenAI (uv run ia credenciales openai).", file=sys.stderr)
+        print("Falta la llave de OpenAI: guárdala en Ajustes o con «credenciales openai».", file=sys.stderr)
         return 1
     r = s.preguntar(" ".join(args.pregunta))
     if r.error:

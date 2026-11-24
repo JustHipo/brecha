@@ -21,7 +21,7 @@ class LlaveroEnMemoria:
 
 def test_sin_credenciales_el_vigia_dice_que_falta(caplog: pytest.LogCaptureFixture) -> None:
     faltan = una_vuelta(LlaveroEnMemoria())
-    assert faltan == ["correo (uv run ia credenciales correo)", "OpenAI (uv run ia credenciales openai)"]
+    assert faltan == ["correo (en Ajustes de la consola)", "OpenAI (en Ajustes de la consola)"]
     assert "faltan credenciales" in caplog.text
 
 
