@@ -2,7 +2,7 @@
 
 Escrito el 24-nov-2026 sobre la rama `windows` (`142cb67`, que ya junta f2, pasos pendientes y Arriendos). Pedido de Juan: un ajuste editable en cada foco con reglas duras, reglas blandas con prioridad, etiquetas libres en cada regla e historial con motivo; que Claude lo lea por MCP antes de buscar y le pregunte antes de cambiarlo.
 
-**Estado:** plan aprobado por Juan el 24-nov-2026 en el artifact «Plan del perfil de búsqueda» (https://claude.ai/artifact/NTxqBA3tWYyiFxAtCX53fx), con las 7 respuestas guardadas ahí (todas las opciones recomendadas). Rama `perfil` desde `origin/windows`, PR hacia `windows`. Decisiones PB-D1 a PB-D14 (numeradas aparte para no chocar con las D de otras ramas).
+**Estado:** implementado (P1 a P5) en la rama `perfil` el 24-nov-2026. Plan aprobado por Juan el 24-nov-2026 en el artifact «Plan del perfil de búsqueda» (https://claude.ai/artifact/NTxqBA3tWYyiFxAtCX53fx), con las 7 respuestas guardadas ahí (todas las opciones recomendadas). Rama `perfil` desde `origin/windows`, PR hacia `windows`. Decisiones PB-D1 a PB-D14 (numeradas aparte para no chocar con las D de otras ramas).
 
 ## 1. Qué cambia para ti
 

@@ -1,0 +1,43 @@
+{
+  "motivo": "Perfil de ejemplo (inventado): así se escribe la semilla de docs/diseno/perfil.md §6",
+  "reglas": [
+    {
+      "texto": "Backend o datos; nada de soporte",
+      "criterio": "titulo",
+      "valor": { "incluir": ["backend", "datos", "data"], "excluir": ["soporte", "mesa de ayuda"] },
+      "dura": true,
+      "etiquetas": ["rol"]
+    },
+    {
+      "texto": "Santiago híbrido o remoto; Valparaíso también presencial; otro lugar solo remoto",
+      "criterio": "modalidad_por_region",
+      "valor": {
+        "valparaiso": ["presencial", "hibrido", "remoto"],
+        "santiago": ["hibrido", "remoto"],
+        "otra": ["remoto"],
+        "noIndicaEsPresencialEn": []
+      },
+      "dura": true,
+      "etiquetas": ["ubicacion"]
+    },
+    {
+      "texto": "Empresa de producto antes que consultora",
+      "dura": false,
+      "prioridad": 2,
+      "etiquetas": ["empresa"]
+    },
+    {
+      "texto": "Con sueldo publicado de $1.000.000 o más",
+      "criterio": "sueldo_publicado",
+      "valor": { "minimo": 1000000 },
+      "dura": false,
+      "prioridad": 1,
+      "etiquetas": ["sueldo"]
+    }
+  ],
+  "datos": {
+    "rentaPretendida": 1000000,
+    "disponibleDesde": "2027-03-01",
+    "notas": "Ejemplo: tu IA lee estas notas antes de llenar formularios."
+  }
+}

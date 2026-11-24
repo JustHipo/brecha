@@ -15,7 +15,8 @@
     "test:cobertura": "vitest run --coverage",
     "contrato:exportar": "tsc -p tsconfig.build.json && node dist/contrato.js && pnpm --filter @brecha/contratos tipos",
     "clave": "tsc -p tsconfig.build.json && node dist/acceso/cli-clave.js",
-    "importar": "tsc -p tsconfig.build.json && node dist/postulaciones/infraestructura/importacion/cli-importar.js"
+    "importar": "tsc -p tsconfig.build.json && node dist/postulaciones/infraestructura/importacion/cli-importar.js",
+    "perfil": "tsc -p tsconfig.build.json && node dist/postulaciones/infraestructura/semilla/cli-perfil.js"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "1.32.2",
