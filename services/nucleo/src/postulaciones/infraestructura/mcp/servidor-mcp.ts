@@ -6,6 +6,9 @@ import { ESTADOS } from '../../dominio/estado';
 import { MODALIDADES, MONEDAS, PLATAFORMAS, TIPOS_DE_CANAL } from '../../dominio/objetos-valor/valores';
 import { FUENTES_DE_SENAL, TIPOS_DE_ENTREVISTA } from '../../dominio/partes';
 import type { VistaDetalle } from '../../aplicacion/vistas';
+import type { CasosDeRed } from '../../../red/aplicacion/casos-de-red';
+import { FILTROS_DE_RED } from '../../../red/aplicacion/casos-de-red';
+import { TIPOS_DE_INTERACCION } from '../../../red/dominio/contacto-de-red';
 import type { CasosDeUso } from '../casos';
 
 const LIMITE_EXPORTAR = 50_000;
@@ -46,13 +49,15 @@ async function correr(f: () => Promise<CallToolResult>): Promise<CallToolResult>
 }
 
 /** Adaptador de entrada 2: MCP (PLAN §12.2). Las escrituras quedan con origen `ia`. */
-export function crearServidorMcp(casos: CasosDeUso): McpServer {
+export function crearServidorMcp(casos: CasosDeUso, red?: CasosDeRed): McpServer {
   const s = new McpServer(
     { name: 'brecha', version: '1.0.0' },
     {
       instructions:
         'Brecha sigue postulaciones de empleo. Los estados válidos y sus saltos los decide el núcleo: usa ver_postulacion para ver transicionesPosibles. ' +
-        'Para pasar a postulado hacen falta fechaPostulacion y canal; rechazado y descartado piden motivo. Registrar una señal nunca cambia el estado por sí sola.',
+        'Para pasar a postulado hacen falta fechaPostulacion y canal; rechazado y descartado piden motivo. Registrar una señal nunca cambia el estado por sí sola. ' +
+        'Tu red de LinkedIn (contactos, solicitudes y mensajes) se lleva con listar_red, registrar_contacto_red, registrar_interaccion_red y editar_contacto_red: ' +
+        'LinkedIn no tiene API, así que la revisas desde el navegador de la persona y registras aquí, ligando cada contacto a sus postulaciones.',
     },
   );
   const lectura = { readOnlyHint: true, openWorldHint: false };
@@ -414,5 +419,126 @@ export function crearServidorMcp(casos: CasosDeUso): McpServer {
     }),
   );
 
+  if (red) registrarRed(s, red);
   return s;
+}
+
+/** Tu red de LinkedIn (no tiene API): la IA la lee desde tu navegador y la registra aquí. */
+function registrarRed(s: McpServer, red: CasosDeRed): void {
+  const lectura = { readOnlyHint: true, openWorldHint: false };
+  const fila = (c: {
+    nombre: string;
+    empresa: string | null;
+    conexion: string;
+    pendiente: string | null;
+    id: string;
+  }) =>
+    `${c.nombre}${c.empresa ? ` · ${c.empresa}` : ''} · ${c.conexion}${c.pendiente ? ` · ${c.pendiente}` : ''} · id ${c.id}`;
+
+  s.registerTool(
+    'listar_red',
+    {
+      title: 'Listar tu red de LinkedIn',
+      description:
+        'Contactos con lo pendiente primero. filtro: responder (te toca a ti), esperando (le toca a la otra persona), ' +
+        'solicitudes (enviadas o recibidas sin respuesta), seguimiento (fecha de seguimiento vencida) o todos.',
+      inputSchema: {
+        filtro: z.enum(FILTROS_DE_RED).optional(),
+        texto: z.string().optional(),
+        postulacionId: z.string().optional(),
+      },
+      annotations: lectura,
+    },
+    (a) =>
+      correr(async () => {
+        const r = await red.listar.ejecutar(a);
+        return ok(
+          `${r.items.length} contactos (de ${r.resumen.total}; ${r.resumen.porResponder} por responder, ` +
+            `${r.resumen.esperando} esperando respuesta)\n${r.items.map(fila).join('\n')}`,
+          r.resumen,
+        );
+      }),
+  );
+
+  s.registerTool(
+    'ver_contacto_red',
+    {
+      title: 'Ver un contacto de tu red',
+      description: 'Con todas sus interacciones y las postulaciones ligadas.',
+      inputSchema: { id: z.string() },
+      annotations: lectura,
+    },
+    ({ id }) => correr(async () => ok('Contacto', await red.ver.ejecutar(id))),
+  );
+
+  s.registerTool(
+    'registrar_contacto_red',
+    {
+      title: 'Registrar o actualizar un contacto de LinkedIn',
+      description:
+        'Si el perfil (linkedin.com/in/…) ya está, actualiza nombre, titular y empresa. postulacionId lo liga a esa postulación.',
+      inputSchema: {
+        nombre: z.string(),
+        perfilUrl: z.string(),
+        titular: z.string().optional(),
+        empresa: z.string().optional(),
+        postulacionId: z.string().optional(),
+      },
+    },
+    (a) =>
+      correr(async () => {
+        const r = await red.registrarContacto.ejecutar(a);
+        return ok(r.nuevo ? 'Contacto creado' : 'Contacto actualizado', r);
+      }),
+  );
+
+  s.registerTool(
+    'registrar_interaccion_red',
+    {
+      title: 'Registrar una solicitud, un mensaje o una nota',
+      description:
+        'Por id o por perfilUrl (con nombre crea el contacto si no existe). No se repite: la misma referenciaExterna, ' +
+        'o el mismo tipo y resumen el mismo día, se ignoran. Las solicitudes cambian el estado de la conexión. ' +
+        'Resume el mensaje en una línea; no copies textos largos ni datos sensibles.',
+      inputSchema: {
+        id: z.string().optional(),
+        perfilUrl: z.string().optional(),
+        nombre: z.string().optional(),
+        tipo: z.enum(TIPOS_DE_INTERACCION),
+        resumen: z.string(),
+        ocurridaEn: z.string().datetime({ offset: true }).optional(),
+        referenciaExterna: z.string().optional(),
+      },
+    },
+    (a) =>
+      correr(async () => {
+        const { ocurridaEn, ...resto } = a;
+        const r = await red.registrarInteraccion.ejecutar({
+          ...resto,
+          ...(ocurridaEn ? { ocurridaEn: new Date(ocurridaEn) } : {}),
+          origen: 'ia',
+        });
+        return ok(r.agregada ? 'Interacción registrada' : 'Ya estaba registrada', r);
+      }),
+  );
+
+  s.registerTool(
+    'editar_contacto_red',
+    {
+      title: 'Editar un contacto de tu red',
+      description:
+        'Notas, fecha de seguimiento (AAAA-MM-DD o null), titular, empresa; vincular o desvincular una postulación por id.',
+      inputSchema: {
+        id: z.string(),
+        nombre: z.string().optional(),
+        titular: z.string().nullable().optional(),
+        empresa: z.string().nullable().optional(),
+        notas: z.string().nullable().optional(),
+        seguimiento: z.string().nullable().optional(),
+        vincular: z.string().optional(),
+        desvincular: z.string().optional(),
+      },
+    },
+    (a) => correr(async () => ok('Contacto editado', await red.editar.ejecutar(a))),
+  );
 }

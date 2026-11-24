@@ -405,6 +405,58 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/red": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Contactos con lo que está pendiente primero */
+        get: operations["listarRed"];
+        put?: never;
+        /** Crea el contacto o actualiza el del mismo perfil */
+        post: operations["registrarContactoRed"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/red/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["verContactoRed"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Datos, notas, seguimiento y postulaciones ligadas */
+        patch: operations["editarContactoRed"];
+        trace?: never;
+    };
+    "/api/v1/red/{id}/interacciones": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Solicitud, mensaje o nota (no se repite) */
+        post: operations["registrarInteraccionRed"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -830,6 +882,125 @@ export interface components {
             datos: {
                 [key: string]: unknown;
             };
+        };
+        /** @enum {string} */
+        EstadoDeConexion: "ninguna" | "solicitud_enviada" | "solicitud_recibida" | "conectados" | "rechazada" | "retirada";
+        /**
+         * @description responder: te toca a ti; esperando: le toca a la otra persona
+         * @enum {string}
+         */
+        PendienteDeRed: "responder" | "esperando";
+        /** @enum {string} */
+        TipoDeInteraccion: "solicitud_enviada" | "solicitud_recibida" | "solicitud_aceptada" | "solicitud_rechazada" | "solicitud_retirada" | "mensaje_enviado" | "mensaje_recibido" | "nota";
+        /** @enum {string} */
+        OrigenDeRed: "consola" | "ia";
+        InteraccionDto: {
+            id: string;
+            tipo: components["schemas"]["TipoDeInteraccion"];
+            resumen: string;
+            /** Format: date-time */
+            ocurridaEn: string;
+            origen: components["schemas"]["OrigenDeRed"];
+        };
+        ContactoRedDto: {
+            id: string;
+            nombre: string;
+            perfilUrl: string;
+            titular: string | null;
+            empresa: string | null;
+            conexion: components["schemas"]["EstadoDeConexion"];
+            /** @description responder: te toca a ti; esperando: le toca a la otra persona */
+            pendiente: components["schemas"]["PendienteDeRed"] | null;
+            ultimaInteraccion: components["schemas"]["InteraccionDto"] | null;
+            diasDesdeUltima: number | null;
+            seguimiento: string | null;
+            seguimientoVencido: boolean;
+            postulacionIds: string[];
+            notas: string | null;
+            /** Format: date-time */
+            actualizadoEn: string;
+        };
+        ResumenDeRedDto: {
+            total: number;
+            conectados: number;
+            porResponder: number;
+            esperando: number;
+            solicitudesEnviadas: number;
+            seguimientosVencidos: number;
+        };
+        ListaDeRedDto: {
+            items: components["schemas"]["ContactoRedDto"][];
+            resumen: components["schemas"]["ResumenDeRedDto"];
+        };
+        ContactoRedEntradaDto: {
+            nombre: string;
+            /** @description linkedin.com/in/… */
+            perfilUrl: string;
+            titular?: string;
+            empresa?: string;
+            /** @description Liga el contacto a esta postulación */
+            postulacionId?: string;
+        };
+        ContactoRedRegistradoDto: {
+            id: string;
+            nombre: string;
+            perfilUrl: string;
+            titular: string | null;
+            empresa: string | null;
+            conexion: components["schemas"]["EstadoDeConexion"];
+            /** @description responder: te toca a ti; esperando: le toca a la otra persona */
+            pendiente: components["schemas"]["PendienteDeRed"] | null;
+            ultimaInteraccion: components["schemas"]["InteraccionDto"] | null;
+            diasDesdeUltima: number | null;
+            seguimiento: string | null;
+            seguimientoVencido: boolean;
+            postulacionIds: string[];
+            notas: string | null;
+            /** Format: date-time */
+            actualizadoEn: string;
+            /** @description De la más nueva a la más antigua */
+            interacciones: components["schemas"]["InteraccionDto"][];
+            nuevo?: boolean;
+            agregada?: boolean;
+        };
+        ContactoRedDetalleDto: {
+            id: string;
+            nombre: string;
+            perfilUrl: string;
+            titular: string | null;
+            empresa: string | null;
+            conexion: components["schemas"]["EstadoDeConexion"];
+            /** @description responder: te toca a ti; esperando: le toca a la otra persona */
+            pendiente: components["schemas"]["PendienteDeRed"] | null;
+            ultimaInteraccion: components["schemas"]["InteraccionDto"] | null;
+            diasDesdeUltima: number | null;
+            seguimiento: string | null;
+            seguimientoVencido: boolean;
+            postulacionIds: string[];
+            notas: string | null;
+            /** Format: date-time */
+            actualizadoEn: string;
+            /** @description De la más nueva a la más antigua */
+            interacciones: components["schemas"]["InteraccionDto"][];
+        };
+        EditarContactoRedDto: {
+            nombre?: string;
+            titular?: string | null;
+            empresa?: string | null;
+            notas?: string | null;
+            /** @description AAAA-MM-DD, o null para quitarlo */
+            seguimiento?: string | null;
+            /** @description Id de una postulación para ligar */
+            vincular?: string;
+            /** @description Id de una postulación para desligar */
+            desvincular?: string;
+        };
+        InteraccionEntradaDto: {
+            tipo: components["schemas"]["TipoDeInteraccion"];
+            resumen: string;
+            /** Format: date-time */
+            ocurridaEn?: string;
+            referenciaExterna?: string;
         };
     };
     responses: never;
@@ -2006,6 +2177,195 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+        };
+    };
+    listarRed: {
+        parameters: {
+            query: {
+                filtro: string;
+                texto: string;
+                postulacionId: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ListaDeRedDto"];
+                };
+            };
+            /** @description VALIDACION */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorDto"];
+                };
+            };
+        };
+    };
+    registrarContactoRed: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ContactoRedEntradaDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContactoRedRegistradoDto"];
+                };
+            };
+            /** @description VALIDACION */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorDto"];
+                };
+            };
+            /** @description NO_ENCONTRADO */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorDto"];
+                };
+            };
+        };
+    };
+    verContactoRed: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContactoRedDetalleDto"];
+                };
+            };
+            /** @description NO_ENCONTRADO */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorDto"];
+                };
+            };
+        };
+    };
+    editarContactoRed: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EditarContactoRedDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContactoRedDetalleDto"];
+                };
+            };
+            /** @description VALIDACION */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorDto"];
+                };
+            };
+            /** @description NO_ENCONTRADO */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorDto"];
+                };
+            };
+        };
+    };
+    registrarInteraccionRed: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["InteraccionEntradaDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContactoRedRegistradoDto"];
+                };
+            };
+            /** @description VALIDACION */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorDto"];
+                };
+            };
+            /** @description NO_ENCONTRADO */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorDto"];
+                };
             };
         };
     };

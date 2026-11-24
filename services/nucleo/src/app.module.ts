@@ -26,6 +26,10 @@ import { PrismaAjustes } from './postulaciones/infraestructura/prisma/prisma-aju
 import { PrismaBandeja } from './postulaciones/infraestructura/prisma/prisma-bandeja';
 import { PrismaConsultas } from './postulaciones/infraestructura/prisma/prisma-consultas';
 import { PrismaPostulacionRepositorio } from './postulaciones/infraestructura/prisma/prisma-postulacion.repositorio';
+import { CasosDeRed } from './red/aplicacion/casos-de-red';
+import { CasosDeRedInyectables } from './red/infraestructura/casos-de-red.provider';
+import { PrismaRed } from './red/infraestructura/prisma-red';
+import { RedController } from './red/infraestructura/red.controller';
 
 @Injectable()
 class CicloDeVida implements OnApplicationBootstrap, OnApplicationShutdown {
@@ -54,6 +58,7 @@ export class AppModule {
         BandejaController,
         EventosController,
         McpController,
+        RedController,
       ],
       providers: [
         { provide: CONFIG, useValue: config },
@@ -78,6 +83,20 @@ export class AppModule {
               ajustes: new PrismaAjustes(prisma),
             }),
           inject: [PRISMA, RELOJ, IDS, FLUJO],
+        },
+        {
+          provide: CasosDeRedInyectables,
+          useFactory: (prisma: PrismaClient, reloj: Reloj, ids: GeneradorId) =>
+            new CasosDeRedInyectables(
+              new CasosDeRed({
+                red: new PrismaRed(prisma),
+                reloj,
+                ids,
+                existePostulacion: async (id) =>
+                  /^[0-9a-f-]{36}$/i.test(id) && (await prisma.postulacion.count({ where: { id } })) > 0,
+              }),
+            ),
+          inject: [PRISMA, RELOJ, IDS],
         },
         { provide: APP_GUARD, useClass: AccesoGuard },
         CicloDeVida,

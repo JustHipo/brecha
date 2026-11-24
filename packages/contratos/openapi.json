@@ -1696,6 +1696,299 @@
           "sistema"
         ]
       }
+    },
+    "/api/v1/red": {
+      "get": {
+        "operationId": "listarRed",
+        "parameters": [
+          {
+            "name": "filtro",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "texto",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "postulacionId",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListaDeRedDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "VALIDACION",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Contactos con lo que está pendiente primero",
+        "tags": [
+          "red"
+        ]
+      },
+      "post": {
+        "operationId": "registrarContactoRed",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ContactoRedEntradaDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContactoRedRegistradoDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "VALIDACION",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "NO_ENCONTRADO",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Crea el contacto o actualiza el del mismo perfil",
+        "tags": [
+          "red"
+        ]
+      }
+    },
+    "/api/v1/red/{id}": {
+      "get": {
+        "operationId": "verContactoRed",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContactoRedDetalleDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "NO_ENCONTRADO",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "red"
+        ]
+      },
+      "patch": {
+        "operationId": "editarContactoRed",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EditarContactoRedDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContactoRedDetalleDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "VALIDACION",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "NO_ENCONTRADO",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Datos, notas, seguimiento y postulaciones ligadas",
+        "tags": [
+          "red"
+        ]
+      }
+    },
+    "/api/v1/red/{id}/interacciones": {
+      "post": {
+        "operationId": "registrarInteraccionRed",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InteraccionEntradaDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContactoRedRegistradoDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "VALIDACION",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "NO_ENCONTRADO",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Solicitud, mensaje o nota (no se repite)",
+        "tags": [
+          "red"
+        ]
+      }
     }
   },
   "info": {
@@ -3395,6 +3688,511 @@
           "prioridad",
           "correlacionId",
           "datos"
+        ]
+      },
+      "EstadoDeConexion": {
+        "type": "string",
+        "enum": [
+          "ninguna",
+          "solicitud_enviada",
+          "solicitud_recibida",
+          "conectados",
+          "rechazada",
+          "retirada"
+        ]
+      },
+      "PendienteDeRed": {
+        "type": "string",
+        "enum": [
+          "responder",
+          "esperando"
+        ],
+        "description": "responder: te toca a ti; esperando: le toca a la otra persona"
+      },
+      "TipoDeInteraccion": {
+        "type": "string",
+        "enum": [
+          "solicitud_enviada",
+          "solicitud_recibida",
+          "solicitud_aceptada",
+          "solicitud_rechazada",
+          "solicitud_retirada",
+          "mensaje_enviado",
+          "mensaje_recibido",
+          "nota"
+        ]
+      },
+      "OrigenDeRed": {
+        "type": "string",
+        "enum": [
+          "consola",
+          "ia"
+        ]
+      },
+      "InteraccionDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "tipo": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/TipoDeInteraccion"
+              }
+            ]
+          },
+          "resumen": {
+            "type": "string"
+          },
+          "ocurridaEn": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "origen": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/OrigenDeRed"
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "tipo",
+          "resumen",
+          "ocurridaEn",
+          "origen"
+        ]
+      },
+      "ContactoRedDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "nombre": {
+            "type": "string"
+          },
+          "perfilUrl": {
+            "type": "string"
+          },
+          "titular": {
+            "type": "string",
+            "nullable": true
+          },
+          "empresa": {
+            "type": "string",
+            "nullable": true
+          },
+          "conexion": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/EstadoDeConexion"
+              }
+            ]
+          },
+          "pendiente": {
+            "nullable": true,
+            "description": "responder: te toca a ti; esperando: le toca a la otra persona",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PendienteDeRed"
+              }
+            ]
+          },
+          "ultimaInteraccion": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/InteraccionDto"
+              }
+            ]
+          },
+          "diasDesdeUltima": {
+            "type": "number",
+            "nullable": true
+          },
+          "seguimiento": {
+            "type": "string",
+            "nullable": true
+          },
+          "seguimientoVencido": {
+            "type": "boolean"
+          },
+          "postulacionIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "notas": {
+            "type": "string",
+            "nullable": true
+          },
+          "actualizadoEn": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "nombre",
+          "perfilUrl",
+          "titular",
+          "empresa",
+          "conexion",
+          "pendiente",
+          "ultimaInteraccion",
+          "diasDesdeUltima",
+          "seguimiento",
+          "seguimientoVencido",
+          "postulacionIds",
+          "notas",
+          "actualizadoEn"
+        ]
+      },
+      "ResumenDeRedDto": {
+        "type": "object",
+        "properties": {
+          "total": {
+            "type": "number"
+          },
+          "conectados": {
+            "type": "number"
+          },
+          "porResponder": {
+            "type": "number"
+          },
+          "esperando": {
+            "type": "number"
+          },
+          "solicitudesEnviadas": {
+            "type": "number"
+          },
+          "seguimientosVencidos": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "total",
+          "conectados",
+          "porResponder",
+          "esperando",
+          "solicitudesEnviadas",
+          "seguimientosVencidos"
+        ]
+      },
+      "ListaDeRedDto": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ContactoRedDto"
+            }
+          },
+          "resumen": {
+            "$ref": "#/components/schemas/ResumenDeRedDto"
+          }
+        },
+        "required": [
+          "items",
+          "resumen"
+        ]
+      },
+      "ContactoRedEntradaDto": {
+        "type": "object",
+        "properties": {
+          "nombre": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "perfilUrl": {
+            "type": "string",
+            "maxLength": 500,
+            "description": "linkedin.com/in/…"
+          },
+          "titular": {
+            "type": "string",
+            "maxLength": 300
+          },
+          "empresa": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "postulacionId": {
+            "type": "string",
+            "description": "Liga el contacto a esta postulación"
+          }
+        },
+        "required": [
+          "nombre",
+          "perfilUrl"
+        ]
+      },
+      "ContactoRedRegistradoDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "nombre": {
+            "type": "string"
+          },
+          "perfilUrl": {
+            "type": "string"
+          },
+          "titular": {
+            "type": "string",
+            "nullable": true
+          },
+          "empresa": {
+            "type": "string",
+            "nullable": true
+          },
+          "conexion": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/EstadoDeConexion"
+              }
+            ]
+          },
+          "pendiente": {
+            "nullable": true,
+            "description": "responder: te toca a ti; esperando: le toca a la otra persona",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PendienteDeRed"
+              }
+            ]
+          },
+          "ultimaInteraccion": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/InteraccionDto"
+              }
+            ]
+          },
+          "diasDesdeUltima": {
+            "type": "number",
+            "nullable": true
+          },
+          "seguimiento": {
+            "type": "string",
+            "nullable": true
+          },
+          "seguimientoVencido": {
+            "type": "boolean"
+          },
+          "postulacionIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "notas": {
+            "type": "string",
+            "nullable": true
+          },
+          "actualizadoEn": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "interacciones": {
+            "description": "De la más nueva a la más antigua",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/InteraccionDto"
+            }
+          },
+          "nuevo": {
+            "type": "boolean"
+          },
+          "agregada": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "nombre",
+          "perfilUrl",
+          "titular",
+          "empresa",
+          "conexion",
+          "pendiente",
+          "ultimaInteraccion",
+          "diasDesdeUltima",
+          "seguimiento",
+          "seguimientoVencido",
+          "postulacionIds",
+          "notas",
+          "actualizadoEn",
+          "interacciones"
+        ]
+      },
+      "ContactoRedDetalleDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "nombre": {
+            "type": "string"
+          },
+          "perfilUrl": {
+            "type": "string"
+          },
+          "titular": {
+            "type": "string",
+            "nullable": true
+          },
+          "empresa": {
+            "type": "string",
+            "nullable": true
+          },
+          "conexion": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/EstadoDeConexion"
+              }
+            ]
+          },
+          "pendiente": {
+            "nullable": true,
+            "description": "responder: te toca a ti; esperando: le toca a la otra persona",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PendienteDeRed"
+              }
+            ]
+          },
+          "ultimaInteraccion": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/InteraccionDto"
+              }
+            ]
+          },
+          "diasDesdeUltima": {
+            "type": "number",
+            "nullable": true
+          },
+          "seguimiento": {
+            "type": "string",
+            "nullable": true
+          },
+          "seguimientoVencido": {
+            "type": "boolean"
+          },
+          "postulacionIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "notas": {
+            "type": "string",
+            "nullable": true
+          },
+          "actualizadoEn": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "interacciones": {
+            "description": "De la más nueva a la más antigua",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/InteraccionDto"
+            }
+          }
+        },
+        "required": [
+          "id",
+          "nombre",
+          "perfilUrl",
+          "titular",
+          "empresa",
+          "conexion",
+          "pendiente",
+          "ultimaInteraccion",
+          "diasDesdeUltima",
+          "seguimiento",
+          "seguimientoVencido",
+          "postulacionIds",
+          "notas",
+          "actualizadoEn",
+          "interacciones"
+        ]
+      },
+      "EditarContactoRedDto": {
+        "type": "object",
+        "properties": {
+          "nombre": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "titular": {
+            "type": "string",
+            "maxLength": 300,
+            "nullable": true
+          },
+          "empresa": {
+            "type": "string",
+            "maxLength": 200,
+            "nullable": true
+          },
+          "notas": {
+            "type": "string",
+            "maxLength": 5000,
+            "nullable": true
+          },
+          "seguimiento": {
+            "type": "string",
+            "description": "AAAA-MM-DD, o null para quitarlo",
+            "nullable": true
+          },
+          "vincular": {
+            "type": "string",
+            "description": "Id de una postulación para ligar"
+          },
+          "desvincular": {
+            "type": "string",
+            "description": "Id de una postulación para desligar"
+          }
+        }
+      },
+      "InteraccionEntradaDto": {
+        "type": "object",
+        "properties": {
+          "tipo": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/TipoDeInteraccion"
+              }
+            ]
+          },
+          "resumen": {
+            "type": "string",
+            "maxLength": 1000
+          },
+          "ocurridaEn": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "referenciaExterna": {
+            "type": "string",
+            "maxLength": 500
+          }
+        },
+        "required": [
+          "tipo",
+          "resumen"
         ]
       }
     }

@@ -185,3 +185,22 @@ model SenalPendiente {
   @@index([estado, recibidaEn])
   @@map("senal_pendiente")
 }
+
+/// Tu red de LinkedIn: personas, solicitudes y conversaciones (LinkedIn no tiene API: la actualiza tu IA por MCP).
+model ContactoRed {
+  id             String   @id @db.Uuid
+  nombre         String
+  perfilUrl      String   @unique @map("perfil_url")
+  titular        String?
+  empresa        String?
+  conexion       String
+  /// Interacciones (solicitudes, mensajes y notas) en orden: son pocas por persona.
+  interacciones  Json
+  postulacionIds String[] @map("postulacion_ids") @db.Uuid
+  seguimiento    String?
+  notas          String?
+  creadoEn       DateTime @map("creado_en") @db.Timestamptz(3)
+  actualizadoEn  DateTime @map("actualizado_en") @db.Timestamptz(3)
+
+  @@map("contacto_red")
+}

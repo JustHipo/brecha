@@ -56,9 +56,14 @@ describe('servidor MCP por HTTP (F1-10c)', () => {
         'crear_postulacion',
         'editar_postulacion',
         'exportar',
+        'editar_contacto_red',
         'listar_bandeja',
         'listar_discrepancias',
         'listar_postulaciones',
+        'listar_red',
+        'registrar_contacto_red',
+        'registrar_interaccion_red',
+        'ver_contacto_red',
         'registrar_senal',
         'resolver_discrepancia',
         'resumen',
@@ -118,6 +123,58 @@ describe('servidor MCP por HTTP (F1-10c)', () => {
     expect(x.conteos.porEstado.por_postular).toBe(1);
     const r = await c.readResource({ uri: `brecha://postulaciones/${creada.id}` });
     expect(JSON.parse((r.contents[0] as { text: string }).text).id).toBe(creada.id);
+    await c.close();
+  });
+
+  it('la red de LinkedIn: registrar por perfil, mensaje que te toca responder y ligar a una postulación', async () => {
+    const c = await cliente(t.token('mcp'));
+    const creada = json(
+      await c.callTool({
+        name: 'crear_postulacion',
+        arguments: {
+          titulo: 'Backend',
+          empresa: 'Ficticia',
+          url: 'https://ejemplo.test/red',
+          plataforma: 'linkedin',
+        },
+      }),
+    );
+    const r = json(
+      await c.callTool({
+        name: 'registrar_interaccion_red',
+        arguments: {
+          perfilUrl: 'https://www.linkedin.com/in/ana-ficticia/',
+          nombre: 'Ana Ficticia',
+          tipo: 'mensaje_recibido',
+          resumen: 'Pregunta si sigo disponible para la entrevista',
+          ocurridaEn: '2026-11-20T12:00:00Z',
+        },
+      }),
+    );
+    expect(r).toMatchObject({ nombre: 'Ana Ficticia', pendiente: 'responder', agregada: true });
+    const repetida = json(
+      await c.callTool({
+        name: 'registrar_interaccion_red',
+        arguments: {
+          id: r.id,
+          tipo: 'mensaje_recibido',
+          resumen: 'Pregunta si sigo disponible para la entrevista',
+          ocurridaEn: '2026-11-20T15:00:00Z',
+        },
+      }),
+    );
+    expect(repetida.agregada).toBe(false);
+    await c.callTool({ name: 'editar_contacto_red', arguments: { id: r.id, vincular: creada.id } });
+    const lista = await c.callTool({
+      name: 'listar_red',
+      arguments: { filtro: 'responder', postulacionId: creada.id },
+    });
+    expect((lista as Texto).content[0]!.text).toContain('Ana Ficticia');
+    const malo = (await c.callTool({
+      name: 'registrar_contacto_red',
+      arguments: { nombre: 'X', perfilUrl: 'https://ejemplo.test/x' },
+    })) as Texto;
+    expect(malo.isError).toBe(true);
     await c.close();
   });
 });
