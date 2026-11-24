@@ -190,7 +190,7 @@ export function urlNormalizada(url: string): string {
 }
 
 export function sinTildes(t: string): string {
-  return t.normalize('NFKD').replace(/[̀-ͯ]/g, '');
+  return t.normalize('NFKD').replace(/[\u0300-\u036f]/g, '');
 }
 
 const ABREVIATURAS: [RegExp, string][] = [

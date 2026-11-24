@@ -26,6 +26,7 @@ import {
   EditarCanalArriendoDto,
   EditarPropiedadDto,
   EstadoVisitaDto,
+  GeocodificarDto,
   InteraccionArriendoEntradaDto,
   InteraccionRegistradaDto,
   ListaPropiedadesDto,
@@ -37,6 +38,7 @@ import {
   SenalArriendoEntradaDto,
   SenalArriendoPendienteDto,
   TextoDto,
+  UbicarPendientesDto,
   UbicacionEntradaDto,
   UfEntradaDto,
   UnirDto,
@@ -304,6 +306,28 @@ export class ArriendosController {
   @ApiNoContentResponse()
   async uf(@Body() dto: UfEntradaDto) {
     await this.casos.fijarUf(dto.valor, dto.fecha);
+  }
+
+  @Put('geocodificar')
+  @HttpCode(204)
+  @ApiOperation({
+    operationId: 'fijarGeocodificar',
+    summary: 'Prende o apaga la ubicación de direcciones con Nominatim (OpenStreetMap)',
+  })
+  @ApiNoContentResponse()
+  async geocodificar(@Body() dto: GeocodificarDto) {
+    await this.casos.fijarGeocodificar(dto.activo);
+  }
+
+  @Post('mapa/ubicar')
+  @HttpCode(202)
+  @ApiOperation({
+    operationId: 'ubicarPendientes',
+    summary: 'Ubica las propiedades sin punto, de a una por segundo',
+  })
+  @ApiOkResponse({ type: UbicarPendientesDto })
+  ubicar() {
+    return this.casos.ubicarPendientes();
   }
 
   @Get('mapa')

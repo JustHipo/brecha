@@ -147,6 +147,12 @@ export class ApiArriendos {
   mapa() {
     return this.http.get<MapaArriendos>(`${BASE}/mapa`);
   }
+  ubicarPendientes() {
+    return this.http.post<E['UbicarPendientesDto']>(`${BASE}/mapa/ubicar`, {});
+  }
+  fijarGeocodificar(activo: boolean) {
+    return this.http.put<void>(`${BASE}/geocodificar`, { activo });
+  }
 }
 
 // ── Servicio con IA: importar y preguntar (sin contrato generado: copia de services/ia/entradas/api.py) ──

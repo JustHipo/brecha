@@ -3392,6 +3392,63 @@
         ]
       }
     },
+    "/api/v1/arriendos/geocodificar": {
+      "put": {
+        "operationId": "fijarGeocodificar",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GeocodificarDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Prende o apaga la ubicación de direcciones con Nominatim (OpenStreetMap)",
+        "tags": [
+          "arriendos"
+        ]
+      }
+    },
+    "/api/v1/arriendos/mapa/ubicar": {
+      "post": {
+        "operationId": "ubicarPendientes",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UbicarPendientesDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Ubica las propiedades sin punto, de a una por segundo",
+        "tags": [
+          "arriendos"
+        ]
+      }
+    },
     "/api/v1/arriendos/mapa": {
       "get": {
         "operationId": "mapaArriendos",
@@ -7795,6 +7852,10 @@
               }
             ]
           },
+          "geocodificar": {
+            "type": "boolean",
+            "description": "Ubicar direcciones con Nominatim (OpenStreetMap)"
+          },
           "actualizadaEn": {
             "type": "string",
             "nullable": true,
@@ -7807,6 +7868,7 @@
           "historial",
           "criteriosSugeridos",
           "uf",
+          "geocodificar",
           "actualizadaEn"
         ]
       },
@@ -7906,6 +7968,28 @@
         "required": [
           "valor",
           "fecha"
+        ]
+      },
+      "GeocodificarDto": {
+        "type": "object",
+        "properties": {
+          "activo": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "activo"
+        ]
+      },
+      "UbicarPendientesDto": {
+        "type": "object",
+        "properties": {
+          "pendientes": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "pendientes"
         ]
       },
       "MapaArriendosDto": {

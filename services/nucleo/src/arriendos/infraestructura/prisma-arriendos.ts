@@ -322,4 +322,17 @@ export class PrismaAjustesArriendos implements AjustesArriendos {
       update: { valor: { valor, fecha } },
     });
   }
+
+  async geocodificar(): Promise<boolean> {
+    const f = await this.prisma.ajuste.findUnique({ where: { clave: 'arriendos.geocodificar' } });
+    return f?.valor !== false;
+  }
+
+  async fijarGeocodificar(activo: boolean): Promise<void> {
+    await this.prisma.ajuste.upsert({
+      where: { clave: 'arriendos.geocodificar' },
+      create: { clave: 'arriendos.geocodificar', valor: activo },
+      update: { valor: activo },
+    });
+  }
 }

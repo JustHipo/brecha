@@ -435,6 +435,10 @@ const LISTA: CriterioDeBusqueda[] = ['comuna', 'tipo'];
               <option value="no">{{ 'arriendos.no' | transloco }}</option>
             </select>
           </label>
+          <label class="flex items-center gap-2 md:col-span-3">
+            <input type="checkbox" name="geo" [(ngModel)]="geocodificar" data-geocodificar />
+            <span class="text-[13px]">{{ 'arriendos.geocodificar' | transloco }}</span>
+          </label>
           <label class="flex flex-col gap-1">
             <span class="text-[12.5px]">{{ 'arriendos.uf' | transloco }}</span>
             <input hlmInput type="number" min="0" step="0.01" name="uf" [(ngModel)]="uf" />
@@ -496,6 +500,7 @@ export class ArriendosBusquedaPagina {
   ];
   protected persona = { rentaLiquida: null as number | null, tieneAval: '' };
   protected uf: number | null = null;
+  protected geocodificar = true;
   protected motivo = '';
   protected readonly sinValor = (c: CriterioDeBusqueda) => SIN_VALOR.includes(c);
   protected readonly siNo = (c: CriterioDeBusqueda) => SI_NO.includes(c);
@@ -528,6 +533,7 @@ export class ArriendosBusquedaPagina {
       tieneAval: b.persona.tieneAval === undefined ? '' : b.persona.tieneAval ? 'si' : 'no',
     };
     this.uf = b.uf?.valor ?? null;
+    this.geocodificar = b.geocodificar;
   }
 
   protected agregar(c: CriterioDeBusqueda = 'presupuesto_total'): void {
@@ -573,6 +579,8 @@ export class ArriendosBusquedaPagina {
 
   protected async guardar(): Promise<void> {
     try {
+      if (this.geocodificar !== this.b()?.geocodificar)
+        await firstValueFrom(this.api.fijarGeocodificar(this.geocodificar));
       if (this.uf && this.uf !== this.b()?.uf?.valor)
         await firstValueFrom(
           this.api.fijarUf(Number(this.uf), new Date().toISOString().slice(0, 10)),

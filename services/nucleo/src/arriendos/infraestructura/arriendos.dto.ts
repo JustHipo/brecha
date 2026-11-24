@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { Allow, IsArray, IsIn, IsNumber, IsOptional, IsString, MaxLength } from 'class-validator';
+import { Allow, IsArray, IsBoolean, IsIn, IsNumber, IsOptional, IsString, MaxLength } from 'class-validator';
 import { CRITERIOS } from '../dominio/busqueda';
 import { TIPOS_DE_CANAL } from '../dominio/canal';
 import { ESTADOS } from '../dominio/estado';
@@ -502,10 +502,19 @@ export class BusquedaDto {
   @ApiProperty({ enum: CRITERIOS, enumName: 'CriterioDeBusqueda', isArray: true })
   criteriosSugeridos!: string[];
   @nulo(UfDto) uf!: UfDto | null;
+  @ApiProperty({ description: 'Ubicar direcciones con Nominatim (OpenStreetMap)' }) geocodificar!: boolean;
   @nulo(String, { format: 'date-time' }) actualizadaEn!: string | null;
 }
 
 export class MapaArriendosDto {
   @ApiProperty({ type: [PropiedadDto] }) ubicadas!: PropiedadDto[];
   @ApiProperty({ type: [PropiedadDto] }) sinUbicar!: PropiedadDto[];
+}
+
+export class GeocodificarDto {
+  @ApiProperty() @IsBoolean() activo!: boolean;
+}
+
+export class UbicarPendientesDto {
+  @ApiProperty() pendientes!: number;
 }

@@ -47,6 +47,9 @@ export interface AjustesArriendos {
   umbral(): Promise<number>;
   uf(): Promise<{ valor: number; fecha: Fecha } | null>;
   fijarUf(valor: number, fecha: Fecha): Promise<void>;
+  /** Si se ubican las direcciones con Nominatim (se puede apagar: la dirección sale de tu equipo). */
+  geocodificar(): Promise<boolean>;
+  fijarGeocodificar(activo: boolean): Promise<void>;
 }
 
 /** Dirección → punto (Nominatim en A6). null si no la encontró. */

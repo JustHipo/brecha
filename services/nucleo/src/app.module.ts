@@ -37,6 +37,7 @@ import { LectorCsvParse } from './csv/infraestructura/lector-csv';
 import { ImportarFichas } from './postulaciones/aplicacion/importar-fichas';
 import { CasosDeArriendos } from './arriendos/aplicacion/casos';
 import { ArriendosController } from './arriendos/infraestructura/arriendos.controller';
+import { GeocodificadorNominatim } from './arriendos/infraestructura/nominatim';
 import {
   PrismaAjustesArriendos,
   PrismaBandejaArriendos,
@@ -155,6 +156,14 @@ export class AppModule {
               busqueda: new PrismaBusqueda(prisma),
               bandeja: new PrismaBandejaArriendos(prisma, flujo),
               ajustes: new PrismaAjustesArriendos(prisma),
+              // En las pruebas no se sale a internet (BRECHA_GEOCODIFICADOR=apagado).
+              ...(process.env.BRECHA_GEOCODIFICADOR === 'apagado'
+                ? {}
+                : {
+                    geocodificador: new GeocodificadorNominatim(prisma, () =>
+                      new PrismaAjustesArriendos(prisma).geocodificar(),
+                    ),
+                  }),
               reloj,
               ids,
             }),

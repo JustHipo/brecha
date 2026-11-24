@@ -54,6 +54,8 @@ export default defineConfig({
       env: {
         DATABASE_URL: url,
         NUCLEO_PUERTO: String(NUCLEO),
+        // El e2e nunca sale a internet a ubicar direcciones.
+        BRECHA_GEOCODIFICADOR: 'apagado',
         CONSOLA_ORIGEN: `http://localhost:${CONSOLA}`,
         BRECHA_DIR: dir,
       },

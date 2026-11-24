@@ -819,7 +819,6 @@
     "irArriendos": "Cambiar a Arriendos"
   },
   "arriendos": {
-    "vacio": "Todavía no hay nada aquí.",
     "titulo": "Arriendos",
     "resumen": "Propiedades: {{total}} · en curso: {{abiertas}}",
     "porResponder": "{{n}} te esperan respuesta",
@@ -951,7 +950,8 @@
       "rentaVeces": "Renta exigida (veces)",
       "mesesGarantia": "Meses de garantía",
       "descripcion": "Descripción"
-    }
+    },
+    "geocodificar": "Ubicar las direcciones en el mapa con OpenStreetMap (sale solo la dirección del aviso, nunca tus datos)"
   },
   "estadosArriendo": {
     "vista": "Vista",
@@ -1054,5 +1054,23 @@
     "ejemplo": "¿Cuáles cumplen todas mis reglas y tienen visita esta semana?",
     "preguntar": "Preguntar",
     "pensando": "Pensando…"
+  },
+  "mapa": {
+    "sinFondo": "Sin conexión: el fondo del mapa no cargó, los pines sí.",
+    "sinWebgl": "Este equipo no puede dibujar el mapa. La lista sigue al lado.",
+    "ayudaEmpleo": "Tus postulaciones en curso por comuna. «Remoto» y lo que no reconozco quedan al lado.",
+    "ayudaArriendos": "Tus propiedades en curso. Punteado es aproximado (centro de la comuna): arrastra el pin para corregirlo.",
+    "etiquetaEmpleo": "Mapa de tus postulaciones por comuna",
+    "etiquetaArriendos": "Mapa de tus propiedades",
+    "lista": "Lista del mapa",
+    "porComuna": "Por comuna",
+    "nadaUbicado": "Ninguna postulación tiene una comuna que reconozca.",
+    "remotas": "{{n}} remotas",
+    "sinUbicar": "{{n}} sin ubicar",
+    "aproximada": "Ubicación aproximada: arrastra el pin a su lugar.",
+    "ubicar": "Ubicar con OpenStreetMap",
+    "ubicarAyuda": "Busca una dirección por segundo; vuelve en un rato.",
+    "ubicando": "Ubicando {{n}} propiedades…",
+    "fijada": "Ubicación guardada"
   }
 }

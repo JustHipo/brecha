@@ -819,7 +819,6 @@
     "irArriendos": "Switch to Rentals"
   },
   "arriendos": {
-    "vacio": "Nothing here yet.",
     "titulo": "Rentals",
     "resumen": "Properties: {{total}} · in progress: {{abiertas}}",
     "porResponder": "{{n}} waiting for your reply",
@@ -951,7 +950,8 @@
       "rentaVeces": "Required income (times)",
       "mesesGarantia": "Deposit months",
       "descripcion": "Description"
-    }
+    },
+    "geocodificar": "Place addresses on the map with OpenStreetMap (only the listing address leaves your computer, never your data)"
   },
   "estadosArriendo": {
     "vista": "Saved",
@@ -1054,5 +1054,23 @@
     "ejemplo": "Which ones meet all my rules and have a viewing this week?",
     "preguntar": "Ask",
     "pensando": "Thinking…"
+  },
+  "mapa": {
+    "sinFondo": "Offline: the map background didn't load, the pins did.",
+    "sinWebgl": "This computer can't draw the map. The list is still beside it.",
+    "ayudaEmpleo": "Your active applications by area. «Remote» and what I don't recognize stay beside the map.",
+    "ayudaArriendos": "Your active properties. Dashed means approximate (area center): drag the pin to fix it.",
+    "etiquetaEmpleo": "Map of your applications by area",
+    "etiquetaArriendos": "Map of your properties",
+    "lista": "Map list",
+    "porComuna": "By area",
+    "nadaUbicado": "No application has an area I recognize.",
+    "remotas": "{{n}} remote",
+    "sinUbicar": "{{n}} without location",
+    "aproximada": "Approximate location: drag the pin to its place.",
+    "ubicar": "Locate with OpenStreetMap",
+    "ubicarAyuda": "It looks up one address per second; come back in a bit.",
+    "ubicando": "Locating {{n}} properties…",
+    "fijada": "Location saved"
   }
 }

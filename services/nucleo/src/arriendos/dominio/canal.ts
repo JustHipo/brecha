@@ -58,7 +58,7 @@ export function dominioNormalizado(v: unknown): string {
 export function idDeNombre(nombre: string): string {
   return nombre
     .normalize('NFKD')
-    .replace(/[̀-ͯ]/g, '')
+    .replace(/[\u0300-\u036f]/g, '')
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '')

@@ -680,9 +680,14 @@ export class CasosDeArriendos {
     historial: ConFechasEnTexto<DatosBusqueda['historial'][number]>[];
     criteriosSugeridos: Criterio[];
     uf: { valor: number; fecha: Fecha } | null;
+    geocodificar: boolean;
     actualizadaEn: string | null;
   }> {
-    const [b, uf] = await Promise.all([this.c.busqueda.leer(), this.c.ajustes.uf()]);
+    const [b, uf, geocodificar] = await Promise.all([
+      this.c.busqueda.leer(),
+      this.c.ajustes.uf(),
+      this.c.ajustes.geocodificar(),
+    ]);
     const d = b.datos();
     const usados = new Set(d.reglas.map((r) => r.criterio));
     return {
@@ -691,6 +696,7 @@ export class CasosDeArriendos {
       historial: enTexto(d.historial).reverse().slice(0, 30),
       criteriosSugeridos: CRITERIOS_SUGERIDOS.filter((c) => !usados.has(c)),
       uf,
+      geocodificar,
       actualizadaEn: d.actualizadaEn?.toISOString() ?? null,
     };
   }
@@ -707,6 +713,24 @@ export class CasosDeArriendos {
 
   async fijarUf(valor: unknown, fecha: unknown): Promise<void> {
     await this.c.ajustes.fijarUf(numero('valor', valor, 1000, 1_000_000), fechaValida('fecha', fecha));
+  }
+
+  async fijarGeocodificar(activo: unknown): Promise<void> {
+    if (typeof activo !== 'boolean') throw new DatoInvalido('activo', 'activo es sí o no');
+    await this.c.ajustes.fijarGeocodificar(activo);
+  }
+
+  /**
+   * Ubica las propiedades abiertas que no tienen punto, una tras otra (la cola del geocodificador respeta un
+   * pedido por segundo). Devuelve cuántas quedaron en camino; el trabajo sigue en segundo plano.
+   */
+  async ubicarPendientes(): Promise<{ pendientes: number }> {
+    const { sinUbicar } = await this.mapa();
+    const ids = sinUbicar.filter((p) => p.direccion || p.comuna).map((p) => p.id);
+    void (async () => {
+      for (const id of ids) await this.geocodificar(id);
+    })();
+    return { pendientes: ids.length };
   }
 
   // ── Mapa ──

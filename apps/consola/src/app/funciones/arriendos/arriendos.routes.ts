@@ -1,10 +1,5 @@
 import type { Routes } from '@angular/router';
 
-const vacia = (titulo: string) => ({
-  loadComponent: () => import('./en-preparacion').then((m) => m.EnPreparacion),
-  data: { titulo },
-});
-
 /** Rutas del foco Arriendos (docs/diseno/arriendos.md §8). */
 export const RUTAS: Routes = [
   { path: '', pathMatch: 'full', redirectTo: 'tablero' },
@@ -44,6 +39,9 @@ export const RUTAS: Routes = [
     path: 'preguntar',
     loadComponent: () => import('./preguntar').then((m) => m.ArriendosPreguntarPagina),
   },
-  { path: 'mapa', ...vacia('nav.mapa') },
+  {
+    path: 'mapa',
+    loadComponent: () => import('./mapa').then((m) => m.ArriendosMapaPagina),
+  },
   { path: '**', redirectTo: 'tablero' },
 ];
