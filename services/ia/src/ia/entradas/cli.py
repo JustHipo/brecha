@@ -3,6 +3,7 @@
 import argparse
 import getpass
 import json
+import os
 import sys
 from datetime import date
 from pathlib import Path
@@ -41,6 +42,13 @@ def credenciales(args: argparse.Namespace, llavero: Credenciales) -> int:
             for t in TipoDeCredencial:
                 llavero.borrar(t)
             print("Credenciales de Brecha borradas del llavero.")
+        case "migrar":
+            # Desde la entrada de la versión anterior de la app (BRECHA_LLAVERO_ANTERIOR): solo lo que falta.
+            from ia.infraestructura.llavero import migrar_desde
+
+            anterior = os.environ.get("BRECHA_LLAVERO_ANTERIOR", "")
+            copiadas = migrar_desde(anterior) if isinstance(llavero, Llavero) else []
+            print(f"Migradas: {', '.join(t.value for t in copiadas) or 'ninguna'}.")
         case "importar":
             # Lee {"usuario", "clave", "openai"} por la entrada estándar (de otro programa,
             # nunca de la pantalla) y los guarda en este llavero. No imprime ningún valor.
@@ -415,7 +423,7 @@ def main(argv: list[str] | None = None, llavero: Credenciales | None = None) -> 
     parser = argparse.ArgumentParser(prog="ia", description="Herramientas del servicio con IA de Brecha")
     sub = parser.add_subparsers(dest="comando", required=True)
     cred = sub.add_parser("credenciales", help="Guardar, revisar o borrar credenciales en el llavero")
-    cred.add_argument("accion", choices=["correo", "openai", "estado", "borrar", "importar"])
+    cred.add_argument("accion", choices=["correo", "openai", "estado", "borrar", "importar", "migrar"])
     av = sub.add_parser("avisos", help="Importar, buscar en Get on Board y procesar avisos")
     av.add_argument("accion", choices=["importar", "buscar", "procesar", "estado"])
     av.add_argument("valor", nargs="*", help="archivo para importar o consultas para buscar")

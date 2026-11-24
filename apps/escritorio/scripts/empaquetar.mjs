@@ -1,4 +1,4 @@
-// Arma Brecha para el sistema donde corre, sin firma (D39 en macOS; W-j en Windows):
+// Arma Brecha para el sistema donde corre (macOS: ad hoc, o con BRECHA_IDENTIDAD_MAC; Windows: sin firma):
 // - macOS arm64: Brecha.app y el .dmg (firma ad hoc).
 // - Windows x64: el instalador NSIS por usuario (Brecha-Setup-<versión>.exe), sin pedir administrador.
 // Junta: la consola compilada, el núcleo con sus dependencias de producción, PostgreSQL 17 con pgvector
@@ -71,6 +71,11 @@ correr(
     'exec',
     'electron-builder',
     ...(windows ? ['--win', 'nsis', '--x64'] : ['--mac', 'dmg', '--arm64']),
+    // macOS: BRECHA_IDENTIDAD_MAC firma con una identidad estable (D63: el llavero no vuelve a pedir nada al
+    // actualizar). Sin ella, firma ad hoc (D39), como en el CI.
+    ...(!windows && process.env.BRECHA_IDENTIDAD_MAC
+      ? [`-c.mac.identity=${process.env.BRECHA_IDENTIDAD_MAC}`]
+      : []),
     '--publish',
     'never',
   ],

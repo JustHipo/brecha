@@ -35,3 +35,23 @@ class Llavero:
     def borrar(self, tipo: TipoDeCredencial) -> None:
         with contextlib.suppress(PasswordDeleteError):
             keyring.delete_password(servicio(), tipo.value)
+
+
+def migrar_desde(anterior: str, destino: Llavero | None = None) -> list[TipoDeCredencial]:
+    """Copia a la entrada actual lo que falta y está en la entrada `anterior` (una actualización de la app).
+
+    En macOS leer la entrada anterior desde un binario nuevo puede pedir permiso una vez por credencial.
+    Nunca imprime ni devuelve valores: solo qué tipos copió.
+    """
+    destino = destino or Llavero()
+    if not anterior or anterior == servicio():
+        return []
+    copiadas: list[TipoDeCredencial] = []
+    for tipo in TipoDeCredencial:
+        if destino.obtener(tipo):
+            continue
+        valor = keyring.get_password(anterior, tipo.value)
+        if valor:
+            destino.guardar(tipo, valor)
+            copiadas.append(tipo)
+    return copiadas

@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto';
-import { existsSync, mkdirSync, readFileSync } from 'node:fs';
+import { execFile, spawnSync } from 'node:child_process';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import {
   argumentosDePostgres,
@@ -148,6 +149,7 @@ export class Servicios {
       PYTHONUTF8: '1',
     };
     await this.migrarIa(k, comun);
+    await this.migrarLlavero(comun);
 
     const nucleo = this.agregar({
       nombre: 'nucleo',
@@ -198,8 +200,29 @@ export class Servicios {
     }
   }
 
+  /** Una actualización cambió la entrada del llavero: se copian las credenciales a la nueva (D63). */
+  private async migrarLlavero(comun: NodeJS.ProcessEnv): Promise<void> {
+    const actual = comun.BRECHA_LLAVERO;
+    if (!actual) return;
+    const anterior = entradaAnteriorDelLlavero(this.instancia, actual);
+    if (!anterior) return;
+    await new Promise<void>((listo) =>
+      execFile(
+        this.r.ia,
+        ['credenciales', 'migrar'],
+        { windowsHide: true, env: { ...comun, BRECHA_LLAVERO_ANTERIOR: anterior } },
+        (e, salida, errores) => {
+          this.registro.escribir(
+            'app',
+            `llavero: de ${anterior} a ${actual}. ${salida}${e ? ` ${errores}` : ''}`,
+          );
+          listo();
+        },
+      ),
+    );
+  }
+
   private async migrarIa(k: ReturnType<typeof claves>, comun: NodeJS.ProcessEnv): Promise<void> {
-    const { execFile } = await import('node:child_process');
     await new Promise<void>((listo, falla) =>
       execFile(
         this.r.ia,
@@ -279,16 +302,52 @@ export function certificados(ia: string): NodeJS.ProcessEnv {
   return existsSync(archivo) && !process.env.SSL_CERT_FILE ? { SSL_CERT_FILE: archivo } : {};
 }
 
+/** Entrada fija del llavero en macOS cuando brecha-ia está firmado con una identidad (D63). */
+export const ENTRADA_FIRMADA_MAC = 'brecha-mac';
+
 /**
- * Entrada propia en el llavero por cada versión del servicio con IA: la crea ese binario, así que es su dueño
- * y macOS no le pide permiso para leerla. Sin firma de Apple (D39), un binario recompilado es «otra app» para
- * el llavero: con una entrada nueva, Ajustes pide las credenciales una vez en vez de mostrar una ventana de permiso.
- * En Windows la entrada es fija (ver entradaDelLlavero).
+ * ¿Está firmado con una identidad real (no ad hoc)? `codesign -dvv` muestra «Authority=…» solo con una identidad
+ * (con -dv no sale) y «Signature=adhoc» con la firma ad hoc. Sale por stderr.
  */
-export function servicioDelLlavero(ia: string, plataforma: NodeJS.Platform = process.platform): string {
+export function firmadoConIdentidad(ia: string): boolean {
+  const r = spawnSync('codesign', ['-dvv', ia], { encoding: 'utf8' });
+  const salida = `${r.stdout ?? ''}${r.stderr ?? ''}`;
+  return r.status === 0 && /^Authority=/m.test(salida) && !/Signature=adhoc/.test(salida);
+}
+
+/**
+ * Entrada del llavero del servicio con IA.
+ * - Windows: fija (el Administrador de credenciales no tiene permiso por app).
+ * - macOS con brecha-ia firmado con una identidad estable (D63): fija, `brecha-mac`. El llavero reconoce el
+ *   mismo certificado en cada versión y no vuelve a pedir nada al actualizar.
+ * - macOS con firma ad hoc (D39, el .dmg del CI): una entrada por huella del binario, porque cada binario
+ *   recompilado es «otra app» para el llavero; Ajustes pide las credenciales una vez.
+ */
+export function servicioDelLlavero(
+  ia: string,
+  plataforma: NodeJS.Platform = process.platform,
+  firmado: (ia: string) => boolean = firmadoConIdentidad,
+): string {
   if (plataforma === 'win32' || !existsSync(ia)) return entradaDelLlavero(null, plataforma);
+  if (plataforma === 'darwin' && firmado(ia)) return ENTRADA_FIRMADA_MAC;
   return entradaDelLlavero(
     createHash('sha256').update(readFileSync(ia)).digest('hex').slice(0, 12),
     plataforma,
   );
+}
+
+/**
+ * Si la entrada del llavero cambió desde la vez anterior (una actualización), copia a la nueva lo que falte
+ * con `brecha-ia credenciales migrar`, sin mostrar valores. Guarda la entrada actual en `instancia/llavero.json`.
+ */
+export function entradaAnteriorDelLlavero(instancia: string, actual: string): string | null {
+  const ruta = join(instancia, 'llavero.json');
+  let anterior: string | null = null;
+  try {
+    anterior = (JSON.parse(readFileSync(ruta, 'utf8')) as { servicio?: string }).servicio ?? null;
+  } catch {
+    // primera vez
+  }
+  writeFileSync(ruta, JSON.stringify({ servicio: actual }));
+  return anterior && anterior !== actual ? anterior : null;
 }

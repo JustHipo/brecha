@@ -95,3 +95,25 @@ def test_el_servicio_del_llavero_se_puede_cambiar(monkeypatch) -> None:  # type:
     assert servicio() == "brecha"
     monkeypatch.setenv("BRECHA_LLAVERO", "brecha-app")
     assert servicio() == "brecha-app"
+
+
+def test_migrar_copia_solo_lo_que_falta_desde_la_entrada_anterior(monkeypatch: pytest.MonkeyPatch) -> None:
+    import keyring as kr
+
+    from ia.aplicacion.puertos import TipoDeCredencial
+    from ia.infraestructura import llavero as ll
+
+    guardado: dict[tuple[str, str], str] = {
+        ("brecha-app-viejo", "correo-usuario"): "a@ejemplo.test",
+        ("brecha-app-viejo", "correo-clave-de-aplicacion"): "abcdefghijklmnop",
+        ("brecha-app-viejo", "openai-llave"): "sk-vieja",
+        ("brecha-mac", "openai-llave"): "sk-nueva",
+    }
+    monkeypatch.setattr(kr, "get_password", lambda s, u: guardado.get((s, u)))
+    monkeypatch.setattr(kr, "set_password", lambda s, u, v: guardado.__setitem__((s, u), v))
+    monkeypatch.setenv("BRECHA_LLAVERO", "brecha-mac")
+    copiadas = ll.migrar_desde("brecha-app-viejo")
+    assert copiadas == [TipoDeCredencial.CORREO_USUARIO, TipoDeCredencial.CORREO_CLAVE]
+    assert guardado[("brecha-mac", "openai-llave")] == "sk-nueva"  # lo que ya estaba no se pisa
+    assert guardado[("brecha-mac", "correo-clave-de-aplicacion")] == "abcdefghijklmnop"
+    assert ll.migrar_desde("brecha-mac") == [] and ll.migrar_desde("") == []

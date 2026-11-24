@@ -12,7 +12,7 @@ import {
   puertoDisponible,
   RegistroDePids,
 } from './plataforma';
-import { servicioDelLlavero } from './servicios';
+import { entradaAnteriorDelLlavero, servicioDelLlavero } from './servicios';
 
 const carpeta = () => mkdtempSync(join(tmpdir(), 'plataforma-'));
 
@@ -43,6 +43,17 @@ describe('diferencias entre macOS y Windows', () => {
     writeFileSync(ia, 'binario');
     expect(servicioDelLlavero(ia, 'darwin')).toMatch(/^brecha-app-[0-9a-f]{12}$/);
     expect(servicioDelLlavero(ia, 'win32')).toBe('brecha-app');
+    // Firmado con una identidad estable (D63): entrada fija en macOS, no cambia al actualizar.
+    expect(servicioDelLlavero(ia, 'darwin', () => true)).toBe('brecha-mac');
+    expect(servicioDelLlavero(ia, 'darwin', () => false)).toMatch(/^brecha-app-[0-9a-f]{12}$/);
+  });
+
+  it('recuerda la entrada del llavero y avisa cuando cambió (una actualización)', () => {
+    const dir = carpeta();
+    expect(entradaAnteriorDelLlavero(dir, 'brecha-app-aaa')).toBeNull();
+    expect(entradaAnteriorDelLlavero(dir, 'brecha-app-aaa')).toBeNull();
+    expect(entradaAnteriorDelLlavero(dir, 'brecha-mac')).toBe('brecha-app-aaa');
+    expect(entradaAnteriorDelLlavero(dir, 'brecha-mac')).toBeNull();
   });
 
   it('al iniciar sesión, Windows se reconoce por --oculta y macOS por wasOpenedAtLogin', () => {
