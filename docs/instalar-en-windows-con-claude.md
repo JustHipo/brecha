@@ -29,7 +29,7 @@ Pasos:
    Si Smart App Control está encendido, explícame que bloquea cualquier app sin firma digital (Brecha no está firmada) y que la única forma es apagarlo en Seguridad de Windows → Control de aplicaciones y del navegador → Smart App Control. Hoy se puede volver a encender sin reinstalar Windows. La decisión es mía.
 
 
-2. Descargar el instalador: pídele a «windows» el enlace de la última corrida del CI que pasó. Es un .zip (el artefacto «Brecha-Setup-windows»): GitHub pide iniciar sesión para bajarlo, así que ábreme el enlace en el navegador para que yo lo baje (o, si `gh` está instalado y con sesión, usa `gh run download <id> -n Brecha-Setup-windows -R JustHipo/brecha`). Descomprímelo en Descargas y revisa que quede Brecha-Setup-<versión>.exe y que pese más de 100 MB.
+2. El instalador: Juan me lo manda (Brecha-Setup-0.2.0.exe, unos 287 MB). Pregúntame dónde lo dejé, muévelo a Descargas si hace falta y revisa que pese más de 100 MB y que su SHA256 (Get-FileHash) empiece con C826EFAA. Si no lo tengo, pídele a «windows» que se lo recuerde a Juan.
 
 
 3. Instalar: ábreme la carpeta Descargas y pídeme que haga doble clic en Brecha-Setup. Si aparece «Windows ha protegido su PC», explícame que sale porque la app no está firmada y que debo elegir «Más información» y después «Ejecutar de todos modos». Se instala solo para mi usuario, sin pedir clave de administrador, y Brecha se abre sola al terminar. Avísame que la instalación tarda unos 3 minutos y que la barra se queda quieta cerca del 65 % un buen rato (copia unos 29 mil archivos): no está colgada.
