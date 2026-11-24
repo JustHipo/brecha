@@ -70,7 +70,9 @@ export function crearServidorMcp(casos: CasosDeUso, red?: CasosDeRed, csv?: Caso
         'Brecha sigue postulaciones de empleo. Los estados válidos y sus saltos los decide el núcleo: usa ver_postulacion para ver transicionesPosibles. ' +
         'Para pasar a postulado hacen falta fechaPostulacion y canal; rechazado y descartado piden motivo. Registrar una señal nunca cambia el estado por sí sola. ' +
         'Tu red de LinkedIn (contactos, solicitudes y mensajes) se lleva con listar_red, registrar_contacto_red, registrar_interaccion_red y editar_contacto_red: ' +
-        'LinkedIn no tiene API, así que la revisas desde el navegador de la persona y registras aquí, ligando cada contacto a sus postulaciones.',
+        'LinkedIn no tiene API, así que la revisas desde el navegador de la persona y registras aquí, ligando cada contacto a sus postulaciones. ' +
+        'Liga a una persona a una postulación solo si trabaja hoy en esa empresa: si su cargo actual dice otra empresa o te cuenta que ya no está ahí, ' +
+        'desvincúlala de esa postulación (editar_contacto_red con desvincular), corrige su empresa y anótalo en sus notas.',
     },
   );
   const lectura = { readOnlyHint: true, openWorldHint: false };
@@ -621,7 +623,8 @@ function registrarRed(s: McpServer, red: CasosDeRed): void {
     {
       title: 'Editar un contacto de tu red',
       description:
-        'Notas, fecha de seguimiento (AAAA-MM-DD o null), titular, empresa; vincular o desvincular una postulación por id.',
+        'Notas, fecha de seguimiento (AAAA-MM-DD o null), titular, empresa; vincular o desvincular una postulación por id. ' +
+        'Si la persona ya no trabaja en la empresa de una postulación ligada, desvincúlala de esa postulación.',
       inputSchema: {
         id: z.string(),
         nombre: z.string().optional(),
