@@ -77,6 +77,8 @@ export function perfilNormalizado(url: unknown): string {
   return `https://www.linkedin.com/in/${/^AC[a-zA-Z]AA/.test(id) ? id : id.toLowerCase()}`;
 }
 
+const VENTANA_AVISO_MS = 12 * 3_600_000;
+
 const opcional = (campo: string, v: unknown, max: number) =>
   v === undefined || v === null || v === '' ? undefined : textoObligatorio(campo, v, max);
 
@@ -188,6 +190,7 @@ export class ContactoDeRed {
     }
     const referencia = opcional('referenciaExterna', p.referenciaExterna, 500);
     const dia = deps.reloj.fechaDe(ocurridaEn);
+    if (p.tipo === 'mensaje_recibido' && this.avisoDeCorreoSobra(p.origen, ocurridaEn, deps)) return false;
     const repetida = this.d.interacciones.some(
       (i) =>
         (referencia && i.referenciaExterna === referencia) ||
@@ -208,6 +211,37 @@ export class ContactoDeRed {
     if (ultimaSolicitud) this.d.conexion = CONEXION_POR_TIPO[ultimaSolicitud.tipo]!;
     this.d.actualizadoEn = deps.reloj.ahora();
     return true;
+  }
+
+  /**
+   * D40: el aviso por correo de un mensaje nuevo no trae el texto y llega después del mensaje.
+   * Si el mensaje ya se leyó desde LinkedIn (hasta 12 h antes del aviso), el aviso sobra; si el aviso
+   * llegó primero, el mensaje leído lo reemplaza. Así el mismo mensaje no se cuenta dos veces.
+   */
+  private avisoDeCorreoSobra(origen: OrigenDeRed, ocurridaEn: Date, deps: Deps): boolean {
+    const t = ocurridaEn.getTime();
+    const recibido = (i: Interaccion) => i.tipo === 'mensaje_recibido';
+    if (origen === 'correo') {
+      return this.d.interacciones.some(
+        (i) =>
+          recibido(i) &&
+          i.origen !== 'correo' &&
+          t - i.ocurridaEn.getTime() >= 0 &&
+          t - i.ocurridaEn.getTime() <= VENTANA_AVISO_MS,
+      );
+    }
+    const antes = this.d.interacciones.length;
+    this.d.interacciones = this.d.interacciones.filter(
+      (i) =>
+        !(
+          recibido(i) &&
+          i.origen === 'correo' &&
+          i.ocurridaEn.getTime() - t >= 0 &&
+          i.ocurridaEn.getTime() - t <= VENTANA_AVISO_MS
+        ),
+    );
+    if (this.d.interacciones.length !== antes) this.d.actualizadoEn = deps.reloj.ahora();
+    return false;
   }
 
   vincularPostulacion(postulacionId: string, reloj: Reloj): void {
