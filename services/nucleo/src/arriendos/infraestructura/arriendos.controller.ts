@@ -17,16 +17,16 @@ import {
   BusquedaDto,
   CambiarBusquedaDto,
   CambiarEstadoPropiedadDto,
-  CanalDto,
-  CanalEntradaDto,
-  ContactoEntradaDto,
+  CanalArriendoDto,
+  CanalArriendoEntradaDto,
+  ContactoPropiedadEntradaDto,
   ContactoRegistradoDto,
   CrearPropiedadDto,
   DuplicadosDto,
-  EditarCanalDto,
+  EditarCanalArriendoDto,
   EditarPropiedadDto,
   EstadoVisitaDto,
-  InteraccionEntradaDto,
+  InteraccionArriendoEntradaDto,
   InteraccionRegistradaDto,
   ListaPropiedadesDto,
   MapaArriendosDto,
@@ -164,7 +164,7 @@ export class ArriendosController {
   @Post('propiedades/:id/contactos')
   @ApiOperation({ operationId: 'registrarContactoPropiedad', summary: 'Agrega o completa un contacto' })
   @ApiCreatedResponse({ type: ContactoRegistradoDto })
-  contacto(@Param('id') id: string, @Body() dto: ContactoEntradaDto) {
+  contacto(@Param('id') id: string, @Body() dto: ContactoPropiedadEntradaDto) {
     return this.casos.registrarContacto(id, dto);
   }
 
@@ -181,7 +181,7 @@ export class ArriendosController {
     summary: 'Mensaje, llamada o nota con un contacto',
   })
   @ApiCreatedResponse({ type: InteraccionRegistradaDto })
-  interaccion(@Param('id') id: string, @Body() dto: InteraccionEntradaDto, @Req() req: Pedido) {
+  interaccion(@Param('id') id: string, @Body() dto: InteraccionArriendoEntradaDto, @Req() req: Pedido) {
     return this.casos.registrarInteraccion(id, dto, origenDe(req));
   }
 
@@ -265,22 +265,22 @@ export class ArriendosController {
 
   @Get('canales')
   @ApiOperation({ operationId: 'listarCanales' })
-  @ApiOkResponse({ type: [CanalDto] })
+  @ApiOkResponse({ type: [CanalArriendoDto] })
   canales() {
     return this.casos.listarCanales();
   }
 
   @Post('canales')
   @ApiOperation({ operationId: 'registrarCanal', summary: 'Crea un canal o actualiza el que tiene ese id' })
-  @ApiCreatedResponse({ type: CanalDto })
-  registrarCanal(@Body() dto: CanalEntradaDto) {
+  @ApiCreatedResponse({ type: CanalArriendoDto })
+  registrarCanal(@Body() dto: CanalArriendoEntradaDto) {
     return this.casos.registrarCanal(dto);
   }
 
   @Patch('canales/:id')
   @ApiOperation({ operationId: 'editarCanal' })
-  @ApiOkResponse({ type: CanalDto })
-  editarCanal(@Param('id') id: string, @Body() dto: EditarCanalDto) {
+  @ApiOkResponse({ type: CanalArriendoDto })
+  editarCanal(@Param('id') id: string, @Body() dto: EditarCanalArriendoDto) {
     return this.casos.editarCanal(id, dto);
   }
 

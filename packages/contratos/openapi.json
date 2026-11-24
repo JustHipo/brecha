@@ -2649,7 +2649,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/ContactoEntradaDto"
+                "$ref": "#/components/schemas/ContactoPropiedadEntradaDto"
               }
             }
           }
@@ -2739,7 +2739,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/InteraccionEntradaDto"
+                "$ref": "#/components/schemas/InteraccionArriendoEntradaDto"
               }
             }
           }
@@ -3201,7 +3201,7 @@
                 "schema": {
                   "type": "array",
                   "items": {
-                    "$ref": "#/components/schemas/CanalDto"
+                    "$ref": "#/components/schemas/CanalArriendoDto"
                   }
                 }
               }
@@ -3226,7 +3226,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/CanalEntradaDto"
+                "$ref": "#/components/schemas/CanalArriendoEntradaDto"
               }
             }
           }
@@ -3237,7 +3237,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/CanalDto"
+                  "$ref": "#/components/schemas/CanalArriendoDto"
                 }
               }
             }
@@ -3272,7 +3272,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/EditarCanalDto"
+                "$ref": "#/components/schemas/EditarCanalArriendoDto"
               }
             }
           }
@@ -3283,7 +3283,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/CanalDto"
+                  "$ref": "#/components/schemas/CanalArriendoDto"
                 }
               }
             }
@@ -3962,29 +3962,21 @@
       "CanalEntradaDto": {
         "type": "object",
         "properties": {
-          "id": {
-            "type": "string",
-            "description": "minúsculas y guiones; si falta sale del nombre"
-          },
-          "nombre": {
-            "type": "string"
-          },
           "tipo": {
             "allOf": [
               {
-                "$ref": "#/components/schemas/TipoDeCanalArriendo"
+                "$ref": "#/components/schemas/TipoDeCanal"
               }
             ]
           },
-          "dominios": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
+          "valor": {
+            "type": "string",
+            "maxLength": 500
           }
         },
         "required": [
-          "nombre"
+          "tipo",
+          "valor"
         ]
       },
       "CrearPostulacionDto": {
@@ -4098,39 +4090,20 @@
       "CanalDto": {
         "type": "object",
         "properties": {
-          "id": {
-            "type": "string"
-          },
-          "nombre": {
-            "type": "string"
-          },
           "tipo": {
             "allOf": [
               {
-                "$ref": "#/components/schemas/TipoDeCanalArriendo"
+                "$ref": "#/components/schemas/TipoDeCanal"
               }
             ]
           },
-          "dominios": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
-          "activo": {
-            "type": "boolean"
-          },
-          "predefinido": {
-            "type": "boolean"
+          "valor": {
+            "type": "string"
           }
         },
         "required": [
-          "id",
-          "nombre",
           "tipo",
-          "dominios",
-          "activo",
-          "predefinido"
+          "valor"
         ]
       },
       "DineroDto": {
@@ -4855,34 +4828,20 @@
         "type": "object",
         "properties": {
           "nombre": {
-            "type": "string"
+            "type": "string",
+            "maxLength": 200
           },
           "rol": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/RolDeContacto"
-              }
-            ]
-          },
-          "telefono": {
-            "type": "string"
-          },
-          "correo": {
-            "type": "string"
-          },
-          "whatsapp": {
-            "type": "string"
-          },
-          "enlace": {
             "type": "string",
-            "description": "Formulario o link donde postulaste"
+            "maxLength": 200
+          },
+          "email": {
+            "type": "string",
+            "maxLength": 320
           },
           "linkedin": {
-            "type": "string"
-          },
-          "canalId": {
             "type": "string",
-            "description": "Por dónde hablan (id de un canal)"
+            "maxLength": 500
           }
         },
         "required": [
@@ -5794,31 +5753,24 @@
       "InteraccionEntradaDto": {
         "type": "object",
         "properties": {
-          "contactoId": {
-            "type": "string"
-          },
-          "contacto": {
-            "$ref": "#/components/schemas/ContactoEntradaDto"
-          },
           "tipo": {
             "allOf": [
               {
-                "$ref": "#/components/schemas/TipoDeInteraccionArriendo"
+                "$ref": "#/components/schemas/TipoDeInteraccion"
               }
             ]
           },
           "resumen": {
-            "type": "string"
+            "type": "string",
+            "maxLength": 1000
           },
           "ocurridaEn": {
             "type": "string",
             "format": "date-time"
           },
-          "canalId": {
-            "type": "string"
-          },
           "referenciaExterna": {
-            "type": "string"
+            "type": "string",
+            "maxLength": 500
           }
         },
         "required": [
@@ -6401,6 +6353,54 @@
           }
         }
       },
+      "RolDeContacto": {
+        "type": "string",
+        "enum": [
+          "corredor",
+          "dueno",
+          "conserje",
+          "administracion",
+          "otro"
+        ]
+      },
+      "ContactoPropiedadEntradaDto": {
+        "type": "object",
+        "properties": {
+          "nombre": {
+            "type": "string"
+          },
+          "rol": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/RolDeContacto"
+              }
+            ]
+          },
+          "telefono": {
+            "type": "string"
+          },
+          "correo": {
+            "type": "string"
+          },
+          "whatsapp": {
+            "type": "string"
+          },
+          "enlace": {
+            "type": "string",
+            "description": "Formulario o link donde postulaste"
+          },
+          "linkedin": {
+            "type": "string"
+          },
+          "canalId": {
+            "type": "string",
+            "description": "Por dónde hablan (id de un canal)"
+          }
+        },
+        "required": [
+          "nombre"
+        ]
+      },
       "CrearPropiedadDto": {
         "type": "object",
         "properties": {
@@ -6500,7 +6500,7 @@
           "contactos": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/ContactoEntradaDto"
+              "$ref": "#/components/schemas/ContactoPropiedadEntradaDto"
             }
           },
           "nota": {
@@ -6559,16 +6559,6 @@
           "id",
           "canalId",
           "vistaEn"
-        ]
-      },
-      "RolDeContacto": {
-        "type": "string",
-        "enum": [
-          "corredor",
-          "dueno",
-          "conserje",
-          "administracion",
-          "otro"
         ]
       },
       "TipoDeInteraccionArriendo": {
@@ -7272,6 +7262,41 @@
           "propiedad"
         ]
       },
+      "InteraccionArriendoEntradaDto": {
+        "type": "object",
+        "properties": {
+          "contactoId": {
+            "type": "string"
+          },
+          "contacto": {
+            "$ref": "#/components/schemas/ContactoPropiedadEntradaDto"
+          },
+          "tipo": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/TipoDeInteraccionArriendo"
+              }
+            ]
+          },
+          "resumen": {
+            "type": "string"
+          },
+          "ocurridaEn": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "canalId": {
+            "type": "string"
+          },
+          "referenciaExterna": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "tipo",
+          "resumen"
+        ]
+      },
       "InteraccionRegistradaDto": {
         "type": "object",
         "properties": {
@@ -7397,7 +7422,7 @@
             "type": "string"
           },
           "contacto": {
-            "$ref": "#/components/schemas/ContactoEntradaDto"
+            "$ref": "#/components/schemas/ContactoPropiedadEntradaDto"
           }
         },
         "required": [
@@ -7540,7 +7565,73 @@
           "otro"
         ]
       },
-      "EditarCanalDto": {
+      "CanalArriendoDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "nombre": {
+            "type": "string"
+          },
+          "tipo": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/TipoDeCanalArriendo"
+              }
+            ]
+          },
+          "dominios": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "activo": {
+            "type": "boolean"
+          },
+          "predefinido": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "nombre",
+          "tipo",
+          "dominios",
+          "activo",
+          "predefinido"
+        ]
+      },
+      "CanalArriendoEntradaDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "minúsculas y guiones; si falta sale del nombre"
+          },
+          "nombre": {
+            "type": "string"
+          },
+          "tipo": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/TipoDeCanalArriendo"
+              }
+            ]
+          },
+          "dominios": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "nombre"
+        ]
+      },
+      "EditarCanalArriendoDto": {
         "type": "object",
         "properties": {
           "nombre": {

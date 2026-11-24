@@ -66,7 +66,7 @@ export class PublicacionEntradaDto {
   @opcional({ type: PrecioDto }) @Allow() precio?: PrecioDto | null;
 }
 
-export class ContactoEntradaDto {
+export class ContactoPropiedadEntradaDto {
   @ApiProperty() @Allow() nombre!: string;
   @ApiPropertyOptional({ enum: ROLES_DE_CONTACTO, enumName: 'RolDeContacto' }) @Allow() rol?: string;
   @ApiPropertyOptional() @Allow() telefono?: string;
@@ -80,7 +80,9 @@ export class ContactoEntradaDto {
 export class CrearPropiedadDto extends DatosPropiedadEntradaDto {
   @ApiPropertyOptional({ enum: ESTADOS, enumName: 'EstadoPropiedad' }) @Allow() estado?: string;
   @ApiPropertyOptional({ type: PublicacionEntradaDto }) @Allow() publicacion?: PublicacionEntradaDto;
-  @ApiPropertyOptional({ type: [ContactoEntradaDto] }) @Allow() contactos?: ContactoEntradaDto[];
+  @ApiPropertyOptional({ type: [ContactoPropiedadEntradaDto] })
+  @Allow()
+  contactos?: ContactoPropiedadEntradaDto[];
   @ApiPropertyOptional() @Allow() nota?: string;
   @ApiPropertyOptional({ description: 'Une la publicación a esta propiedad en vez de crear otra' })
   @Allow()
@@ -101,9 +103,9 @@ export class CambiarEstadoPropiedadDto {
   @ApiPropertyOptional() @Allow() version?: number;
 }
 
-export class InteraccionEntradaDto {
+export class InteraccionArriendoEntradaDto {
   @ApiPropertyOptional() @Allow() contactoId?: string;
-  @ApiPropertyOptional({ type: ContactoEntradaDto }) @Allow() contacto?: ContactoEntradaDto;
+  @ApiPropertyOptional({ type: ContactoPropiedadEntradaDto }) @Allow() contacto?: ContactoPropiedadEntradaDto;
   @ApiProperty({ enum: TIPOS_DE_INTERACCION, enumName: 'TipoDeInteraccionArriendo' }) @Allow() tipo!: string;
   @ApiProperty() @Allow() resumen!: string;
   @ApiPropertyOptional({ format: 'date-time' }) @Allow() ocurridaEn?: string;
@@ -151,14 +153,16 @@ export class SenalArriendoEntradaDto {
   @ApiPropertyOptional({ format: 'date-time' }) @Allow() recibidaEn?: string;
   @ApiPropertyOptional() @Allow() direccion?: string;
   @ApiPropertyOptional() @Allow() comuna?: string;
-  @ApiPropertyOptional({ type: ContactoEntradaDto }) @Allow() contacto?: Partial<ContactoEntradaDto>;
+  @ApiPropertyOptional({ type: ContactoPropiedadEntradaDto })
+  @Allow()
+  contacto?: Partial<ContactoPropiedadEntradaDto>;
 }
 
 export class AsociarSenalArriendoDto {
   @ApiProperty() @IsString() propiedadId!: string;
 }
 
-export class CanalEntradaDto {
+export class CanalArriendoEntradaDto {
   @ApiPropertyOptional({ description: 'minúsculas y guiones; si falta sale del nombre' })
   @Allow()
   id?: string;
@@ -167,7 +171,7 @@ export class CanalEntradaDto {
   @ApiPropertyOptional({ type: [String] }) @Allow() dominios?: string[];
 }
 
-export class EditarCanalDto {
+export class EditarCanalArriendoDto {
   @ApiPropertyOptional() @Allow() nombre?: string;
   @ApiPropertyOptional({ enum: TIPOS_DE_CANAL, enumName: 'TipoDeCanalArriendo' }) @Allow() tipo?: string;
   @ApiPropertyOptional({ type: [String] }) @Allow() dominios?: string[];
@@ -446,7 +450,7 @@ export class SenalArriendoPendienteDto {
   @ApiProperty({ format: 'date-time' }) creadaEn!: string;
 }
 
-export class CanalDto {
+export class CanalArriendoDto {
   @ApiProperty() id!: string;
   @ApiProperty() nombre!: string;
   @ApiProperty({ enum: TIPOS_DE_CANAL, enumName: 'TipoDeCanalArriendo' }) tipo!: string;

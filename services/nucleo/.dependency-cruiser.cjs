@@ -22,7 +22,8 @@ module.exports = {
     },
     {
       name: 'arriendos-aparte',
-      comment: 'El contexto arriendos no importa empleo (postulaciones, red, csv): docs/diseno/arriendos.md A-D2',
+      comment:
+        'El contexto arriendos no importa empleo (postulaciones, red, csv): docs/diseno/arriendos.md A-D2',
       severity: 'error',
       from: { path: '/arriendos/' },
       to: { path: ['/postulaciones/', '/red/', '/csv/'] },

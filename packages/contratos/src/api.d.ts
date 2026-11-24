@@ -1051,11 +1051,8 @@ export interface components {
         /** @enum {string} */
         TipoDeCanal: "portal" | "email" | "formulario" | "referido";
         CanalEntradaDto: {
-            /** @description minúsculas y guiones; si falta sale del nombre */
-            id?: string;
-            nombre: string;
-            tipo?: components["schemas"]["TipoDeCanalArriendo"];
-            dominios?: string[];
+            tipo: components["schemas"]["TipoDeCanal"];
+            valor: string;
         };
         CrearPostulacionDto: {
             aviso: components["schemas"]["AvisoEntradaDto"];
@@ -1092,12 +1089,8 @@ export interface components {
             sueldoPublicado?: string;
         };
         CanalDto: {
-            id: string;
-            nombre: string;
-            tipo: components["schemas"]["TipoDeCanalArriendo"];
-            dominios: string[];
-            activo: boolean;
-            predefinido: boolean;
+            tipo: components["schemas"]["TipoDeCanal"];
+            valor: string;
         };
         DineroDto: {
             monto: number;
@@ -1286,15 +1279,9 @@ export interface components {
         };
         ContactoEntradaDto: {
             nombre: string;
-            rol?: components["schemas"]["RolDeContacto"];
-            telefono?: string;
-            correo?: string;
-            whatsapp?: string;
-            /** @description Formulario o link donde postulaste */
-            enlace?: string;
+            rol?: string;
+            email?: string;
             linkedin?: string;
-            /** @description Por dónde hablan (id de un canal) */
-            canalId?: string;
         };
         EntrevistaEntradaDto: {
             /** Format: date-time */
@@ -1522,13 +1509,10 @@ export interface components {
             desvincular?: string;
         };
         InteraccionEntradaDto: {
-            contactoId?: string;
-            contacto?: components["schemas"]["ContactoEntradaDto"];
-            tipo: components["schemas"]["TipoDeInteraccionArriendo"];
+            tipo: components["schemas"]["TipoDeInteraccion"];
             resumen: string;
             /** Format: date-time */
             ocurridaEn?: string;
-            canalId?: string;
             referenciaExterna?: string;
         };
         ImportarCsvDto: {
@@ -1667,6 +1651,20 @@ export interface components {
             url?: string;
             precio?: components["schemas"]["PrecioDto"] | null;
         };
+        /** @enum {string} */
+        RolDeContacto: "corredor" | "dueno" | "conserje" | "administracion" | "otro";
+        ContactoPropiedadEntradaDto: {
+            nombre: string;
+            rol?: components["schemas"]["RolDeContacto"];
+            telefono?: string;
+            correo?: string;
+            whatsapp?: string;
+            /** @description Formulario o link donde postulaste */
+            enlace?: string;
+            linkedin?: string;
+            /** @description Por dónde hablan (id de un canal) */
+            canalId?: string;
+        };
         CrearPropiedadDto: {
             tipo?: components["schemas"]["TipoDePropiedad"] | null;
             titulo?: string | null;
@@ -1688,7 +1686,7 @@ export interface components {
             requisitos?: components["schemas"]["RequisitosDto"] | null;
             estado?: components["schemas"]["EstadoPropiedad"];
             publicacion?: components["schemas"]["PublicacionEntradaDto"];
-            contactos?: components["schemas"]["ContactoEntradaDto"][];
+            contactos?: components["schemas"]["ContactoPropiedadEntradaDto"][];
             nota?: string;
             /** @description Une la publicación a esta propiedad en vez de crear otra */
             unirA?: string;
@@ -1708,8 +1706,6 @@ export interface components {
             /** Format: date-time */
             vistaEn: string;
         };
-        /** @enum {string} */
-        RolDeContacto: "corredor" | "dueno" | "conserje" | "administracion" | "otro";
         /** @enum {string} */
         TipoDeInteraccionArriendo: "mensaje_enviado" | "mensaje_recibido" | "llamada" | "nota";
         InteraccionArriendoDto: {
@@ -1880,6 +1876,16 @@ export interface components {
             contactoId: string;
             propiedad: components["schemas"]["PropiedadDetalleDto"];
         };
+        InteraccionArriendoEntradaDto: {
+            contactoId?: string;
+            contacto?: components["schemas"]["ContactoPropiedadEntradaDto"];
+            tipo: components["schemas"]["TipoDeInteraccionArriendo"];
+            resumen: string;
+            /** Format: date-time */
+            ocurridaEn?: string;
+            canalId?: string;
+            referenciaExterna?: string;
+        };
         InteraccionRegistradaDto: {
             registrada: boolean;
             propiedad: components["schemas"]["PropiedadDetalleDto"];
@@ -1916,7 +1922,7 @@ export interface components {
             recibidaEn?: string;
             direccion?: string;
             comuna?: string;
-            contacto?: components["schemas"]["ContactoEntradaDto"];
+            contacto?: components["schemas"]["ContactoPropiedadEntradaDto"];
         };
         ResultadoSenalArriendoDto: {
             /** @enum {string} */
@@ -1955,7 +1961,22 @@ export interface components {
         };
         /** @enum {string} */
         TipoDeCanalArriendo: "portal" | "mensajeria" | "correo" | "telefono" | "corredora" | "otro";
-        EditarCanalDto: {
+        CanalArriendoDto: {
+            id: string;
+            nombre: string;
+            tipo: components["schemas"]["TipoDeCanalArriendo"];
+            dominios: string[];
+            activo: boolean;
+            predefinido: boolean;
+        };
+        CanalArriendoEntradaDto: {
+            /** @description minúsculas y guiones; si falta sale del nombre */
+            id?: string;
+            nombre: string;
+            tipo?: components["schemas"]["TipoDeCanalArriendo"];
+            dominios?: string[];
+        };
+        EditarCanalArriendoDto: {
             nombre?: string;
             tipo?: components["schemas"]["TipoDeCanalArriendo"];
             dominios?: string[];
@@ -3752,7 +3773,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["ContactoEntradaDto"];
+                "application/json": components["schemas"]["ContactoPropiedadEntradaDto"];
             };
         };
         responses: {
@@ -3799,7 +3820,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["InteraccionEntradaDto"];
+                "application/json": components["schemas"]["InteraccionArriendoEntradaDto"];
             };
         };
         responses: {
@@ -4058,7 +4079,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["CanalDto"][];
+                    "application/json": components["schemas"]["CanalArriendoDto"][];
                 };
             };
         };
@@ -4072,7 +4093,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["CanalEntradaDto"];
+                "application/json": components["schemas"]["CanalArriendoEntradaDto"];
             };
         };
         responses: {
@@ -4081,7 +4102,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["CanalDto"];
+                    "application/json": components["schemas"]["CanalArriendoDto"];
                 };
             };
         };
@@ -4097,7 +4118,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["EditarCanalDto"];
+                "application/json": components["schemas"]["EditarCanalArriendoDto"];
             };
         };
         responses: {
@@ -4106,7 +4127,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["CanalDto"];
+                    "application/json": components["schemas"]["CanalArriendoDto"];
                 };
             };
         };
