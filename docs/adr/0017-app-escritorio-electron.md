@@ -17,3 +17,6 @@ Brecha corre en la máquina de cada persona con un modo liviano siempre y un mod
 - Windows queda al alcance: la interfaz y el supervisor ya son multiplataforma; lo caro es empaquetar PostgreSQL y Python para Windows, y se evalúa al cerrar F3.
 - F1 no cambia: se desarrolla con Docker y la consola corre en el navegador hasta que exista la app.
 - Electron suma un proceso de unos cientos de MB con la ventana cerrada; se mide en F3.
+
+## Actualización (24-nov-2026): Windows
+Windows resultó viable (D41): el supervisor ya distingue el sistema (`apps/escritorio/src/plataforma.ts`), PostgreSQL 17.12 viene de `@embedded-postgres/windows-x64` con pgvector compilado en el CI (no hay binario oficial), el servicio con IA se compila con PyInstaller en un runner Windows y el instalador es NSIS por usuario, sin firma (D42). Detalle en `docs/diseno/windows.md`.

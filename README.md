@@ -37,7 +37,22 @@ open apps/escritorio/empaquetado/app/*.dmg
 - En **Ajustes** guarda tu correo de Gmail con una contraseña de aplicación y tu llave de OpenAI: se prueban antes de guardarse, quedan en el llavero de macOS y nunca se muestran. macOS te pedirá una vez permiso para que Brecha lea el llavero.
 - Tus datos quedan en `~/Library/Application Support/Brecha` y los registros en `~/Library/Logs/Brecha`.
 - Si venías del entorno de desarrollo, abre la app una vez y trae tus datos de Docker con `node apps/escritorio/scripts/importar-desde-docker.mjs`.
-- Cerrar la ventana no apaga Brecha; para salir, usa «Salir de Brecha» en la barra de menú.
+- Cerrar la ventana no apaga Brecha; para salir, usa «Salir de Brecha» en la barra de menú (o `Brecha --salir` desde una terminal).
+
+## Instalar la app (Windows 10 u 11, x64)
+
+El instalador sale del CI: en la PR o en Actions → «App de escritorio», baja el artefacto `Brecha-Setup-windows` y descomprímelo. También se arma en un Windows con `pnpm --filter escritorio empaquetar` (hace falta Visual Studio con C++ y un PostgreSQL 17.12 con cabeceras para compilar pgvector: ver `apps/escritorio/scripts/compilar-pgvector-windows.ps1`).
+
+- Abre `Brecha-Setup-<versión>.exe`. Se instala solo para tu usuario en `%LOCALAPPDATA%\Programs\Brecha`, sin pedir clave de administrador, y abre Brecha al terminar.
+- No está firmado (decisión W-j de `docs/diseno/windows.md`): Windows muestra «Windows ha protegido su PC». Elige «Más información» y «Ejecutar de todos modos». Si el equipo tiene **Smart App Control** activado, lo bloquea sin esa opción: se apaga en Seguridad de Windows → Control de aplicaciones y del navegador (es tu decisión; hoy se puede volver a activar sin reinstalar Windows).
+- Brecha vive en la bandeja del sistema (al lado del reloj; puede estar en la flecha «^»). Clic abre la ventana; clic derecho, el menú.
+- En **Ajustes**, «Conectar con Gmail» te guía para crear una contraseña de aplicación; la llave de OpenAI va en la tarjeta de OpenAI. Las dos quedan en el Administrador de credenciales de Windows (credenciales genéricas `brecha-app`) y nunca se muestran.
+- Tus datos quedan en `%APPDATA%\Brecha` y los registros en `%APPDATA%\Brecha\logs`. PostgreSQL usa el puerto 5434 o, si está ocupado, otro libre (queda en `instancia\puertos.json`); el núcleo usa 4300 y la IA 4400.
+- Para conectar tu IA por MCP, el token está en `%APPDATA%\Brecha\instancia\token-mcp`. En PowerShell:
+
+```powershell
+claude mcp add --transport http --scope user brecha http://127.0.0.1:4300/mcp --header "Authorization: Bearer $(Get-Content $env:APPDATA\Brecha\instancia\token-mcp)"
+```
 
 ## Correrlo en desarrollo
 

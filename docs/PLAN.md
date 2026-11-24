@@ -160,6 +160,10 @@ Una pyme registra sus importaciones y las sigue por hitos, con RAG sobre normati
 | D38 | Alcance para cerrar el desarrollo | **F3 sin RabbitMQ más F7**: app de escritorio, Ajustes, notificaciones, validación con IA y hooks leyendo el outbox; instalador y README. F4 queda para después | Para una sola persona, el outbox ya garantiza que no se pierdan eventos |
 | D39 | Firma de la app | **Sin firma de Apple** (firma ad hoc) | Uso personal; macOS pregunta una vez por el acceso al llavero |
 | D40 | Red de LinkedIn | **Contactos, solicitudes y mensajes en el núcleo, ligados a postulaciones**, actualizados por la IA de la persona por MCP (LinkedIn no tiene API) | Pedido de Juan el 23-nov-2026: saber con quién habla en cada postulación y por qué vía |
+| D41 | Windows (D17) | **Sí, para Tamara**: instalador NSIS por usuario (sin administrador), PostgreSQL 17.12 de `@embedded-postgres/windows-x64` con pgvector compilado en el CI, `brecha-ia.exe` con PyInstaller y credenciales en el Administrador de credenciales | Pedido de Juan el 24-nov-2026. Plan y riesgos en `docs/diseno/windows.md` |
+| D42 | Firma del instalador de Windows | **Sin firma** | Azure Artifact Signing no acepta personas ni empresas de Chile; un certificado OV no quita el aviso de SmartScreen para una sola instalación. Smart App Control se revisa en el equipo |
+| D43 | CI de la app de escritorio | **Workflow «App de escritorio»** con jobs de Windows y macOS que arman la app, la instalan y la prueban (prueba de humo); el instalador y el .dmg quedan como artefactos | Corre en PRs que tocan la app, los servicios o la consola, y a mano |
+| D44 | Conectar Gmail | **Guía de 4 pasos en Ajustes** para la contraseña de aplicación; cada persona conecta su propia cuenta | La contraseña se prueba antes de guardarse y nunca vuelve a la pantalla, a archivos ni a registros |
 
 ### 6.1 D8: lo que pidió Juan después del checkpoint de F0
 
