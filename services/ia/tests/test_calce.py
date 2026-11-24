@@ -52,3 +52,13 @@ def test_anos_con_decimal_en_la_brecha() -> None:
     assert c is not None
     assert c.brechas == ("Python (0,5 de 2 años)",)
     assert c.puntaje == 25
+
+
+def test_una_herramienta_del_perfil_cubre_a_otra() -> None:
+    p = Perfil({"TypeScript": 2, "PostgreSQL": 1, "NestJS": 0.5}, 2)
+    c = calcular_calce(
+        p, [Requisito("JavaScript", True), Requisito("SQL", True), Requisito("Node.js", True, 1)]
+    )
+    assert c is not None
+    assert c.cumple == ("JavaScript", "SQL")
+    assert c.brechas == ("Node.js (0,5 de 1 año)",)

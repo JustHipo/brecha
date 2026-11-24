@@ -291,7 +291,10 @@ def filtros_de_la_pregunta(pregunta: str) -> FiltrosDeAvisos:
     minimo = None
     if usd and ("más de" in p or "mas de" in p or "sobre" in p or "mínimo" in p or "minimo" in p):
         minimo = int((usd.group(1) or usd.group(2)).replace(".", ""))
-    return FiltrosDeAvisos(modalidad=modalidad, usd_minimo=minimo, limite=K_RECUPERADOS)
+    por_calce = any(
+        x in p for x in ("calce", "calza", "encaj", "me conviene", "mejor para mí", "mejor para mi")
+    )
+    return FiltrosDeAvisos(modalidad=modalidad, usd_minimo=minimo, limite=K_RECUPERADOS, por_calce=por_calce)
 
 
 @dataclass(frozen=True)
@@ -339,7 +342,11 @@ class Preguntar(_ConTrazas):
             )
         )
         filtros = filtros_de_la_pregunta(pregunta)
-        recuperados = self.repo.cercanos(vector, K_RECUPERADOS, filtros)
+        recuperados = (
+            [g for g in self.repo.listar(filtros) if g.calce is not None]
+            if filtros.por_calce
+            else self.repo.cercanos(vector, K_RECUPERADOS, filtros)
+        )
         if not recuperados and (filtros.modalidad or filtros.usd_minimo):
             recuperados = self.repo.cercanos(vector, K_RECUPERADOS, FiltrosDeAvisos(limite=K_RECUPERADOS))
         if not recuperados:
@@ -353,6 +360,8 @@ class Preguntar(_ConTrazas):
                 g.aviso.sueldo,
                 g.aviso.stack,
                 g.aviso.texto[:1500],
+                g.calce.puntaje if g.calce else None,
+                g.calce.brechas[:6] if g.calce else (),
             )
             for g in recuperados
         ]

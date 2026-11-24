@@ -105,3 +105,20 @@ def test_vincular_a_mano(entorno) -> None:  # type: ignore[no-untyped-def]
     r = cliente.post(f"/api/ia/avisos/{id}/vincular", json={"postulacionId": "p2"}, headers=H)
     assert r.status_code == 200 and r.json()["postulacionId"] == "p2"
     assert ("p2", id, None) in nucleo.enviados
+
+
+def test_procesar_no_corre_dos_veces_a_la_vez(entorno) -> None:  # type: ignore[no-untyped-def]
+    from sqlalchemy import text as sql
+
+    from ia.entradas.servicios import CANDADO_AVISOS
+
+    url = os.environ.get("IA_DATABASE_URL_PRUEBAS") or cargar_config().ia_database_url.replace(
+        "/brecha", "/brecha_pruebas"
+    )
+    motor = crear_motor(url)
+    servicios = Servicios(CFG, LlaveroEnMemoria(), motor, modelo=ModeloFalso(), nucleo=NucleoFalso([]))
+    with motor.connect() as otro:
+        otro.execute(sql("SELECT pg_advisory_lock(:k)"), {"k": CANDADO_AVISOS})
+        assert servicios.procesar_avisos() == {"ocupado": True}
+        otro.execute(sql("SELECT pg_advisory_unlock(:k)"), {"k": CANDADO_AVISOS})
+    assert "ocupado" not in servicios.procesar_avisos()

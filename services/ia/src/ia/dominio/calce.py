@@ -54,6 +54,24 @@ def normalizar(herramienta: str) -> str:
     return ALIAS.get(t, t)
 
 
+# Un requisito (izquierda) se cumple con cualquiera de estas herramientas del perfil.
+CUBRE: dict[str, tuple[str, ...]] = {
+    "javascript": ("typescript",),
+    "node.js": ("nestjs", "fastify"),
+    "sql": ("postgresql", "mysql", "sql server", "oracle"),
+    "bases de datos relacionales": ("postgresql", "mysql", "sql server"),
+    "nosql": ("mongodb", "redis", "dynamodb"),
+    "ci/cd": ("github actions", "gitlab ci", "argo cd", "jenkins"),
+    "kubernetes": ("k8s",),
+    "contenedores": ("docker",),
+    "vue": ("nuxt",),
+    "llms": ("langchain", "langgraph"),
+    "ia generativa": ("langchain", "langgraph", "llms"),
+    "colas de mensajes": ("bullmq", "rabbitmq", "kafka"),
+    "observabilidad": ("grafana", "loki", "prometheus"),
+}
+
+
 @dataclass(frozen=True)
 class Requisito:
     nombre: str
@@ -69,11 +87,13 @@ class Perfil:
     anos_totales: float = 0
 
     def anos_en(self, herramienta: str) -> float | None:
+        """Años en esa herramienta o, si no la tiene, en la que la cubre (TypeScript cubre JavaScript)."""
         n = normalizar(herramienta)
-        for h, anos in self.herramientas.items():
-            if normalizar(h) == n:
-                return anos
-        return None
+        propias = {normalizar(h): anos for h, anos in self.herramientas.items()}
+        if n in propias:
+            return propias[n]
+        cubren = [propias[c] for c in CUBRE.get(n, ()) if c in propias]
+        return max(cubren) if cubren else None
 
 
 @dataclass(frozen=True)
@@ -106,7 +126,9 @@ def calcular_calce(perfil: Perfil, requisitos: list[Requisito]) -> Calce | None:
             continue
         if r.anos and tiene < r.anos:
             obtenido += peso * (tiene / r.anos)
-            con_menos_anos.append(f"{r.nombre} ({_anos(tiene)} de {r.anos} años)")
+            con_menos_anos.append(
+                f"{r.nombre} ({_anos(tiene)} de {r.anos} {'año' if r.anos == 1 else 'años'})"
+            )
         else:
             obtenido += peso
             cumple.append(r.nombre)

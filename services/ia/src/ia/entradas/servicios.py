@@ -4,7 +4,7 @@ from datetime import UTC, datetime
 from functools import cached_property
 from typing import Any
 
-from sqlalchemy import Engine
+from sqlalchemy import Engine, text
 
 from ia.aplicacion.casos.avisos import (
     AnalizarAvisos,
@@ -29,6 +29,8 @@ from ia.infraestructura.openai_modelo import ModeloOpenAI
 from ia.infraestructura.postgres.avisos import RepositorioPostgresDeAvisos, RepositorioPostgresDePerfil
 from ia.infraestructura.postgres.correos import TrazasPostgres
 from ia.infraestructura.postgres.motor import crear_motor
+
+CANDADO_AVISOS = 0x42524543  # «BREC»
 
 
 def ahora() -> datetime:
@@ -96,7 +98,20 @@ class Servicios:
         return {"encontrados": r.encontrados, "nuevos": r.nuevos, "error": r.error}
 
     def procesar_avisos(self) -> dict[str, Any]:
-        """Analiza, calcula el calce, indexa y liga con las postulaciones lo que falte."""
+        """Analiza, calcula el calce, indexa y liga con las postulaciones lo que falte.
+
+        Un candado de PostgreSQL evita que el vigía, la API y la línea de comandos procesen lo mismo a la vez
+        (cada uno pagaría el mismo análisis).
+        """
+        with self.motor.connect() as candado:
+            if not candado.execute(text("SELECT pg_try_advisory_lock(:k)"), {"k": CANDADO_AVISOS}).scalar():
+                return {"ocupado": True}
+            try:
+                return self._procesar_avisos()
+            finally:
+                candado.execute(text("SELECT pg_advisory_unlock(:k)"), {"k": CANDADO_AVISOS})
+
+    def _procesar_avisos(self) -> dict[str, Any]:
         salida: dict[str, Any] = {}
         if self.hay_modelo():
             m = self.modelo()

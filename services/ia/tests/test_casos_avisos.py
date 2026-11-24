@@ -148,3 +148,14 @@ def test_preguntar_con_filtro_de_modalidad() -> None:
     m = ModeloFalso()
     r = Preguntar(m, m, repo, Trazas(), lambda: AHORA, PRECIOS, 0.02).ejecutar("¿Hay algo presencial?")
     assert r.respuesta.citados == (b,)
+
+
+def test_preguntar_por_calce_ordena_por_calce() -> None:
+    repo, a, b = _preparado()
+    AnalizarAvisos(
+        ModeloFalso(), repo, PerfilFijo(Perfil({"Python": 3}, 3)), Trazas(), lambda: AHORA, PRECIOS
+    ).ejecutar()
+    m = ModeloFalso()
+    r = Preguntar(m, m, repo, Trazas(), lambda: AHORA, PRECIOS, 0.02).ejecutar("¿Cuál me calza mejor?")
+    assert r.respuesta.citados[0] in {a, b}
+    assert repo.d[b].calce is not None and repo.d[b].calce.puntaje == 100

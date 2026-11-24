@@ -83,6 +83,8 @@ Responde en español, breve y concreto, usando SOLO los avisos que se te entrega
 - citados: los ids de los avisos en los que se basa tu respuesta. Solo ids de la lista.
 - Si ningún aviso responde la pregunta, dilo con claridad y deja citados vacío. No inventes avisos ni datos.
 - Nombra los avisos por cargo y empresa; no muestres los ids en el texto.
+- Cada aviso puede traer «Calce» (0 a 100 %) y «Brechas» con el perfil de la persona, calculados por Brecha.
+  Si preguntan por calce o por lo que les falta, usa esos valores tal cual; no los recalcules ni los inventes.
 """
 
 
@@ -202,7 +204,9 @@ class ModeloOpenAI:
         bloques = [
             f"[id: {a.id}] {a.titulo} · {a.empresa} · {a.modalidad}"
             f"{' · ' + a.sueldo if a.sueldo else ''}\n"
-            f"Herramientas: {', '.join(a.stack) or 'no indica'}\n{a.texto}"
+            f"Herramientas: {', '.join(a.stack) or 'no indica'}\n"
+            f"Calce: {f'{a.calce} %' if a.calce is not None else 'sin calcular'}"
+            f"{' · Brechas: ' + ', '.join(a.brechas) if a.brechas else ''}\n{a.texto}"
             for a in avisos
         ]
         mensaje = f"Pregunta: {pregunta}\n\nAvisos:\n\n" + "\n\n---\n\n".join(bloques)

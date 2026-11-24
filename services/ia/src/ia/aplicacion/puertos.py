@@ -238,6 +238,7 @@ class FiltrosDeAvisos:
     calce_minimo: int | None = None
     usd_minimo: int | None = None
     limite: int = 200
+    por_calce: bool = False  # Preguntar: «¿cuál me calza mejor?» ordena por calce y no por parecido
 
 
 class RepositorioDeAvisos(Protocol):
@@ -283,6 +284,8 @@ class AvisoParaResponder:
     sueldo: str | None
     stack: tuple[str, ...]
     texto: str
+    calce: int | None = None  # calculado por el código (IAAPP-008): el modelo solo lo lee
+    brechas: tuple[str, ...] = ()
 
 
 class Respondedor(Protocol):

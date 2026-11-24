@@ -86,6 +86,12 @@ def avisos(args: argparse.Namespace, llavero: Credenciales) -> int:
             while True:  # de a 50 avisos por vuelta, hasta que no quede ninguno sin analizar
                 vuelta = s.procesar_avisos()
                 _imprimir(vuelta)
+                if vuelta.get("ocupado"):
+                    print(
+                        "El vigía está procesando avisos ahora: vuelve a intentarlo en un rato.",
+                        file=sys.stderr,
+                    )
+                    break
                 analisis = vuelta.get("analisis") or {}
                 if not analisis.get("analizados") or analisis.get("error"):
                     break
