@@ -387,7 +387,7 @@ test('Conectar con Gmail: la guía de 4 pasos, un rechazo y la cuenta conectada'
   await guia.getByRole('button', { name: 'Ya lo hice, siguiente' }).click();
   await expect(guia.getByText('Escribe «Brecha» como nombre de la app')).toBeVisible();
   await guia.getByRole('button', { name: 'Ya lo hice, siguiente' }).click();
-  await expect(guia.getByText('Paso 4 de 4', { exact: true })).toBeVisible();
+  await expect(guia.getByRole('heading', { name: 'Pega la contraseña aquí' })).toBeFocused();
   await sinViolaciones(page);
 
   await guia.getByLabel('Tu correo de Gmail').fill('tamara@gmail.com');
