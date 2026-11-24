@@ -119,6 +119,18 @@
             }
           },
           {
+            "name": "etiqueta",
+            "required": false,
+            "in": "query",
+            "description": "Etiquetas que debe tener (todas); varias separadas por coma",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          {
             "name": "q",
             "required": false,
             "in": "query",
@@ -270,7 +282,20 @@
     "/api/v1/postulaciones/tablero": {
       "get": {
         "operationId": "verTablero",
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "etiqueta",
+            "required": false,
+            "in": "query",
+            "description": "Etiquetas que debe tener (todas); varias separadas por coma",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "",
@@ -278,6 +303,16 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/TableroDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "VALIDACION",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDto"
                 }
               }
             }
@@ -299,6 +334,46 @@
           }
         ],
         "summary": "Tarjetas por estado, ordenadas por prioridad, cierre y actualización",
+        "tags": [
+          "postulaciones"
+        ]
+      }
+    },
+    "/api/v1/postulaciones/etiquetas": {
+      "get": {
+        "operationId": "etiquetasEnUso",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/EtiquetaEnUsoDto"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "NO_AUTENTICADO",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Etiquetas en uso, de la más usada a la menos",
         "tags": [
           "postulaciones"
         ]
@@ -2175,6 +2250,21 @@
               }
             ]
           },
+          "prioridadFijada": {
+            "nullable": true,
+            "description": "La que fijó la persona; null si la calcula el núcleo",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Prioridad"
+              }
+            ]
+          },
+          "etiquetas": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
           "fechaPostulacion": {
             "type": "string",
             "format": "date",
@@ -2213,6 +2303,8 @@
           "diasAlCierre",
           "estado",
           "prioridad",
+          "prioridadFijada",
+          "etiquetas",
           "fechaPostulacion",
           "senalesNuevas",
           "discrepanciasAbiertas",
@@ -2329,6 +2421,21 @@
           "columnas"
         ]
       },
+      "EtiquetaEnUsoDto": {
+        "type": "object",
+        "properties": {
+          "etiqueta": {
+            "type": "string"
+          },
+          "total": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "etiqueta",
+          "total"
+        ]
+      },
       "ElementoResumenDto": {
         "type": "object",
         "properties": {
@@ -2412,6 +2519,24 @@
             "type": "string",
             "format": "date",
             "nullable": true
+          },
+          "stack": {
+            "maxItems": 40,
+            "description": "Herramientas que pide el aviso",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "requisitos": {
+            "type": "string",
+            "maxLength": 5000,
+            "description": "Requisitos en texto libre"
+          },
+          "sueldoPublicado": {
+            "type": "string",
+            "maxLength": 200,
+            "description": "Sueldo tal como lo publica el aviso"
           }
         },
         "required": [
@@ -2531,6 +2656,23 @@
           },
           "canal": {
             "$ref": "#/components/schemas/CanalEntradaDto"
+          },
+          "etiquetas": {
+            "maxItems": 20,
+            "description": "Se guardan en minúsculas y sin tildes",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "prioridad": {
+            "type": "string",
+            "enum": [
+              "alta",
+              "media",
+              "baja"
+            ],
+            "description": "Sin ella, la calcula el núcleo (R12)"
           }
         },
         "required": [
@@ -2575,6 +2717,18 @@
           },
           "calce": {
             "type": "number"
+          },
+          "stack": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "requisitos": {
+            "type": "string"
+          },
+          "sueldoPublicado": {
+            "type": "string"
           }
         },
         "required": [
@@ -2994,6 +3148,21 @@
               }
             ]
           },
+          "prioridadFijada": {
+            "nullable": true,
+            "description": "La que fijó la persona; null si la calcula el núcleo",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Prioridad"
+              }
+            ]
+          },
+          "etiquetas": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
           "fechaPostulacion": {
             "type": "string",
             "format": "date",
@@ -3096,6 +3265,8 @@
           "diasAlCierre",
           "estado",
           "prioridad",
+          "prioridadFijada",
+          "etiquetas",
           "fechaPostulacion",
           "senalesNuevas",
           "discrepanciasAbiertas",
@@ -3210,6 +3381,44 @@
             "format": "date",
             "nullable": true,
             "description": "Cierre del aviso; null lo borra"
+          },
+          "etiquetas": {
+            "maxItems": 20,
+            "description": "Se guardan en minúsculas y sin tildes",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "prioridad": {
+            "type": "string",
+            "enum": [
+              "alta",
+              "media",
+              "baja"
+            ],
+            "nullable": true,
+            "description": "Fija la prioridad mientras la postulación esté abierta; null vuelve a la calculada"
+          },
+          "stack": {
+            "maxItems": 40,
+            "description": "Reemplaza el stack del aviso",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "requisitos": {
+            "type": "string",
+            "maxLength": 5000,
+            "nullable": true,
+            "description": "null lo borra"
+          },
+          "sueldoPublicado": {
+            "type": "string",
+            "maxLength": 200,
+            "nullable": true,
+            "description": "null lo borra"
           }
         },
         "required": [

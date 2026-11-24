@@ -19,6 +19,8 @@ function tarjeta(extra: Partial<Resumen> = {}): Resumen {
     diasAlCierre: null,
     estado: 'sin_decidir',
     prioridad: 'media',
+    prioridadFijada: null,
+    etiquetas: [],
     fechaPostulacion: null,
     senalesNuevas: 0,
     discrepanciasAbiertas: 0,

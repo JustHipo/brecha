@@ -64,12 +64,22 @@ export class ConsultasEnMemoria implements ConsultasDePostulaciones {
       .filter((r) => !f.estados || f.estados.includes(r.estado))
       .filter((r) => !f.plataformas || f.plataformas.includes(r.plataforma))
       .filter((r) => !f.prioridades || f.prioridades.includes(r.prioridad))
+      .filter((r) => !f.etiquetas || f.etiquetas.every((e) => r.etiquetas.includes(e)))
       .filter((r) => !f.q || `${r.titulo} ${r.empresa}`.toLowerCase().includes(f.q.toLowerCase()))
       .sort((a, b) => b.actualizadaEn.localeCompare(a.actualizadaEn) || a.id.localeCompare(b.id));
     return { items: items.slice(p.offset, p.offset + p.limit), total: items.length };
   }
-  async tablero() {
-    const resumenes = this.todas().map((d) => aResumen(d, this.reloj));
+  async etiquetasEnUso() {
+    const conteo = new Map<string, number>();
+    for (const d of this.todas()) for (const e of d.etiquetas) conteo.set(e, (conteo.get(e) ?? 0) + 1);
+    return [...conteo]
+      .map(([etiqueta, total]) => ({ etiqueta, total }))
+      .sort((a, b) => b.total - a.total || a.etiqueta.localeCompare(b.etiqueta));
+  }
+  async tablero(f: { etiquetas?: string[] } = {}) {
+    const resumenes = this.todas()
+      .map((d) => aResumen(d, this.reloj))
+      .filter((r) => !f.etiquetas || f.etiquetas.every((e) => r.etiquetas.includes(e)));
     const estados = [
       'sin_decidir',
       'por_postular',

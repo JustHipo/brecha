@@ -89,6 +89,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/postulaciones/etiquetas": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Etiquetas en uso, de la más usada a la menos */
+        get: operations["etiquetasEnUso"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/postulaciones/resumen": {
         parameters: {
             query?: never;
@@ -501,6 +518,9 @@ export interface components {
             diasAlCierre: number | null;
             estado: components["schemas"]["EstadoPostulacion"];
             prioridad: components["schemas"]["Prioridad"];
+            /** @description La que fijó la persona; null si la calcula el núcleo */
+            prioridadFijada: components["schemas"]["Prioridad"] | null;
+            etiquetas: string[];
             /** Format: date */
             fechaPostulacion: string | null;
             /** @description Señales sin aplicar */
@@ -535,6 +555,10 @@ export interface components {
         TableroDto: {
             columnas: components["schemas"]["ColumnaTableroDto"][];
         };
+        EtiquetaEnUsoDto: {
+            etiqueta: string;
+            total: number;
+        };
         ElementoResumenDto: {
             postulacionId: string;
             empresa: string;
@@ -556,6 +580,12 @@ export interface components {
             ubicacion?: string;
             /** Format: date */
             cierre?: string | null;
+            /** @description Herramientas que pide el aviso */
+            stack?: string[];
+            /** @description Requisitos en texto libre */
+            requisitos?: string;
+            /** @description Sueldo tal como lo publica el aviso */
+            sueldoPublicado?: string;
         };
         /** @enum {string} */
         Moneda: "CLP" | "USD";
@@ -586,6 +616,13 @@ export interface components {
             /** Format: date */
             fechaPostulacion?: string;
             canal?: components["schemas"]["CanalEntradaDto"];
+            /** @description Se guardan en minúsculas y sin tildes */
+            etiquetas?: string[];
+            /**
+             * @description Sin ella, la calcula el núcleo (R12)
+             * @enum {string}
+             */
+            prioridad?: "alta" | "media" | "baja";
         };
         AvisoDto: {
             titulo: string;
@@ -598,6 +635,9 @@ export interface components {
             cierre?: string;
             avisoId?: string;
             calce?: number;
+            stack?: string[];
+            requisitos?: string;
+            sueldoPublicado?: string;
         };
         CanalDto: {
             tipo: components["schemas"]["TipoDeCanal"];
@@ -696,6 +736,9 @@ export interface components {
             diasAlCierre: number | null;
             estado: components["schemas"]["EstadoPostulacion"];
             prioridad: components["schemas"]["Prioridad"];
+            /** @description La que fijó la persona; null si la calcula el núcleo */
+            prioridadFijada: components["schemas"]["Prioridad"] | null;
+            etiquetas: string[];
             /** Format: date */
             fechaPostulacion: string | null;
             /** @description Señales sin aplicar */
@@ -754,6 +797,19 @@ export interface components {
              * @description Cierre del aviso; null lo borra
              */
             cierre?: string | null;
+            /** @description Se guardan en minúsculas y sin tildes */
+            etiquetas?: string[];
+            /**
+             * @description Fija la prioridad mientras la postulación esté abierta; null vuelve a la calculada
+             * @enum {string|null}
+             */
+            prioridad?: "alta" | "media" | "baja" | null;
+            /** @description Reemplaza el stack del aviso */
+            stack?: string[];
+            /** @description null lo borra */
+            requisitos?: string | null;
+            /** @description null lo borra */
+            sueldoPublicado?: string | null;
         };
         TransicionDto: {
             a: components["schemas"]["EstadoPostulacion"];
@@ -1085,6 +1141,8 @@ export interface operations {
                 plataforma?: string[];
                 /** @description alta, media o baja; varias separadas por coma */
                 prioridad?: string[];
+                /** @description Etiquetas que debe tener (todas); varias separadas por coma */
+                etiqueta?: string[];
                 /** @description Texto en título o empresa */
                 q?: string;
                 limit?: number;
@@ -1185,7 +1243,10 @@ export interface operations {
     };
     verTablero: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description Etiquetas que debe tener (todas); varias separadas por coma */
+                etiqueta?: string[];
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -1198,6 +1259,43 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["TableroDto"];
+                };
+            };
+            /** @description VALIDACION */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorDto"];
+                };
+            };
+            /** @description NO_AUTENTICADO */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorDto"];
+                };
+            };
+        };
+    };
+    etiquetasEnUso: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EtiquetaEnUsoDto"][];
                 };
             };
             /** @description NO_AUTENTICADO */

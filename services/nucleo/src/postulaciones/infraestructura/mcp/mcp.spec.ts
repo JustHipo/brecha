@@ -58,6 +58,7 @@ describe('servidor MCP por HTTP (F1-10c)', () => {
         'exportar',
         'editar_contacto_red',
         'listar_bandeja',
+        'listar_etiquetas',
         'listar_discrepancias',
         'listar_postulaciones',
         'listar_red',
@@ -176,5 +177,36 @@ describe('servidor MCP por HTTP (F1-10c)', () => {
     })) as Texto;
     expect(malo.isError).toBe(true);
     await c.close();
+  });
+
+  it('etiquetas: crear con etiquetas y stack, filtrar, listar las en uso y editar la prioridad', async () => {
+    const c = await cliente(t.token('mcp'));
+    const creada = json(
+      await c.callTool({
+        name: 'crear_postulacion',
+        arguments: {
+          titulo: 'Práctica en óptica',
+          empresa: 'Observatorio Ficticio',
+          url: 'https://ejemplo.test/practica',
+          plataforma: 'otra',
+          stack: ['Python'],
+          etiquetas: ['Investigación'],
+        },
+      }),
+    );
+    expect(creada).toMatchObject({ etiquetas: ['investigacion'], aviso: { stack: ['Python'] } });
+    const lista = json(
+      await c.callTool({ name: 'listar_postulaciones', arguments: { etiquetas: ['investigación'] } }),
+    );
+    expect(lista.total).toBe(1);
+    const enUso = json(await c.callTool({ name: 'listar_etiquetas', arguments: {} }));
+    expect(enUso).toEqual([{ etiqueta: 'investigacion', total: 1 }]);
+    const editada = json(
+      await c.callTool({
+        name: 'editar_postulacion',
+        arguments: { id: creada.id, version: creada.version, prioridad: 'alta', etiquetas: ['practica'] },
+      }),
+    );
+    expect(editada).toMatchObject({ prioridad: 'alta', prioridadFijada: 'alta', etiquetas: ['practica'] });
   });
 });

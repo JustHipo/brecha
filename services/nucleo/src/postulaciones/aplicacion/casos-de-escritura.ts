@@ -1,3 +1,4 @@
+import type { Prioridad } from '../../compartido/dominio/evento-de-dominio';
 import type { Fecha } from '../../compartido/dominio/puertos';
 import { DatoInvalido, SenalDuplicada } from '../dominio/errores';
 import type { EstadoPostulacion } from '../dominio/estado';
@@ -37,8 +38,13 @@ export class CrearPostulacion {
       modalidad?: string;
       ubicacion?: string;
       cierre?: string | null;
+      stack?: readonly string[];
+      requisitos?: string;
+      sueldoPublicado?: string;
     };
     estado?: EstadoPostulacion;
+    etiquetas?: string[];
+    prioridad?: Prioridad;
     sueldoPretendido?: EntradaDinero;
     fechaPostulacion?: Fecha;
     canal?: EntradaCanal;
@@ -53,6 +59,8 @@ export class CrearPostulacion {
         ...(e.fechaPostulacion ? { fechaPostulacion: e.fechaPostulacion } : {}),
         ...(e.canal ? { canal: crearCanal(e.canal) } : {}),
         ...(e.motivo ? { motivo: e.motivo } : {}),
+        ...(e.etiquetas ? { etiquetas: e.etiquetas } : {}),
+        ...(e.prioridad ? { prioridadFijada: e.prioridad } : {}),
         origen: e.origen,
       },
       deps(this.c),
@@ -101,8 +109,18 @@ export class EditarPostulacion {
     canal?: EntradaCanal;
     sueldoPretendido?: EntradaDinero | null;
     cierre?: Fecha | null;
+    etiquetas?: string[];
+    prioridad?: Prioridad | null;
+    stack?: string[];
+    requisitos?: string | null;
+    sueldoPublicado?: string | null;
   }): Promise<VistaDetalle> {
     const cambios = {
+      ...(e.etiquetas !== undefined ? { etiquetas: e.etiquetas } : {}),
+      ...(e.prioridad !== undefined ? { prioridad: e.prioridad } : {}),
+      ...(e.stack !== undefined ? { stack: e.stack } : {}),
+      ...(e.requisitos !== undefined ? { requisitos: e.requisitos } : {}),
+      ...(e.sueldoPublicado !== undefined ? { sueldoPublicado: e.sueldoPublicado } : {}),
       ...(e.canal ? { canal: crearCanal(e.canal) } : {}),
       ...(e.sueldoPretendido === null
         ? { sueldoPretendido: null }

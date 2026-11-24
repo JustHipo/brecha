@@ -36,6 +36,32 @@ export interface AvisoResumen {
   readonly cierre?: Fecha;
   readonly avisoId?: string;
   readonly calce?: number;
+  /** Herramientas que pide el aviso (csv.md §4.1); vacío o ausente si no las trae. */
+  readonly stack?: readonly string[];
+  /** Requisitos en texto libre, tal como los copió la persona. */
+  readonly requisitos?: string;
+  /** Sueldo tal como lo publica el aviso (no es el sueldo pretendido). */
+  readonly sueldoPublicado?: string;
+}
+
+export const MAX_STACK = 40;
+
+/** Herramientas del aviso: sin vacías ni repetidas (sin distinguir mayúsculas), cada una hasta 60 caracteres. */
+export function crearStack(valor: unknown): string[] {
+  if (valor === undefined || valor === null) return [];
+  if (!Array.isArray(valor)) throw new DatoInvalido('aviso.stack', 'El stack va en una lista');
+  const salida: string[] = [];
+  for (const v of valor) {
+    if (typeof v !== 'string') throw new DatoInvalido('aviso.stack', 'Cada herramienta es un texto');
+    const h = v.replace(/\s+/g, ' ').trim();
+    if (!h) continue;
+    if (h.length > 60)
+      throw new DatoInvalido('aviso.stack', `Una herramienta admite hasta 60 caracteres: «${h}»`);
+    if (!salida.some((x) => x.toLowerCase() === h.toLowerCase())) salida.push(h);
+  }
+  if (salida.length > MAX_STACK)
+    throw new DatoInvalido('aviso.stack', `El stack admite hasta ${MAX_STACK} herramientas`);
+  return salida;
 }
 
 export interface Canal {
@@ -72,7 +98,7 @@ export function textoObligatorio(campo: string, valor: unknown, max = 500): stri
   return limpio;
 }
 
-function textoOpcional(campo: string, valor: unknown, max = 500): string | undefined {
+export function textoOpcional(campo: string, valor: unknown, max = 500): string | undefined {
   if (valor === undefined || valor === null || valor === '') return undefined;
   return textoObligatorio(campo, valor, max);
 }
@@ -93,6 +119,9 @@ export function crearAvisoResumen(d: {
   cierre?: unknown;
   avisoId?: unknown;
   calce?: unknown;
+  stack?: unknown;
+  requisitos?: unknown;
+  sueldoPublicado?: unknown;
 }): AvisoResumen {
   const url = textoObligatorio('aviso.url', d.url, 2000);
   let parsed: URL;
@@ -117,6 +146,9 @@ export function crearAvisoResumen(d: {
       throw new DatoInvalido('aviso.calce', 'El calce va de 0 a 1');
     calce = d.calce;
   }
+  const stack = crearStack(d.stack);
+  const requisitos = textoOpcional('aviso.requisitos', d.requisitos, 5000);
+  const sueldoPublicado = textoOpcional('aviso.sueldoPublicado', d.sueldoPublicado, 200);
   return {
     titulo: textoObligatorio('aviso.titulo', d.titulo, 300),
     empresa: textoObligatorio('aviso.empresa', d.empresa, 200),
@@ -127,6 +159,9 @@ export function crearAvisoResumen(d: {
     ...(cierre ? { cierre } : {}),
     ...(d.avisoId ? { avisoId: textoObligatorio('aviso.avisoId', d.avisoId, 100) } : {}),
     ...(calce !== undefined ? { calce } : {}),
+    ...(stack.length ? { stack } : {}),
+    ...(requisitos ? { requisitos } : {}),
+    ...(sueldoPublicado ? { sueldoPublicado } : {}),
   };
 }
 

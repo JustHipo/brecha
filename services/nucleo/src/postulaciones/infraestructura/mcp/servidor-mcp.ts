@@ -2,6 +2,7 @@ import { McpServer, ResourceTemplate } from '@modelcontextprotocol/sdk/server/mc
 import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
 import { z } from 'zod';
 import { ErrorDeDominio } from '../../../compartido/dominio/error-de-dominio';
+import { PRIORIDADES } from '../../../compartido/dominio/evento-de-dominio';
 import { ESTADOS } from '../../dominio/estado';
 import { MODALIDADES, MONEDAS, PLATAFORMAS, TIPOS_DE_CANAL } from '../../dominio/objetos-valor/valores';
 import { FUENTES_DE_SENAL, TIPOS_DE_ENTREVISTA } from '../../dominio/partes';
@@ -25,9 +26,19 @@ function ok(texto: string, datos?: unknown): CallToolResult {
 }
 
 function linea(
-  p: VistaDetalle | { empresa: string; titulo: string; estado: string; prioridad: string; id: string },
+  p:
+    | VistaDetalle
+    | {
+        empresa: string;
+        titulo: string;
+        estado: string;
+        prioridad: string;
+        id: string;
+        etiquetas?: string[];
+      },
 ) {
-  return `${p.empresa} · ${p.titulo} · ${p.estado} · prioridad ${p.prioridad} · id ${p.id}`;
+  const etiquetas = p.etiquetas?.length ? ` · #${p.etiquetas.join(' #')}` : '';
+  return `${p.empresa} · ${p.titulo} · ${p.estado} · prioridad ${p.prioridad}${etiquetas} · id ${p.id}`;
 }
 
 /** Corre un caso de uso y convierte los errores al mismo `codigo` que REST (ADR 0012). */
@@ -67,11 +78,15 @@ export function crearServidorMcp(casos: CasosDeUso, red?: CasosDeRed): McpServer
     {
       title: 'Listar postulaciones',
       description:
-        'Lista postulaciones con filtros opcionales. Devuelve id, empresa, título, estado, prioridad y versión.',
+        'Lista postulaciones con filtros opcionales. Devuelve id, empresa, título, estado, prioridad, etiquetas y versión.',
       inputSchema: {
         estados: z.array(estado).optional(),
         plataformas: z.array(z.enum(PLATAFORMAS)).optional(),
-        prioridades: z.array(z.enum(['alta', 'media', 'baja'])).optional(),
+        prioridades: z.array(z.enum(PRIORIDADES)).optional(),
+        etiquetas: z
+          .array(z.string())
+          .optional()
+          .describe('Debe tener todas (se comparan en minúsculas y sin tildes)'),
         q: z.string().optional().describe('Texto en título o empresa'),
         limit: z.number().int().min(1).max(200).optional(),
         offset: z.number().int().min(0).optional(),
@@ -85,6 +100,21 @@ export function crearServidorMcp(casos: CasosDeUso, red?: CasosDeRed): McpServer
           `${r.total} postulaciones (mostrando ${r.items.length}):\n${r.items.map(linea).join('\n')}`,
           r,
         );
+      }),
+  );
+
+  s.registerTool(
+    'listar_etiquetas',
+    {
+      title: 'Listar etiquetas',
+      description: 'Etiquetas en uso con cuántas postulaciones tiene cada una, de la más usada a la menos.',
+      inputSchema: {},
+      annotations: lectura,
+    },
+    () =>
+      correr(async () => {
+        const r = await casos.etiquetas.ejecutar();
+        return ok(r.length ? r.map((x) => `#${x.etiqueta} (${x.total})`).join('\n') : 'Sin etiquetas', r);
       }),
   );
 
@@ -119,16 +149,23 @@ export function crearServidorMcp(casos: CasosDeUso, red?: CasosDeRed): McpServer
         estado: z.enum(['sin_decidir', 'por_postular', 'postulado']).optional(),
         fechaPostulacion: fecha.optional(),
         canal: canal.optional(),
+        stack: z.array(z.string()).optional().describe('Herramientas que pide el aviso'),
+        requisitos: z.string().optional().describe('Requisitos en texto libre'),
+        sueldoPublicado: z.string().optional().describe('Sueldo tal como lo publica el aviso'),
+        etiquetas: z.array(z.string()).optional(),
+        prioridad: z.enum(PRIORIDADES).optional().describe('Sin ella, la calcula el núcleo'),
       },
     },
     (a) =>
       correr(async () => {
-        const { estado: e, fechaPostulacion, canal: c, ...aviso } = a;
+        const { estado: e, fechaPostulacion, canal: c, etiquetas, prioridad, ...aviso } = a;
         const d = await casos.crear.ejecutar({
           aviso,
           ...(e ? { estado: e } : {}),
           ...(fechaPostulacion ? { fechaPostulacion } : {}),
           ...(c ? { canal: c } : {}),
+          ...(etiquetas ? { etiquetas } : {}),
+          ...(prioridad ? { prioridad } : {}),
           origen: 'ia',
         });
         return ok(`Creada: ${linea(d)}`, d);
@@ -164,7 +201,8 @@ export function crearServidorMcp(casos: CasosDeUso, red?: CasosDeRed): McpServer
     'editar_postulacion',
     {
       title: 'Editar postulación',
-      description: 'Edita canal, sueldo pretendido o cierre del aviso (null borra). Pide la versión actual.',
+      description:
+        'Edita canal, sueldo pretendido, cierre, etiquetas (reemplaza la lista), prioridad fijada, stack, requisitos o sueldo publicado (null borra o vuelve a la calculada). Pide la versión actual.',
       inputSchema: {
         id: z.string(),
         version: z.number().int(),
@@ -179,6 +217,11 @@ export function crearServidorMcp(casos: CasosDeUso, red?: CasosDeRed): McpServer
           .nullable()
           .optional(),
         cierre: fecha.nullable().optional(),
+        etiquetas: z.array(z.string()).optional().describe('La lista completa: reemplaza la anterior'),
+        prioridad: z.enum(PRIORIDADES).nullable().optional().describe('null vuelve a la calculada'),
+        stack: z.array(z.string()).optional(),
+        requisitos: z.string().nullable().optional(),
+        sueldoPublicado: z.string().nullable().optional(),
       },
     },
     (a) => correr(async () => ok('Editada', await casos.editar.ejecutar(a))),

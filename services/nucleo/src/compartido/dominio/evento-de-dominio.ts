@@ -1,4 +1,5 @@
-export type Prioridad = 'alta' | 'media' | 'baja';
+export const PRIORIDADES = ['alta', 'media', 'baja'] as const;
+export type Prioridad = (typeof PRIORIDADES)[number];
 
 export interface EventoDeDominio<D extends object = object> {
   readonly tipo: string;

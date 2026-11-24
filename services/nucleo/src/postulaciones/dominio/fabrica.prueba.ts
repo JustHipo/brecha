@@ -25,6 +25,7 @@ export function enEstado(
     estado,
     fechaPostulacion: '2026-11-10',
     canal: { tipo: 'portal', valor: 'Get on Board' },
+    etiquetas: [],
     contactos: [],
     entrevistas: [],
     notas: [],
@@ -35,5 +36,5 @@ export function enEstado(
     creadaEn: ahora,
     actualizadaEn: ahora,
     ...extra,
-  });
+  } as PostulacionDatos);
 }

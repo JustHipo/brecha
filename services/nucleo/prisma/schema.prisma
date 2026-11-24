@@ -20,6 +20,14 @@ model Postulacion {
   avisoCierre      DateTime? @map("aviso_cierre") @db.Date
   avisoIdMercado   String?   @map("aviso_id_mercado")
   avisoCalce       Decimal?  @map("aviso_calce") @db.Decimal(4, 3)
+  /// Herramientas que pide el aviso (csv.md §4.1).
+  avisoStack       String[]  @default([]) @map("aviso_stack")
+  avisoRequisitos  String?   @map("aviso_requisitos")
+  avisoSueldoPublicado String? @map("aviso_sueldo_publicado")
+  /// Etiquetas normalizadas (minúsculas, sin tildes).
+  etiquetas        String[]  @default([])
+  /// Prioridad fijada a mano; null = la calcula R12.
+  prioridadFijada  String?   @map("prioridad_fijada")
   estado           String
   canalTipo        String?   @map("canal_tipo")
   canalValor       String?   @map("canal_valor")
@@ -43,6 +51,7 @@ model Postulacion {
 
   @@index([estado])
   @@index([actualizadaEn])
+  @@index([etiquetas], type: Gin)
   @@map("postulacion")
 }
 

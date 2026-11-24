@@ -1,3 +1,4 @@
+import type { Prioridad } from '../../../compartido/dominio/evento-de-dominio';
 import type { Fecha } from '../../../compartido/dominio/puertos';
 import type { EstadoPostulacion } from '../../dominio/estado';
 import type { Dinero, Modalidad, Origen, Plataforma, TipoDeCanal } from '../../dominio/objetos-valor/valores';
@@ -52,7 +53,12 @@ export function filaADatos(f: FilaCompleta): PostulacionDatos {
       ...(f.avisoCierre ? { cierre: aFecha(f.avisoCierre) } : {}),
       ...(f.avisoIdMercado ? { avisoId: f.avisoIdMercado } : {}),
       ...(f.avisoCalce !== null ? { calce: Number(f.avisoCalce) } : {}),
+      ...(f.avisoStack?.length ? { stack: f.avisoStack } : {}),
+      ...(f.avisoRequisitos ? { requisitos: f.avisoRequisitos } : {}),
+      ...(f.avisoSueldoPublicado ? { sueldoPublicado: f.avisoSueldoPublicado } : {}),
     },
+    etiquetas: f.etiquetas ?? [],
+    ...(f.prioridadFijada ? { prioridadFijada: f.prioridadFijada as Prioridad } : {}),
     estado: f.estado as EstadoPostulacion,
     ...(f.canalTipo && f.canalValor
       ? { canal: { tipo: f.canalTipo as TipoDeCanal, valor: f.canalValor } }
@@ -133,6 +139,11 @@ export function datosAFila(d: PostulacionDatos) {
     avisoCierre: d.aviso.cierre ? deFecha(d.aviso.cierre) : null,
     avisoIdMercado: d.aviso.avisoId ?? null,
     avisoCalce: d.aviso.calce ?? null,
+    avisoStack: [...(d.aviso.stack ?? [])],
+    avisoRequisitos: d.aviso.requisitos ?? null,
+    avisoSueldoPublicado: d.aviso.sueldoPublicado ?? null,
+    etiquetas: d.etiquetas,
+    prioridadFijada: d.prioridadFijada ?? null,
     estado: d.estado,
     canalTipo: d.canal?.tipo ?? null,
     canalValor: d.canal?.valor ?? null,
