@@ -83,4 +83,39 @@ describe('red de LinkedIn por REST', () => {
       .expect(201);
     expect(otra.body.agregada).toBe(false);
   });
+
+  it('el aviso por correo con el perfil público encuentra al contacto guardado con el id interno', async () => {
+    const servicio = (r: request.Test) => r.set('Authorization', `Bearer ${t.token('servicio')}`);
+    const interno = 'https://www.linkedin.com/in/ACoAAAwkuRkBqT_8Vxgn';
+    const c = await auth(http.post('/api/v1/red'))
+      .send({ nombre: 'Felipe Lizama', perfilUrl: interno })
+      .expect(201);
+    // El servicio con IA registra el contacto del aviso con la URL pública y el nombre como lo escribe LinkedIn.
+    const r = await servicio(http.post('/api/v1/red'))
+      .send({
+        nombre: 'Felipe  Lizama',
+        perfilUrl: 'https://www.linkedin.com/in/felipe-lizama-24929158',
+        titular: 'Senior Tech Recruiter',
+      })
+      .expect(201);
+    expect(r.body).toMatchObject({
+      id: c.body.id,
+      nuevo: false,
+      perfilUrl: interno,
+      titular: 'Senior Tech Recruiter',
+    });
+    expect((await auth(http.get('/api/v1/red')).expect(200)).body.items).toHaveLength(1);
+
+    // Con dos candidatos del mismo nombre no adivina: crea uno nuevo.
+    await auth(http.post('/api/v1/red'))
+      .send({ nombre: 'Ana Ficticia', perfilUrl: 'https://www.linkedin.com/in/ACoAAAna1' })
+      .expect(201);
+    await auth(http.post('/api/v1/red'))
+      .send({ nombre: 'Ana Ficticia', perfilUrl: 'https://www.linkedin.com/in/ACoAAAna2' })
+      .expect(201);
+    const ana = await servicio(http.post('/api/v1/red'))
+      .send({ nombre: 'Ana Ficticia', perfilUrl: 'https://www.linkedin.com/in/ana-ficticia' })
+      .expect(201);
+    expect(ana.body.nuevo).toBe(true);
+  });
 });
