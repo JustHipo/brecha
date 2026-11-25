@@ -39,6 +39,7 @@ import type {
   PropiedadRepositorio,
   SenalPendiente,
 } from './puertos';
+import type { CasosDeFotos, VistaFoto } from './fotos';
 
 export interface ContextoDeArriendos {
   propiedades: PropiedadRepositorio;
@@ -47,6 +48,8 @@ export interface ContextoDeArriendos {
   bandeja: BandejaArriendos;
   ajustes: AjustesArriendos;
   geocodificador?: Geocodificador;
+  /** Fotos de las propiedades (docs/diseno/fotos-propiedades.md). */
+  fotos?: CasosDeFotos;
   reloj: Reloj;
   ids: GeneradorId;
 }
@@ -77,6 +80,9 @@ export interface VistaPropiedad {
   discrepanciasAbiertas: number;
   senalesSinAplicar: number;
   motivoCierre: string | null;
+  /** Id de la foto de portada (la primera), o null sin fotos. */
+  portada: string | null;
+  cantidadFotos: number;
   version: number;
   actualizadaEn: string;
 }
@@ -94,7 +100,17 @@ type ConFechasEnTexto<T> = {
 };
 
 export type VistaPropiedadDetalle = VistaPropiedad &
-  Omit<ConFechasEnTexto<DatosPropiedad>, keyof VistaPropiedad | 'creadaEn'> & { creadaEn: string };
+  Omit<ConFechasEnTexto<DatosPropiedad>, keyof VistaPropiedad | 'creadaEn'> & {
+    creadaEn: string;
+    /** De la portada a la última. */
+    fotos: VistaFoto[];
+  };
+
+interface ContextoDeVista {
+  busqueda: DatosBusqueda;
+  uf: number | null;
+  fotos: Map<string, VistaFoto[]>;
+}
 
 export interface ResumenArriendos {
   total: number;
@@ -117,12 +133,16 @@ export class CasosDeArriendos {
 
   // ── Lectura ──
 
-  private async contextoDeCalce(): Promise<{ busqueda: DatosBusqueda; uf: number | null }> {
-    const [b, uf] = await Promise.all([this.c.busqueda.leer(), this.c.ajustes.uf()]);
-    return { busqueda: b.datos(), uf: uf?.valor ?? null };
+  private async contextoDeCalce(): Promise<ContextoDeVista> {
+    const [b, uf, fotos] = await Promise.all([
+      this.c.busqueda.leer(),
+      this.c.ajustes.uf(),
+      this.c.fotos?.porPropiedad() ?? new Map<string, VistaFoto[]>(),
+    ]);
+    return { busqueda: b.datos(), uf: uf?.valor ?? null, fotos };
   }
 
-  private vista(p: Propiedad, cx: { busqueda: DatosBusqueda; uf: number | null }): VistaPropiedad {
+  private vista(p: Propiedad, cx: ContextoDeVista): VistaPropiedad {
     const d = p.datos();
     const ahora = this.c.reloj.ahora().getTime();
     const proxima = d.visitas
@@ -151,12 +171,14 @@ export class CasosDeArriendos {
       discrepanciasAbiertas: d.discrepancias.filter((x) => x.estado === 'abierta').length,
       senalesSinAplicar: d.senales.filter((x) => !x.aplicada && x.estadoSugerido).length,
       motivoCierre: d.motivoCierre ?? null,
+      portada: cx.fotos.get(d.id)?.[0]?.id ?? null,
+      cantidadFotos: cx.fotos.get(d.id)?.length ?? 0,
       version: d.version,
       actualizadaEn: p.ultimaActividad().toISOString(),
     };
   }
 
-  private detalle(p: Propiedad, cx: { busqueda: DatosBusqueda; uf: number | null }): VistaPropiedadDetalle {
+  private detalle(p: Propiedad, cx: ContextoDeVista): VistaPropiedadDetalle {
     const d = enTexto(p.datos());
     const v = this.vista(p, cx);
     return {
@@ -165,6 +187,7 @@ export class CasosDeArriendos {
       senales: [...d.senales].reverse(),
       cambios: [...d.cambios].reverse(),
       notas: [...d.notas].reverse(),
+      fotos: cx.fotos.get(d.id) ?? [],
     } as VistaPropiedadDetalle;
   }
 
@@ -389,6 +412,8 @@ export class CasosDeArriendos {
     const { p, v } = await this.conVersion(destinoId, undefined);
     const otra = await this.cargar(origenId);
     p.absorber(otra, this.c.reloj);
+    // Las fotos del duplicado pasan a la que queda antes de que el borrado se las lleve en cascada (F-D13).
+    await this.c.fotos?.mover(origenId, destinoId);
     await this.c.propiedades.borrar(origenId);
     await this.guardar(p, v);
     return this.ver(destinoId);
@@ -396,7 +421,9 @@ export class CasosDeArriendos {
 
   async borrar(id: string): Promise<void> {
     await this.cargar(id);
+    const archivos = (await this.c.fotos?.archivosDe(id)) ?? [];
     await this.c.propiedades.borrar(id);
+    await this.c.fotos?.borrarArchivos(archivos);
   }
 
   async registrarContacto(

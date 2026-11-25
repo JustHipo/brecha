@@ -9,6 +9,7 @@ import { CasosDeUso } from '../casos';
 import { crearServidorMcp } from './servidor-mcp';
 import { CasosDeArriendos } from '../../../arriendos/aplicacion/casos';
 import { CasosDePerfil } from '../../aplicacion/casos-de-perfil';
+import { CasosDeFotos } from '../../../arriendos/aplicacion/fotos';
 
 /** MCP por HTTP dentro del núcleo (ADR 0018), en modo sin sesión: un servidor por pedido. */
 @ApiExcludeController()
@@ -21,11 +22,19 @@ export class McpController {
     @Inject(CasosCsvInyectables) private readonly csv: CasosCsvInyectables,
     @Inject(CasosDeArriendos) private readonly arriendos: CasosDeArriendos,
     @Inject(CasosDePerfil) private readonly perfil: CasosDePerfil,
+    @Inject(CasosDeFotos) private readonly fotos: CasosDeFotos,
   ) {}
 
   @Post()
   async pedido(@Req() req: Request, @Res() res: Response): Promise<void> {
-    const servidor = crearServidorMcp(this.casos, this.red.red, this.csv.csv, this.arriendos, this.perfil);
+    const servidor = crearServidorMcp(
+      this.casos,
+      this.red.red,
+      this.csv.csv,
+      this.arriendos,
+      this.perfil,
+      this.fotos,
+    );
     const transporte = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined });
     res.on('close', () => {
       void transporte.close();

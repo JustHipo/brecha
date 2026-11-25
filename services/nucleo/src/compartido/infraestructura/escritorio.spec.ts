@@ -55,9 +55,11 @@ describe('rutas de la API frente a las de la consola', () => {
       '/docs/',
       '/x/../api/v1/salud',
       '//api/v1',
+      // Las fotos de las propiedades se sirven desde la API, nunca como página de la consola (fotos-propiedades.md §7).
+      '/api/v1/arriendos/fotos/0190a3c2-7b1e-7c3a-9f00-123456789abc',
     ])
       expect(esDeLaApi(r), r).toBe(true);
-    for (const r of ['/tablero', '/postulaciones/1', '/apis', '/', '/ajustes'])
+    for (const r of ['/tablero', '/postulaciones/1', '/apis', '/', '/ajustes', '/arriendos/propiedades/1'])
       expect(esDeLaApi(r), r).toBe(false);
   });
 });
@@ -67,6 +69,9 @@ describe('modo app de escritorio', () => {
     expect((await http.get('/main.js').expect(200)).text).toContain('console.log');
     expect((await http.get('/postulaciones/abc').expect(200)).text).toContain('<title>Brecha</title>');
     await http.get('/api/v1/postulaciones').expect(401);
+    // Una foto sin token: la API responde (401), no el index.html de la consola.
+    const foto = await http.get('/api/v1/arriendos/fotos/0190a3c2-7b1e-7c3a-9f00-123456789abc').expect(401);
+    expect(foto.text).not.toContain('<title>');
   });
 
   it('reenvía /api/ia con el cuerpo y el token intactos', async () => {

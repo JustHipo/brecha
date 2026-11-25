@@ -594,6 +594,92 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/arriendos/propiedades/{id}/fotos": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** De la portada a la última */
+        get: operations["listarFotos"];
+        put?: never;
+        /** Agrega por URL (Brecha la descarga) o ruta de este equipo; cada una por separado */
+        post: operations["agregarFotos"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/arriendos/propiedades/{id}/fotos/archivo": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Sube un archivo jpg, png o webp (hasta 10 MB) en el cuerpo, tal cual */
+        post: operations["subirFoto"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/arriendos/propiedades/{id}/fotos/{fotoId}/portada": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** La pasa al frente; las demás quedan en su orden */
+        post: operations["elegirPortada"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/arriendos/propiedades/{id}/fotos/{fotoId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Borra la foto y su archivo; devuelve las que quedan */
+        delete: operations["quitarFoto"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/arriendos/fotos/{fotoId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** La imagen guardada */
+        get: operations["verFoto"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/arriendos/propiedades": {
         parameters: {
             query?: never;
@@ -1976,6 +2062,45 @@ export interface components {
             advertencias: string[];
             filas: components["schemas"]["FilaImportadaDto"][];
         };
+        FotoDto: {
+            id: string;
+            /** @description 0 = portada */
+            orden: number;
+            portada: boolean;
+            /** @enum {string} */
+            tipo: "image/jpeg" | "image/png" | "image/webp";
+            bytes: number;
+            /** @enum {string} */
+            origen: "url" | "archivo";
+            urlOrigen: string | null;
+            nombreOrigen: string | null;
+            /** Format: date-time */
+            creadaEn: string;
+        };
+        AgregarFotosDto: {
+            /** @description URL http(s) o rutas de este equipo (/Users/…, C:\Users\…, ~/…, file://…). Hasta 20 */
+            fuentes: string[];
+            /** @description Posición en fuentes (desde 0) de la que va de portada */
+            portada?: number;
+        };
+        ResultadoDeFotoDto: {
+            fuente: string;
+            /** @enum {string} */
+            estado: "agregada" | "ya_estaba" | "error";
+            foto?: components["schemas"]["FotoDto"];
+            codigo?: string;
+            mensaje?: string;
+        };
+        FotosAgregadasDto: {
+            resultados: components["schemas"]["ResultadoDeFotoDto"][];
+            /** @description Todas, de la portada a la última */
+            fotos: components["schemas"]["FotoDto"][];
+        };
+        FotoSubidaDto: {
+            foto: components["schemas"]["FotoDto"];
+            /** @description true si ya estaba (mismo contenido) */
+            yaEstaba: boolean;
+        };
         /** @enum {string} */
         EstadoPropiedad: "vista" | "contactada" | "visita_agendada" | "visitada" | "en_evaluacion" | "aprobada" | "arrendada" | "rechazada" | "descartada" | "no_disponible";
         /** @enum {string} */
@@ -2038,6 +2163,9 @@ export interface components {
             discrepanciasAbiertas: number;
             senalesSinAplicar: number;
             motivoCierre: string | null;
+            /** @description Id de la foto de portada (la primera); null sin fotos */
+            portada: string | null;
+            cantidadFotos: number;
             version: number;
             /** Format: date-time */
             actualizadaEn: string;
@@ -2225,6 +2353,9 @@ export interface components {
             discrepanciasAbiertas: number;
             senalesSinAplicar: number;
             motivoCierre: string | null;
+            /** @description Id de la foto de portada (la primera); null sin fotos */
+            portada: string | null;
+            cantidadFotos: number;
             version: number;
             /** Format: date-time */
             actualizadaEn: string;
@@ -2248,6 +2379,8 @@ export interface components {
             /** @description De la más nueva a la más antigua */
             senales: components["schemas"]["SenalDePropiedadDto"][];
             discrepancias: components["schemas"]["DiscrepanciaArriendoDto"][];
+            /** @description De la portada a la última */
+            fotos: components["schemas"]["FotoDto"][];
             /** Format: date-time */
             creadaEn: string;
         };
@@ -4242,6 +4375,142 @@ export interface operations {
                 };
                 content: {
                     "text/csv": components["schemas"]["ErrorDto"];
+                };
+            };
+        };
+    };
+    listarFotos: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FotoDto"][];
+                };
+            };
+        };
+    };
+    agregarFotos: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AgregarFotosDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FotosAgregadasDto"];
+                };
+            };
+        };
+    };
+    subirFoto: {
+        parameters: {
+            query?: never;
+            header: {
+                "x-nombre-archivo": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FotoSubidaDto"];
+                };
+            };
+        };
+    };
+    elegirPortada: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                fotoId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FotoDto"][];
+                };
+            };
+        };
+    };
+    quitarFoto: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                fotoId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FotoDto"][];
+                };
+            };
+        };
+    };
+    verFoto: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                fotoId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "image/jpeg": string;
+                    "image/png": string;
+                    "image/webp": string;
                 };
             };
         };

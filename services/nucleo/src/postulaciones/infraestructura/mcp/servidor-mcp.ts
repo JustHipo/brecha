@@ -15,6 +15,7 @@ import type { CasosDeUso } from '../casos';
 import type { CasosCsv } from '../../../csv/aplicacion/casos-csv';
 import { TIPOS_CSV } from '../../../csv/aplicacion/formato';
 import type { CasosDeArriendos } from '../../../arriendos/aplicacion/casos';
+import type { CasosDeFotos } from '../../../arriendos/aplicacion/fotos';
 import {
   INSTRUCCIONES_ARRIENDOS,
   registrarHerramientasDeArriendos,
@@ -80,6 +81,7 @@ export function crearServidorMcp(
   csv?: CasosCsv,
   arriendos?: CasosDeArriendos,
   perfil?: CasosDePerfil,
+  fotos?: CasosDeFotos,
 ): McpServer {
   const s = new McpServer(
     { name: 'brecha', version: '1.0.0' },
@@ -99,7 +101,7 @@ export function crearServidorMcp(
         (arriendos ? ` ${INSTRUCCIONES_ARRIENDOS}` : ''),
     },
   );
-  if (arriendos) registrarHerramientasDeArriendos(s, arriendos);
+  if (arriendos) registrarHerramientasDeArriendos(s, arriendos, fotos);
   if (perfil) registrarHerramientasDePerfil(s, perfil, arriendos);
   const lectura = { readOnlyHint: true, openWorldHint: false };
 
