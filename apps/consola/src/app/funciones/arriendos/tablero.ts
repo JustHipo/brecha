@@ -23,12 +23,20 @@ import { HlmSkeleton } from '@brecha/ui/skeleton';
 import type { EstadoPropiedad, Propiedad } from '../../nucleo/api/arriendos.api';
 import { Avisos } from '../../nucleo/avisos';
 import { ABIERTOS, ArriendosStore, CERRADOS } from './arriendos.store';
+import { FotoGuardada } from './fotos';
 import { CalceArriendo, DialogoMover, precioTexto } from './piezas';
 
 /** Tarjeta de una propiedad: lo que decide si vale la pena (precio, calce, brecha) y si te toca responder. */
 @Component({
   selector: 'b-tarjeta-propiedad',
-  imports: [RouterLink, TranslocoPipe, CalceArriendo, CdkMenuModule, HlmDropdownMenuImports],
+  imports: [
+    RouterLink,
+    TranslocoPipe,
+    CalceArriendo,
+    CdkMenuModule,
+    HlmDropdownMenuImports,
+    FotoGuardada,
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: { class: 'block' },
   template: `
@@ -37,6 +45,17 @@ import { CalceArriendo, DialogoMover, precioTexto } from './piezas';
       class="flex flex-col gap-2 rounded-[12px] border border-linea bg-fondo px-[13px] py-3 shadow-[0_1px_2px_rgb(38_33_30/0.06)]"
       [attr.data-propiedad]="p.id"
     >
+      @if (p.portada) {
+        <!-- Portada (fotos-propiedades.md §6): decorativa, el título ya nombra la propiedad. -->
+        <a
+          [routerLink]="['/arriendos/propiedades', p.id]"
+          class="-mx-[13px] -mt-3 mb-0.5 block"
+          tabindex="-1"
+          aria-hidden="true"
+        >
+          <b-foto class="h-[112px] rounded-t-[11px]" [fotoId]="p.portada" alt="" data-portada />
+        </a>
+      }
       <div class="flex items-start gap-2">
         <a
           [routerLink]="['/arriendos/propiedades', p.id]"

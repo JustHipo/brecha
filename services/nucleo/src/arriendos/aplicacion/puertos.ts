@@ -56,3 +56,49 @@ export interface AjustesArriendos {
 export interface Geocodificador {
   ubicar(direccion: string, comuna?: string): Promise<{ lat: number; lon: number } | null>;
 }
+
+// ── Fotos (docs/diseno/fotos-propiedades.md) ──
+
+export interface Foto {
+  id: string;
+  propiedadId: string;
+  /** 0 = portada (F-D2). */
+  orden: number;
+  /** `idFoto.ext`, sin carpetas (F-D4). */
+  archivo: string;
+  tipo: string;
+  bytes: number;
+  sha256: string;
+  origen: 'url' | 'archivo';
+  urlOrigen: string | null;
+  nombreOrigen: string | null;
+  creadaEn: Date;
+}
+
+export interface FotoRepositorio {
+  /** Todas, de la portada a la última. */
+  dePropiedad(propiedadId: string): Promise<Foto[]>;
+  /** Todas las fotos de todas las propiedades, en orden (son pocas: uso personal). */
+  todas(): Promise<Foto[]>;
+  porId(id: string): Promise<Foto | null>;
+  porHuella(propiedadId: string, sha256: string): Promise<Foto | null>;
+  crear(f: Foto): Promise<void>;
+  /** Cambia la propiedad y el orden de varias en una transacción. */
+  actualizar(cambios: { id: string; orden: number; propiedadId?: string }[]): Promise<void>;
+  borrar(id: string): Promise<void>;
+}
+
+/** La carpeta `<instancia>/fotos` (F-D4). Solo recibe nombres `idFoto.ext`. */
+export interface AlmacenDeFotos {
+  huella(bytes: Uint8Array): string;
+  guardar(archivo: string, bytes: Uint8Array): Promise<void>;
+  leer(archivo: string): Promise<Uint8Array | null>;
+  /** No falla si ya no estaba. */
+  borrar(archivo: string): Promise<void>;
+}
+
+/** De dónde salen los bytes: una URL pública (F-D7) o un archivo de tu equipo (F-D9). */
+export interface ObtenedorDeImagenes {
+  descargar(url: string): Promise<{ bytes: Uint8Array; urlFinal: string }>;
+  leerLocal(ruta: string): Promise<{ bytes: Uint8Array; nombre: string }>;
+}

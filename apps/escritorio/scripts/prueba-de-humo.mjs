@@ -3,6 +3,7 @@
 //  2. Abre Brecha con los datos en una carpeta con espacios y tildes.
 //  3. Espera al núcleo y al servicio con IA (modo liviano y completo: la ventana abierta con la consola).
 //  4. Revisa pgvector en la base, crea una postulación y la mueve en el tablero por la API.
+//     Sube una foto a una propiedad: queda en instancia/fotos (carpeta con espacio y tildes) y se vuelve a leer.
 //  5. (Windows) guarda, lee y borra una credencial de prueba en el Administrador de credenciales.
 //  6. Mata Brecha en seco, la vuelve a abrir (limpia los procesos huérfanos) y la cierra con --salir.
 //  7. Revisa que no quede ningún proceso y que PostgreSQL haya cerrado limpio.
@@ -163,6 +164,43 @@ try {
   const columna = JSON.stringify(tablero.columnas.find((c) => c.estado === 'postulado'));
   if (!columna.includes(creada.id)) throw new Error('la postulación no quedó en la columna «postulado»');
   paso('postulación movida a «postulado» en el tablero');
+
+  // Fotos de las propiedades (docs/diseno/fotos-propiedades.md §7): en la carpeta de datos, en cualquier sistema.
+  r = await fetch(`${NUCLEO}/api/v1/arriendos/propiedades`, {
+    method: 'POST',
+    headers: h,
+    body: JSON.stringify({
+      tipo: 'departamento',
+      comuna: 'Ñuñoa',
+      publicacion: { url: 'https://ejemplo.test/humo' },
+    }),
+  });
+  if (r.status !== 201) throw new Error(`crear propiedad respondió ${r.status}: ${await r.text()}`);
+  const propiedad = (await r.json()).propiedad;
+  const png = Buffer.from(
+    'iVBORw0KGgoAAAANSUhEUgAAABAAAAAMCAIAAADkharWAAAAFUlEQVR4nGPQzuonCTGMahjVgB0BAEgB2wGrvEqgAAAAAElFTkSuQmCC',
+    'base64',
+  );
+  r = await fetch(`${NUCLEO}/api/v1/arriendos/propiedades/${propiedad.id}/fotos/archivo`, {
+    method: 'POST',
+    headers: {
+      Authorization: h.Authorization,
+      'Content-Type': 'image/png',
+      'X-Nombre-Archivo': 'living.png',
+    },
+    body: png,
+  });
+  if (r.status !== 201) throw new Error(`subir foto respondió ${r.status}: ${await r.text()}`);
+  const foto = (await r.json()).foto;
+  const enDisco = join(instancia, 'fotos', `${foto.id}.png`);
+  if (!existsSync(enDisco)) throw new Error(`la foto no quedó en ${enDisco}`);
+  r = await fetch(`${NUCLEO}/api/v1/arriendos/fotos/${foto.id}`, {
+    headers: { Authorization: h.Authorization },
+  });
+  const leida = Buffer.from(await r.arrayBuffer());
+  if (r.status !== 200 || r.headers.get('content-type') !== 'image/png' || !leida.equals(png))
+    throw new Error(`leer la foto respondió ${r.status} ${r.headers.get('content-type')}`);
+  paso(`foto de una propiedad guardada en ${enDisco} y servida por el núcleo`);
 
   if (windows) {
     const ia = join(resolve(app, '..'), 'resources', 'ia', 'brecha-ia.exe');

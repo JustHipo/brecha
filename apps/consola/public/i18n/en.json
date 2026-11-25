@@ -1018,7 +1018,29 @@
       "mesesGarantia": "Deposit months",
       "descripcion": "Description"
     },
-    "geocodificar": "Place addresses on the map with OpenStreetMap (only the listing address leaves your computer, never your data)"
+    "geocodificar": "Place addresses on the map with OpenStreetMap (only the listing address leaves your computer, never your data)",
+    "fotos": {
+      "titulo": "Photos",
+      "vacio": "No photos yet. Paste the image URLs from the listing or choose files from your computer: Brecha keeps them on your computer, so they are not lost if the listing goes down.",
+      "portada": "Cover",
+      "todas": "All photos",
+      "alt": "Photo {{n}} of {{total}} of {{titulo}}",
+      "altPortada": "Cover of {{titulo}}",
+      "ver": "See photo {{n}} of {{total}}",
+      "original": "See the original image",
+      "usarPortada": "Use as cover",
+      "quitar": "Remove",
+      "siQuitar": "Yes, remove this photo",
+      "cancelar": "Cancel",
+      "urls": "Photo URLs (one per line)",
+      "agregar": "Add photos",
+      "subir": "Upload from your computer",
+      "guardando": "Saving the photos…",
+      "resultado": "{{agregadas}} added · {{yaEstaban}} already there · {{errores}} with errors",
+      "portadaElegida": "Cover changed",
+      "quitada": "Photo removed",
+      "noCarga": "The photo could not be shown"
+    }
   },
   "estadosArriendo": {
     "vista": "Saved",

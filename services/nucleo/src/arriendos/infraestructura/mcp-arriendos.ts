@@ -3,6 +3,8 @@ import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
 import { z } from 'zod';
 import { ErrorDeDominio } from '../../compartido/dominio/error-de-dominio';
 import type { CasosDeArriendos, VistaPropiedad } from '../aplicacion/casos';
+import type { CasosDeFotos, FotosAgregadas, VistaFoto } from '../aplicacion/fotos';
+import { LIMITES_DE_FOTOS } from '../dominio/foto';
 import { TIPOS_DE_CANAL } from '../dominio/canal';
 import { ESTADOS } from '../dominio/estado';
 import {
@@ -22,7 +24,9 @@ export const INSTRUCCIONES_ARRIENDOS =
   'si ya existe, agrega la publicación nueva con agregar_publicacion o une con unir_propiedades. Si la persona te pide algo que choca con una regla ' +
   '(por ejemplo casas cuando la regla dice departamento), pregúntale antes si cambia el perfil; si dice que sí, usa editar_perfil con el motivo. ' +
   'Registra con quién y por dónde hablan (registrar_contacto_propiedad, registrar_interaccion_arriendo con el canal: portal, WhatsApp, correo, teléfono). ' +
-  'Si un portal o canal no existe, créalo con registrar_canal. Brecha no automatiza portales ni WhatsApp: lo revisas desde el navegador de la persona o ella te lo cuenta.';
+  'Si un portal o canal no existe, créalo con registrar_canal. Brecha no automatiza portales ni WhatsApp: lo revisas desde el navegador de la persona o ella te lo cuenta. ' +
+  'Fotos: cuando agregues una propiedad desde un aviso, pasa en fotos las URL de sus imágenes (la primera queda de portada): Brecha las descarga y las guarda en el equipo, ' +
+  'porque los avisos se caen. Después se agregan con agregar_fotos (URL o rutas de archivos del equipo), se ven con listar_fotos, se quitan con quitar_foto y la portada se cambia con elegir_portada.';
 
 const precio = z.object({ monto: z.number().positive(), moneda: z.enum(MONEDAS) });
 const contacto = z.object({
@@ -87,13 +91,43 @@ function fila(v: VistaPropiedad): string {
   const calce = v.calce.puntaje === null ? 'calce s/d' : `calce ${v.calce.puntaje}`;
   const brecha = v.calce.brechas[0] ? ` · ${v.calce.brechas[0].texto}` : '';
   const pend = v.pendiente === 'responder' ? ' · te toca responder' : '';
-  return `${v.titulo} · ${v.estado} · ${pesos(v.precioPesos)} · ${calce}${brecha}${pend} · id ${v.id}`;
+  const fotos = v.cantidadFotos ? ` · ${v.cantidadFotos} foto${v.cantidadFotos === 1 ? '' : 's'}` : '';
+  return `${v.titulo} · ${v.estado} · ${pesos(v.precioPesos)} · ${calce}${brecha}${pend}${fotos} · id ${v.id}`;
 }
+
+const kb = (n: number) => `${Math.max(1, Math.round(n / 1024)).toLocaleString('es-CL')} KB`;
+
+function filaFoto(f: VistaFoto): string {
+  const de = f.urlOrigen ?? f.nombreOrigen;
+  return `${f.orden + 1}. ${f.portada ? 'portada · ' : ''}id ${f.id} · ${f.tipo.replace('image/', '')} · ${kb(f.bytes)}${de ? ` · de ${de}` : ''}`;
+}
+
+function textoFotos(r: FotosAgregadas): string {
+  const n = (e: string) => r.resultados.filter((x) => x.estado === e).length;
+  const lineas = r.resultados.map((x) =>
+    x.estado === 'error'
+      ? `✗ ${x.fuente}: ${x.mensaje}`
+      : `${x.estado === 'agregada' ? '✓' : '='} ${x.fuente}${x.estado === 'ya_estaba' ? ' (ya estaba)' : ''} · id ${x.foto!.id}`,
+  );
+  return `Fotos: ${n('agregada')} agregadas, ${n('ya_estaba')} ya estaban, ${n('error')} con error. Tiene ${r.fotos.length}.\n${lineas.join('\n')}`;
+}
+
+const listaDeFotos = z
+  .array(z.string())
+  .min(1)
+  .max(LIMITES_DE_FOTOS.porLlamada)
+  .describe(
+    'URL http(s) de las imágenes (Brecha las descarga) o rutas de archivos de este equipo (/Users/…, C:\\Users\\…, ~/…). jpg, png o webp de hasta 10 MB',
+  );
 
 const lectura = { readOnlyHint: true, openWorldHint: false };
 
 /** Las herramientas MCP de Arriendos. Lo que hacen queda con origen `ia`. */
-export function registrarHerramientasDeArriendos(s: McpServer, c: CasosDeArriendos): void {
+export function registrarHerramientasDeArriendos(
+  s: McpServer,
+  c: CasosDeArriendos,
+  fotos?: CasosDeFotos,
+): void {
   s.registerTool(
     'listar_propiedades',
     {
@@ -176,15 +210,21 @@ export function registrarHerramientasDeArriendos(s: McpServer, c: CasosDeArriend
         contactos: z.array(contacto).optional(),
         nota: z.string().optional(),
         unirA: z.string().optional(),
+        ...(fotos
+          ? { fotos: listaDeFotos.optional().describe('Fotos del aviso; la primera queda de portada') }
+          : {}),
       },
     },
-    (a) =>
+    ({ fotos: fuentes, ...a }: { fotos?: string[] } & Record<string, unknown>) =>
       correr(async () => {
-        const r = await c.crear(a, 'ia');
+        const r = await c.crear(a as Parameters<CasosDeArriendos['crear']>[0], 'ia');
         const dup = r.posiblesDuplicados.length
           ? `\n¿Es la misma que alguna de estas? (unir_propiedades)\n${r.posiblesDuplicados.map(fila).join('\n')}`
           : '';
-        return ok(`${r.unida ? 'Publicación unida a' : 'Creada'}: ${fila(r.propiedad)}${dup}`);
+        const conFotos =
+          fotos && fuentes?.length ? `\n${textoFotos(await fotos.agregar(r.propiedad.id, fuentes))}` : '';
+        const p = conFotos ? await c.ver(r.propiedad.id) : r.propiedad;
+        return ok(`${r.unida ? 'Publicación unida a' : 'Creada'}: ${fila(p)}${dup}${conFotos}`);
       }),
   );
 
@@ -397,6 +437,89 @@ export function registrarHerramientasDeArriendos(s: McpServer, c: CasosDeArriend
       correr(async () => {
         const r = await c.registrarCanal(a);
         return ok(`Canal ${r.id} · ${r.nombre}`);
+      }),
+  );
+
+  if (fotos) registrarHerramientasDeFotos(s, fotos);
+}
+
+/** Fotos de las propiedades (docs/diseno/fotos-propiedades.md §5). */
+function registrarHerramientasDeFotos(s: McpServer, f: CasosDeFotos): void {
+  s.registerTool(
+    'agregar_fotos',
+    {
+      title: 'Agregar fotos a una propiedad',
+      description:
+        'Por URL (Brecha descarga la imagen y la guarda en el equipo: los avisos se caen) o por ruta de un archivo del equipo. ' +
+        'Cada una por separado: si una falla, las demás entran igual y la respuesta dice por qué. La misma imagen dos veces no se repite. ' +
+        `Hasta ${LIMITES_DE_FOTOS.porLlamada} por vez y ${LIMITES_DE_FOTOS.porPropiedad} por propiedad. Solo URL de internet pública (no locales ni privadas).`,
+      inputSchema: {
+        id: z.string().describe('Id de la propiedad'),
+        fotos: listaDeFotos,
+        portada: z
+          .number()
+          .int()
+          .min(0)
+          .optional()
+          .describe('Posición en fotos (desde 0) de la que va de portada; si no, queda la que estaba'),
+      },
+      annotations: { openWorldHint: true },
+    },
+    ({ id, fotos, portada }) =>
+      correr(async () => {
+        const r = await f.agregar(id, fotos, portada);
+        const todasFallaron = r.resultados.every((x) => x.estado === 'error');
+        const res = ok(textoFotos(r));
+        return todasFallaron ? { ...res, isError: true } : res;
+      }),
+  );
+
+  s.registerTool(
+    'listar_fotos',
+    {
+      title: 'Ver las fotos de una propiedad',
+      description: 'En orden; la primera es la portada. Con su id para quitar_foto o elegir_portada.',
+      inputSchema: { id: z.string() },
+      annotations: lectura,
+    },
+    ({ id }) =>
+      correr(async () => {
+        const lista = await f.listar(id);
+        return ok(
+          lista.length ? `${lista.length} fotos\n${lista.map(filaFoto).join('\n')}` : 'No tiene fotos.',
+        );
+      }),
+  );
+
+  s.registerTool(
+    'quitar_foto',
+    {
+      title: 'Quitar una foto',
+      description: 'Borra la foto y su archivo. Si era la portada, la siguiente pasa a serlo.',
+      inputSchema: { id: z.string(), fotoId: z.string() },
+      annotations: { destructiveHint: true, openWorldHint: false },
+    },
+    ({ id, fotoId }) =>
+      correr(async () => {
+        const lista = await f.quitar(id, fotoId);
+        return ok(
+          `Quitada. Quedan ${lista.length}${lista.length ? `\n${lista.map(filaFoto).join('\n')}` : '.'}`,
+        );
+      }),
+  );
+
+  s.registerTool(
+    'elegir_portada',
+    {
+      title: 'Elegir la foto de portada',
+      description: 'La pasa al frente; las demás quedan en su orden.',
+      inputSchema: { id: z.string(), fotoId: z.string() },
+      annotations: { idempotentHint: true, openWorldHint: false },
+    },
+    ({ id, fotoId }) =>
+      correr(async () => {
+        const lista = await f.elegirPortada(id, fotoId);
+        return ok(`Portada elegida\n${lista.map(filaFoto).join('\n')}`);
       }),
   );
 }

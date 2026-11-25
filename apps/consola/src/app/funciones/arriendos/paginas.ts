@@ -8,12 +8,13 @@ import { firstValueFrom } from 'rxjs';
 import { ApiArriendos } from '../../nucleo/api/arriendos.api';
 import { Avisos } from '../../nucleo/avisos';
 import { ArriendosStore } from './arriendos.store';
+import { FotoGuardada } from './fotos';
 import { CalceArriendo, precioTexto } from './piezas';
 
 /** Lista de propiedades: todo en una tabla para comparar precio, calce y lo pendiente. */
 @Component({
   selector: 'b-arriendos-lista',
-  imports: [RouterLink, TranslocoPipe, CalceArriendo],
+  imports: [RouterLink, TranslocoPipe, CalceArriendo, FotoGuardada],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: { class: 'flex flex-col gap-4 px-6 pt-[22px] pb-10' },
   template: `
@@ -48,14 +49,26 @@ import { CalceArriendo, precioTexto } from './piezas';
           @for (p of store.filtradas(); track p.id) {
             <tr class="border-t border-linea">
               <td class="px-3 py-2">
-                <a [routerLink]="['/arriendos/propiedades', p.id]" class="font-semibold">{{
-                  p.titulo
-                }}</a>
-                @if (p.pendiente === 'responder') {
-                  <span class="ml-1 text-[12px] font-semibold text-acento"
-                    >· {{ 'arriendos.teTocaResponder' | transloco }}</span
-                  >
-                }
+                <div class="flex items-center gap-2.5">
+                  @if (p.portada) {
+                    <b-foto
+                      class="h-10 w-14 shrink-0 rounded-[6px]"
+                      [fotoId]="p.portada"
+                      alt=""
+                      data-portada
+                    />
+                  }
+                  <div>
+                    <a [routerLink]="['/arriendos/propiedades', p.id]" class="font-semibold">{{
+                      p.titulo
+                    }}</a>
+                    @if (p.pendiente === 'responder') {
+                      <span class="ml-1 text-[12px] font-semibold text-acento"
+                        >· {{ 'arriendos.teTocaResponder' | transloco }}</span
+                      >
+                    }
+                  </div>
+                </div>
               </td>
               <td class="px-3 py-2">{{ 'estadosArriendo.' + p.estado | transloco }}</td>
               <td class="px-3 py-2 tabular-nums">{{ precio(p) }}</td>

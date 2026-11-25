@@ -50,6 +50,12 @@ import {
   PrismaCanales,
   PrismaPropiedades,
 } from './arriendos/infraestructura/prisma-arriendos';
+import { join } from 'node:path';
+import { CasosDeFotos } from './arriendos/aplicacion/fotos';
+import type { ObtenedorDeImagenes } from './arriendos/aplicacion/puertos';
+import { AlmacenDeFotosEnDisco } from './arriendos/infraestructura/almacen-de-fotos';
+import { ObtenedorSeguro } from './arriendos/infraestructura/obtener-imagenes';
+import { avisoDeFotos, PrismaFotos } from './arriendos/infraestructura/prisma-fotos';
 
 @Injectable()
 class CicloDeVida implements OnApplicationBootstrap, OnApplicationShutdown {
@@ -68,7 +74,10 @@ class CicloDeVida implements OnApplicationBootstrap, OnApplicationShutdown {
 /** Composición del núcleo: aquí se conectan los puertos con sus adaptadores (ADR 0003). */
 @Module({})
 export class AppModule {
-  static para(config: Config, extra: { reloj?: Reloj } = {}): DynamicModule {
+  static para(
+    config: Config,
+    extra: { reloj?: Reloj; obtenerImagenes?: ObtenedorDeImagenes } = {},
+  ): DynamicModule {
     return {
       module: AppModule,
       controllers: [
@@ -163,8 +172,30 @@ export class AppModule {
           inject: [PRISMA, RELOJ, IDS, FLUJO, CasosDeRedInyectables],
         },
         {
-          provide: CasosDeArriendos,
+          // Fotos de las propiedades en <instancia>/fotos (docs/diseno/fotos-propiedades.md F-D4).
+          provide: CasosDeFotos,
           useFactory: (prisma: PrismaClient, reloj: Reloj, ids: GeneradorId, flujo: FlujoDeEventos) =>
+            new CasosDeFotos({
+              fotos: new PrismaFotos(prisma),
+              almacen: new AlmacenDeFotosEnDisco(join(config.dir, 'fotos')),
+              obtener: extra.obtenerImagenes ?? new ObtenedorSeguro(),
+              existePropiedad: async (id) =>
+                /^[0-9a-f-]{36}$/i.test(id) && (await prisma.propiedad.count({ where: { id } })) > 0,
+              avisar: avisoDeFotos(flujo),
+              reloj,
+              ids,
+            }),
+          inject: [PRISMA, RELOJ, IDS, FLUJO],
+        },
+        {
+          provide: CasosDeArriendos,
+          useFactory: (
+            prisma: PrismaClient,
+            reloj: Reloj,
+            ids: GeneradorId,
+            flujo: FlujoDeEventos,
+            fotos: CasosDeFotos,
+          ) =>
             new CasosDeArriendos({
               propiedades: new PrismaPropiedades(prisma, flujo),
               canales: new PrismaCanales(prisma),
@@ -179,10 +210,11 @@ export class AppModule {
                       new PrismaAjustesArriendos(prisma).geocodificar(),
                     ),
                   }),
+              fotos,
               reloj,
               ids,
             }),
-          inject: [PRISMA, RELOJ, IDS, FLUJO],
+          inject: [PRISMA, RELOJ, IDS, FLUJO, CasosDeFotos],
         },
         { provide: APP_GUARD, useClass: AccesoGuard },
         CicloDeVida,

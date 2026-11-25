@@ -27,6 +27,9 @@ export type CambiarBusqueda = E['CambiarBusquedaDto'];
 export type CriterioDeBusqueda = E['CriterioDeBusqueda'];
 export type MapaArriendos = E['MapaArriendosDto'];
 export type CambiarEstadoPropiedad = E['CambiarEstadoPropiedadDto'];
+export type Foto = E['FotoDto'];
+export type FotosAgregadas = E['FotosAgregadasDto'];
+export type FotoSubida = E['FotoSubidaDto'];
 
 const BASE = '/api/v1/arriendos';
 
@@ -113,6 +116,38 @@ export class ApiArriendos {
       `${BASE}/propiedades/${id}/senales/${senalId}/aplicar`,
       {},
     );
+  }
+  // ── Fotos (docs/diseno/fotos-propiedades.md) ──
+  fotos(id: string) {
+    return this.http.get<Foto[]>(`${BASE}/propiedades/${id}/fotos`);
+  }
+  /** URL (el núcleo la descarga) o rutas de este equipo; cada una por separado. */
+  agregarFotos(id: string, fuentes: string[], portada?: number) {
+    return this.http.post<FotosAgregadas>(`${BASE}/propiedades/${id}/fotos`, {
+      fuentes,
+      ...(portada === undefined ? {} : { portada }),
+    });
+  }
+  /** Un archivo elegido en el navegador, tal cual en el cuerpo. */
+  subirFoto(id: string, archivo: File) {
+    return this.http.post<FotoSubida>(`${BASE}/propiedades/${id}/fotos/archivo`, archivo, {
+      headers: {
+        'Content-Type': archivo.type.startsWith('image/')
+          ? archivo.type
+          : 'application/octet-stream',
+        'X-Nombre-Archivo': encodeURIComponent(archivo.name),
+      },
+    });
+  }
+  elegirPortada(id: string, fotoId: string) {
+    return this.http.post<Foto[]>(`${BASE}/propiedades/${id}/fotos/${fotoId}/portada`, {});
+  }
+  quitarFoto(id: string, fotoId: string) {
+    return this.http.delete<Foto[]>(`${BASE}/propiedades/${id}/fotos/${fotoId}`);
+  }
+  /** La imagen con el token (un <img src> no puede mandarlo: F-D12). */
+  imagen(fotoId: string) {
+    return this.http.get(`${BASE}/fotos/${fotoId}`, { responseType: 'blob' });
   }
   fijarUbicacion(id: string, lat: number, lon: number) {
     return this.http.put<PropiedadDetalle>(`${BASE}/propiedades/${id}/ubicacion`, { lat, lon });

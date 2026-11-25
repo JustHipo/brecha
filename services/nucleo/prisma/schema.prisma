@@ -278,6 +278,7 @@ model Propiedad {
   version       Int      @default(0)
   creadaEn      DateTime @map("creada_en") @db.Timestamptz(3)
   actualizadaEn DateTime @map("actualizada_en") @db.Timestamptz(3)
+  fotos         FotoPropiedad[]
 
   @@index([estado])
   @@index([urls], type: Gin)
@@ -338,4 +339,26 @@ model Geocodificacion {
   creadaEn DateTime @map("creada_en") @db.Timestamptz(3)
 
   @@map("geocodificacion")
+}
+
+/// Fotos de una propiedad (docs/diseno/fotos-propiedades.md). El archivo vive en `<instancia>/fotos/<archivo>`; la portada es la de orden 0.
+model FotoPropiedad {
+  id           String    @id @db.Uuid
+  propiedadId  String    @map("propiedad_id") @db.Uuid
+  propiedad    Propiedad @relation(fields: [propiedadId], references: [id], onDelete: Cascade)
+  orden        Int
+  /// Solo `idFoto.ext`, sin carpetas: la ruta se arma en cada sistema.
+  archivo      String
+  tipo         String
+  bytes        Int
+  sha256       String
+  /// `url` (se descargó) o `archivo` (venía de tu equipo).
+  origen       String
+  urlOrigen    String?   @map("url_origen")
+  nombreOrigen String?   @map("nombre_origen")
+  creadaEn     DateTime  @map("creada_en") @db.Timestamptz(3)
+
+  @@unique([propiedadId, sha256])
+  @@index([propiedadId, orden])
+  @@map("foto_propiedad")
 }

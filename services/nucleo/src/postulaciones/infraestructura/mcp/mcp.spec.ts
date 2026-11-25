@@ -96,6 +96,11 @@ describe('servidor MCP por HTTP (F1-10c)', () => {
         'unir_propiedades',
         'ver_perfil',
         'ver_propiedad',
+        // Fotos de las propiedades (docs/diseno/fotos-propiedades.md).
+        'agregar_fotos',
+        'elegir_portada',
+        'listar_fotos',
+        'quitar_foto',
       ].sort(),
     );
     await c.close();

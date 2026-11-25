@@ -309,6 +309,9 @@ export class PropiedadDto {
   @ApiProperty() discrepanciasAbiertas!: number;
   @ApiProperty() senalesSinAplicar!: number;
   @nulo(String) motivoCierre!: string | null;
+  @nulo(String, { description: 'Id de la foto de portada (la primera); null sin fotos' }) portada!:
+    string | null;
+  @ApiProperty() cantidadFotos!: number;
   @ApiProperty() version!: number;
   @ApiProperty({ format: 'date-time' }) actualizadaEn!: string;
 }
@@ -393,6 +396,18 @@ export class DiscrepanciaArriendoDto {
   @ApiProperty({ format: 'date-time' }) detectadaEn!: string;
 }
 
+export class FotoDto {
+  @ApiProperty() id!: string;
+  @ApiProperty({ description: '0 = portada' }) orden!: number;
+  @ApiProperty() portada!: boolean;
+  @ApiProperty({ enum: ['image/jpeg', 'image/png', 'image/webp'] }) tipo!: string;
+  @ApiProperty() bytes!: number;
+  @ApiProperty({ enum: ['url', 'archivo'] }) origen!: string;
+  @nulo(String) urlOrigen!: string | null;
+  @nulo(String) nombreOrigen!: string | null;
+  @ApiProperty({ format: 'date-time' }) creadaEn!: string;
+}
+
 export class PropiedadDetalleDto extends PropiedadDto {
   @ApiPropertyOptional() m2Utiles?: number;
   @ApiPropertyOptional() m2Totales?: number;
@@ -414,6 +429,7 @@ export class PropiedadDetalleDto extends PropiedadDto {
   @ApiProperty({ type: [SenalDePropiedadDto], description: 'De la más nueva a la más antigua' })
   senales!: SenalDePropiedadDto[];
   @ApiProperty({ type: [DiscrepanciaArriendoDto] }) discrepancias!: DiscrepanciaArriendoDto[];
+  @ApiProperty({ type: [FotoDto], description: 'De la portada a la última' }) fotos!: FotoDto[];
   @ApiProperty({ format: 'date-time' }) creadaEn!: string;
 }
 
@@ -564,4 +580,38 @@ export class GeocodificarDto {
 
 export class UbicarPendientesDto {
   @ApiProperty() pendientes!: number;
+}
+
+// ── Fotos (docs/diseno/fotos-propiedades.md) ──
+
+export class AgregarFotosDto {
+  @ApiProperty({
+    type: [String],
+    description: 'URL http(s) o rutas de este equipo (/Users/…, C:\\Users\\…, ~/…, file://…). Hasta 20',
+  })
+  @IsArray()
+  @IsString({ each: true })
+  fuentes!: string[];
+  @ApiPropertyOptional({ description: 'Posición en fuentes (desde 0) de la que va de portada' })
+  @IsOptional()
+  @IsNumber()
+  portada?: number;
+}
+
+export class ResultadoDeFotoDto {
+  @ApiProperty() fuente!: string;
+  @ApiProperty({ enum: ['agregada', 'ya_estaba', 'error'] }) estado!: string;
+  @ApiPropertyOptional({ type: FotoDto }) foto?: FotoDto;
+  @ApiPropertyOptional() codigo?: string;
+  @ApiPropertyOptional() mensaje?: string;
+}
+
+export class FotosAgregadasDto {
+  @ApiProperty({ type: [ResultadoDeFotoDto] }) resultados!: ResultadoDeFotoDto[];
+  @ApiProperty({ type: [FotoDto], description: 'Todas, de la portada a la última' }) fotos!: FotoDto[];
+}
+
+export class FotoSubidaDto {
+  @ApiProperty({ type: FotoDto }) foto!: FotoDto;
+  @ApiProperty({ description: 'true si ya estaba (mismo contenido)' }) yaEstaba!: boolean;
 }

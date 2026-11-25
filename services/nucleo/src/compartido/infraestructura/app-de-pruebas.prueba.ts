@@ -4,6 +4,7 @@ import { join } from 'node:path';
 import type { INestApplication } from '@nestjs/common';
 import { crearApp } from '../../app';
 import type { Config } from './config';
+import type { ObtenedorDeImagenes } from '../../arriendos/aplicacion/puertos';
 
 export interface AppDePrueba {
   app: INestApplication;
@@ -13,7 +14,7 @@ export interface AppDePrueba {
 
 /** Levanta el núcleo completo contra la base de pruebas, con una carpeta de instancia temporal. */
 export async function appDePrueba(
-  opciones: { antesDeIniciar?: (app: INestApplication) => void } = {},
+  opciones: { antesDeIniciar?: (app: INestApplication) => void; obtenerImagenes?: ObtenedorDeImagenes } = {},
 ): Promise<AppDePrueba> {
   const url = process.env.DATABASE_URL_PRUEBAS;
   if (!url) throw new Error('Falta DATABASE_URL_PRUEBAS');
@@ -24,7 +25,10 @@ export async function appDePrueba(
     consolaOrigen: 'http://localhost:4200',
     dir: mkdtempSync(join(tmpdir(), 'brecha-')),
   };
-  const app = await crearApp(config, { logger: false });
+  const app = await crearApp(config, {
+    logger: false,
+    ...(opciones.obtenerImagenes ? { obtenerImagenes: opciones.obtenerImagenes } : {}),
+  });
   opciones.antesDeIniciar?.(app);
   await app.init();
   return { app, config, token: (tipo) => readFileSync(join(config.dir, `token-${tipo}`), 'utf8').trim() };

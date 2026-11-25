@@ -2564,6 +2564,276 @@
         ]
       }
     },
+    "/api/v1/arriendos/propiedades/{id}/fotos": {
+      "get": {
+        "operationId": "listarFotos",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/FotoDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "De la portada a la última",
+        "tags": [
+          "arriendos"
+        ]
+      },
+      "post": {
+        "operationId": "agregarFotos",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AgregarFotosDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FotosAgregadasDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Agrega por URL (Brecha la descarga) o ruta de este equipo; cada una por separado",
+        "tags": [
+          "arriendos"
+        ]
+      }
+    },
+    "/api/v1/arriendos/propiedades/{id}/fotos/archivo": {
+      "post": {
+        "operationId": "subirFoto",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-nombre-archivo",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FotoSubidaDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Sube un archivo jpg, png o webp (hasta 10 MB) en el cuerpo, tal cual",
+        "tags": [
+          "arriendos"
+        ]
+      }
+    },
+    "/api/v1/arriendos/propiedades/{id}/fotos/{fotoId}/portada": {
+      "post": {
+        "operationId": "elegirPortada",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "fotoId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/FotoDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "La pasa al frente; las demás quedan en su orden",
+        "tags": [
+          "arriendos"
+        ]
+      }
+    },
+    "/api/v1/arriendos/propiedades/{id}/fotos/{fotoId}": {
+      "delete": {
+        "operationId": "quitarFoto",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "fotoId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/FotoDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Borra la foto y su archivo; devuelve las que quedan",
+        "tags": [
+          "arriendos"
+        ]
+      }
+    },
+    "/api/v1/arriendos/fotos/{fotoId}": {
+      "get": {
+        "operationId": "verFoto",
+        "parameters": [
+          {
+            "name": "fotoId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "image/jpeg": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              },
+              "image/png": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              },
+              "image/webp": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "La imagen guardada",
+        "tags": [
+          "arriendos"
+        ]
+      }
+    },
     "/api/v1/arriendos/propiedades": {
       "get": {
         "operationId": "listarPropiedades",
@@ -7440,6 +7710,148 @@
           "filas"
         ]
       },
+      "FotoDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "orden": {
+            "type": "number",
+            "description": "0 = portada"
+          },
+          "portada": {
+            "type": "boolean"
+          },
+          "tipo": {
+            "type": "string",
+            "enum": [
+              "image/jpeg",
+              "image/png",
+              "image/webp"
+            ]
+          },
+          "bytes": {
+            "type": "number"
+          },
+          "origen": {
+            "type": "string",
+            "enum": [
+              "url",
+              "archivo"
+            ]
+          },
+          "urlOrigen": {
+            "type": "string",
+            "nullable": true
+          },
+          "nombreOrigen": {
+            "type": "string",
+            "nullable": true
+          },
+          "creadaEn": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "orden",
+          "portada",
+          "tipo",
+          "bytes",
+          "origen",
+          "urlOrigen",
+          "nombreOrigen",
+          "creadaEn"
+        ]
+      },
+      "AgregarFotosDto": {
+        "type": "object",
+        "properties": {
+          "fuentes": {
+            "description": "URL http(s) o rutas de este equipo (/Users/…, C:\\Users\\…, ~/…, file://…). Hasta 20",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "portada": {
+            "type": "number",
+            "description": "Posición en fuentes (desde 0) de la que va de portada"
+          }
+        },
+        "required": [
+          "fuentes"
+        ]
+      },
+      "ResultadoDeFotoDto": {
+        "type": "object",
+        "properties": {
+          "fuente": {
+            "type": "string"
+          },
+          "estado": {
+            "type": "string",
+            "enum": [
+              "agregada",
+              "ya_estaba",
+              "error"
+            ]
+          },
+          "foto": {
+            "$ref": "#/components/schemas/FotoDto"
+          },
+          "codigo": {
+            "type": "string"
+          },
+          "mensaje": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "fuente",
+          "estado"
+        ]
+      },
+      "FotosAgregadasDto": {
+        "type": "object",
+        "properties": {
+          "resultados": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ResultadoDeFotoDto"
+            }
+          },
+          "fotos": {
+            "description": "Todas, de la portada a la última",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FotoDto"
+            }
+          }
+        },
+        "required": [
+          "resultados",
+          "fotos"
+        ]
+      },
+      "FotoSubidaDto": {
+        "type": "object",
+        "properties": {
+          "foto": {
+            "$ref": "#/components/schemas/FotoDto"
+          },
+          "yaEstaba": {
+            "type": "boolean",
+            "description": "true si ya estaba (mismo contenido)"
+          }
+        },
+        "required": [
+          "foto",
+          "yaEstaba"
+        ]
+      },
       "EstadoPropiedad": {
         "type": "string",
         "enum": [
@@ -7726,6 +8138,14 @@
             "type": "string",
             "nullable": true
           },
+          "portada": {
+            "type": "string",
+            "nullable": true,
+            "description": "Id de la foto de portada (la primera); null sin fotos"
+          },
+          "cantidadFotos": {
+            "type": "number"
+          },
           "version": {
             "type": "number"
           },
@@ -7757,6 +8177,8 @@
           "discrepanciasAbiertas",
           "senalesSinAplicar",
           "motivoCierre",
+          "portada",
+          "cantidadFotos",
           "version",
           "actualizadaEn"
         ]
@@ -8467,6 +8889,14 @@
             "type": "string",
             "nullable": true
           },
+          "portada": {
+            "type": "string",
+            "nullable": true,
+            "description": "Id de la foto de portada (la primera); null sin fotos"
+          },
+          "cantidadFotos": {
+            "type": "number"
+          },
           "version": {
             "type": "number"
           },
@@ -8552,6 +8982,13 @@
               "$ref": "#/components/schemas/DiscrepanciaArriendoDto"
             }
           },
+          "fotos": {
+            "description": "De la portada a la última",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FotoDto"
+            }
+          },
           "creadaEn": {
             "type": "string",
             "format": "date-time"
@@ -8580,6 +9017,8 @@
           "discrepanciasAbiertas",
           "senalesSinAplicar",
           "motivoCierre",
+          "portada",
+          "cantidadFotos",
           "version",
           "actualizadaEn",
           "requisitos",
@@ -8591,6 +9030,7 @@
           "cambios",
           "senales",
           "discrepancias",
+          "fotos",
           "creadaEn"
         ]
       },
