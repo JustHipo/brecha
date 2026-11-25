@@ -1,6 +1,6 @@
 {
   "name": "escritorio",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "private": true,
   "description": "Brecha como app de escritorio para macOS y Windows: vive en la barra de menú (o en la bandeja de Windows) y levanta PostgreSQL, el núcleo y el servicio con IA en segundo plano (F3).",
   "author": "Brecha",
