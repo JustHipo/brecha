@@ -23,6 +23,7 @@ import {
 } from '../../nucleo/api/arriendos.api';
 import { Avisos } from '../../nucleo/avisos';
 import { ArriendosStore, aError } from './arriendos.store';
+import { GaleriaFotos } from './fotos';
 import { CalceArriendo, DialogoMover, pesos, precioTexto } from './piezas';
 
 const ROLES = ['corredor', 'dueno', 'conserje', 'administracion', 'otro'] as const;
@@ -65,6 +66,7 @@ const nulo = <T>(v: T | '' | undefined | null) => (v === '' || v === undefined ?
     HlmInput,
     CalceArriendo,
     DialogoMover,
+    GaleriaFotos,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: { class: 'flex flex-col gap-4 px-6 pt-[22px] pb-10' },
@@ -130,6 +132,14 @@ const nulo = <T>(v: T | '' | undefined | null) => (v === '' || v === undefined ?
 
       <div class="grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_340px]">
         <div class="flex min-w-0 flex-col gap-5">
+          <!-- Fotos (docs/diseno/fotos-propiedades.md §6) -->
+          <b-galeria-fotos
+            [propiedadId]="p.id"
+            [titulo]="p.titulo"
+            [fotos]="p.fotos"
+            (cambio)="fotosCambiaron()"
+          />
+
           <!-- Calce -->
           <section
             class="flex flex-col gap-2 rounded-[12px] border border-linea p-4"
@@ -735,6 +745,12 @@ export class FichaPropiedadPagina {
     } catch (e) {
       this.error.set(aError(e));
     }
+  }
+
+  /** La galería cambió las fotos: la ficha y el tablero (portada) se ponen al día. */
+  protected fotosCambiaron(): void {
+    void this.cargar(this.id());
+    void this.store.cargar(true);
   }
 
   private async hacer(o: Observable<PropiedadDetalle>, exito?: string): Promise<boolean> {

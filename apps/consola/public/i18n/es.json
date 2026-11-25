@@ -1018,7 +1018,29 @@
       "mesesGarantia": "Meses de garantía",
       "descripcion": "Descripción"
     },
-    "geocodificar": "Ubicar las direcciones en el mapa con OpenStreetMap (sale solo la dirección del aviso, nunca tus datos)"
+    "geocodificar": "Ubicar las direcciones en el mapa con OpenStreetMap (sale solo la dirección del aviso, nunca tus datos)",
+    "fotos": {
+      "titulo": "Fotos",
+      "vacio": "Sin fotos todavía. Pega las URL de las imágenes del aviso o elige archivos de tu equipo: Brecha las guarda en tu equipo, así no se pierden si el aviso se cae.",
+      "portada": "Portada",
+      "todas": "Todas las fotos",
+      "alt": "Foto {{n}} de {{total}} de {{titulo}}",
+      "altPortada": "Portada de {{titulo}}",
+      "ver": "Ver la foto {{n}} de {{total}}",
+      "original": "Ver la imagen original",
+      "usarPortada": "Usar como portada",
+      "quitar": "Quitar",
+      "siQuitar": "Sí, quitar esta foto",
+      "cancelar": "Cancelar",
+      "urls": "URL de las fotos (una por línea)",
+      "agregar": "Agregar fotos",
+      "subir": "Subir desde tu equipo",
+      "guardando": "Guardando las fotos…",
+      "resultado": "{{agregadas}} agregadas · {{yaEstaban}} ya estaban · {{errores}} con error",
+      "portadaElegida": "Portada cambiada",
+      "quitada": "Foto quitada",
+      "noCarga": "No se pudo mostrar la foto"
+    }
   },
   "estadosArriendo": {
     "vista": "Vista",
