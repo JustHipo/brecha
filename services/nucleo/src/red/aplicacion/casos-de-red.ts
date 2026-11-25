@@ -3,6 +3,7 @@ import { DatoInvalido, NoEncontrada } from '../../postulaciones/dominio/errores'
 import { textoObligatorio } from '../../postulaciones/dominio/objetos-valor/valores';
 import {
   ContactoDeRed,
+  mismaPersonaConOtroPerfil,
   perfilNormalizado,
   type EstadoDeConexion,
   type OrigenDeRed,
@@ -97,6 +98,23 @@ async function cargar(c: ContextoDeRed, id: string): Promise<ContactoDeRed> {
 }
 
 /** Lo que identifica y describe al contacto, sin fechas: para saber si una sincronización cambió algo. */
+/**
+ * El contacto con ese perfil o, si no hay, el único con el mismo nombre y la otra forma de URL de LinkedIn
+ * (id interno ↔ perfil público). Con dos o más candidatos no adivina: devuelve null y se crea uno nuevo.
+ */
+async function porPerfilOMismaPersona(
+  c: ContextoDeRed,
+  perfil: string,
+  nombre?: string,
+): Promise<ContactoDeRed | null> {
+  const exacto = await c.red.porPerfil(perfil);
+  if (exacto || !nombre?.trim()) return exacto;
+  const candidatos = (await c.red.todos()).filter((x) =>
+    mismaPersonaConOtroPerfil(x.datos(), nombre, perfil),
+  );
+  return candidatos.length === 1 ? candidatos[0]! : null;
+}
+
 function huella(c: ContactoDeRed): string {
   const { actualizadoEn: _a, creadoEn: _c, ...resto } = c.datos();
   return JSON.stringify(resto);
@@ -119,7 +137,7 @@ export class RegistrarContacto {
     const perfil = e.perfilUrl?.trim() ? perfilNormalizado(e.perfilUrl) : undefined;
     const nombre = textoObligatorio('nombre', e.nombre, 200);
     const existente = perfil
-      ? await this.c.red.porPerfil(perfil)
+      ? await porPerfilOMismaPersona(this.c, perfil, nombre)
       : await this.c.red.sinPerfil(nombre, e.empresa);
     if (e.postulacionId && !(await this.c.existePostulacion(e.postulacionId))) throw new NoEncontrada();
     const antes = existente ? huella(existente) : '';
@@ -157,7 +175,7 @@ export class RegistrarInteraccion {
   }): Promise<ContactoDeRed> {
     if (e.id) return cargar(this.c, e.id);
     if (!e.perfilUrl) throw new DatoInvalido('id', 'Hace falta el id del contacto o su perfil de LinkedIn');
-    const existente = await this.c.red.porPerfil(perfilNormalizado(e.perfilUrl));
+    const existente = await porPerfilOMismaPersona(this.c, perfilNormalizado(e.perfilUrl), e.nombre);
     if (existente) return existente;
     if (!e.nombre) throw new DatoInvalido('nombre', 'Para un contacto nuevo hace falta el nombre');
     return ContactoDeRed.crear({ nombre: e.nombre, perfilUrl: e.perfilUrl }, deps(this.c));
