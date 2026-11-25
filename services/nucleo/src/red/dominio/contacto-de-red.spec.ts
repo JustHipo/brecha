@@ -1,7 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import { depsDePrueba } from '../../compartido/dominio/pruebas.prueba';
 import { DatoInvalido } from '../../postulaciones/dominio/errores';
-import { ContactoDeRed, perfilNormalizado } from './contacto-de-red';
+import {
+  ContactoDeRed,
+  mismaPersonaConOtroPerfil,
+  nombreComparable,
+  perfilNormalizado,
+} from './contacto-de-red';
 
 const deps = depsDePrueba();
 const nuevo = () =>
@@ -175,5 +180,26 @@ describe('ContactoDeRed', () => {
     expect(otro.datos().interacciones.map((i) => i.origen)).toEqual(['ia']);
     // Un mensaje nuevo al día siguiente sí entra.
     expect(c.registrarInteraccion({ ...aviso, ocurridaEn: en('2026-11-22T15:00:00Z') }, deps)).toBe(true);
+  });
+
+  it('reconoce a la misma persona con la otra forma de URL de LinkedIn, solo si el nombre calza', () => {
+    expect(nombreComparable('María Fernanda Escalona Cárdenas 桜')).toBe('maria fernanda escalona cardenas');
+    const interno = 'https://www.linkedin.com/in/ACoAAAwkuRkBqT_8Vxgn';
+    const publico = 'https://www.linkedin.com/in/felipe-lizama-24929158';
+    const felipe = ContactoDeRed.crear({ nombre: 'Felipe Lizama', perfilUrl: interno }, deps).datos();
+    expect(mismaPersonaConOtroPerfil(felipe, 'felipe  LIZAMA', publico)).toBe(true);
+    expect(mismaPersonaConOtroPerfil(felipe, 'Felipe Lizana', publico)).toBe(false);
+    // Dos ids internos distintos, o dos perfiles públicos distintos, son personas distintas.
+    expect(mismaPersonaConOtroPerfil(felipe, 'Felipe Lizama', 'https://www.linkedin.com/in/ACoAAOtro')).toBe(
+      false,
+    );
+    const publicoD = ContactoDeRed.crear({ nombre: 'Felipe Lizama', perfilUrl: publico }, deps).datos();
+    expect(
+      mismaPersonaConOtroPerfil(publicoD, 'Felipe Lizama', 'https://www.linkedin.com/in/felipe-lizama-2'),
+    ).toBe(false);
+    expect(mismaPersonaConOtroPerfil(publicoD, 'Felipe Lizama', interno)).toBe(true);
+    // Sin perfil guardado no se adivina (eso va por nombre y empresa).
+    const sinPerfil = ContactoDeRed.crear({ nombre: 'Felipe Lizama' }, deps).datos();
+    expect(mismaPersonaConOtroPerfil(sinPerfil, 'Felipe Lizama', publico)).toBe(false);
   });
 });
