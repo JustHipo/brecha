@@ -112,7 +112,7 @@ const TIPOS_ACEPTADOS = 'image/jpeg,image/png,image/webp';
       @if (elegida(); as f) {
         <figure class="m-0 flex flex-col gap-2">
           <b-foto
-            class="h-[300px] rounded-[10px] sm:h-[380px]"
+            class="aspect-[4/3] max-h-[420px] w-full rounded-[10px]"
             ajuste="object-contain"
             [fotoId]="f.id"
             [alt]="altDe(f)"

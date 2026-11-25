@@ -1,6 +1,6 @@
 # Plan: fotos de las propiedades (Arriendos)
 
-Escrito el 25-nov-2026. **Versión 1, validada por Juan el 25-nov-2026:** portada = primera foto (F-D2, sin reordenar arrastrando) y límites de F-D6 con la carpeta de F-D4. Rama `claude/fotos-propiedades-f09965`, desde `windows` en b4fe529 (versión 0.2.2). PR contra `windows`.
+Escrito el 25-nov-2026. **Estado: implementado (25-nov-2026), ver §11.** **Versión 1, validada por Juan el 25-nov-2026:** portada = primera foto (F-D2, sin reordenar arrastrando) y límites de F-D6 con la carpeta de F-D4. Rama `claude/fotos-propiedades-f09965`, desde `windows` en b4fe529 (versión 0.2.2). PR contra `windows`.
 
 ## 1. La tarea en simple
 
@@ -111,3 +111,32 @@ Escrito el 25-nov-2026. **Versión 1, validada por Juan el 25-nov-2026:** portad
 
 1. Portada = primera foto (F-D2), sin reordenar todas por ahora.
 2. 10 MB por foto, 40 por propiedad y 20 por llamada (F-D6), en `instancia/fotos` (F-D4).
+
+## 11. Implementación (25-nov-2026)
+
+Commits en la rama `claude/fotos-propiedades-f09965`: núcleo y MCP, consola, prueba de humo del escritorio y esta sección.
+
+**Hecho como estaba planeado:** tabla `foto_propiedad` con su migración; descarga con F-D7 (IP fijada, redirecciones revisadas, 80 y 443, 10 MB, 20 s); archivos locales con F-D9; portada = primera; deduplicación por contenido; unir y borrar con sus archivos; REST, contrato OpenAPI y 4 herramientas MCP más `fotos` en `crear_propiedad`; galería en la ficha y portada en el tablero y la lista, con textos en `es` y `en`.
+
+**Cambió respecto del plan:**
+| Qué | Por qué |
+|---|---|
+| La foto grande va en proporción 4:3 (hasta 420 px de alto) y no con alto fijo | Con alto fijo, en una ventana angosta quedaba mucho espacio vacío arriba y abajo |
+| La prueba de humo del escritorio sube una foto y revisa que quede en `instancia/fotos` dentro de la carpeta con espacio y tildes | Es la forma de probar las rutas en Windows sin cambiar el supervisor; la corre la sesión «windows» al empaquetar |
+
+**Verificado ejecutando:**
+- Núcleo: lint (con dependency-cruiser), tipos y 559 pruebas (68 nuevas de dominio y descarga, 7 de API y MCP, y el caso de `esDeLaApi`), contra una base de pruebas propia de este worktree.
+- Consola: lint (claves iguales en `es` y `en`), tipos, build, 122 unitarias y las 29 e2e (1 nueva de fotos, con axe).
+- Escritorio: sus 23 pruebas.
+- **De punta a punta**, con el núcleo de esta rama sirviendo la consola como en la app, con la instancia en una carpeta `Brecha Pérez ñ`:
+  - `crear_propiedad` por MCP con **2 fotos por URL reales** de Portal Inmobiliario (`http2.mlstatic.com/D_NQ_NP_…-O.webp`): las dos entraron como webp de 500×375.
+  - Por MCP se rechazaron `169.254.169.254`, `localhost:4361` y `localtest.me` (un nombre público que apunta a 127.0.0.1), y entró la variante `-F` de la misma foto (1200×900).
+  - En la ficha: galería con las 3, cambio de portada a la segunda y quitar la tercera; `listar_fotos` confirma el orden y el archivo quitado ya no está en disco.
+  - En el tablero se ve la portada en la tarjeta.
+  - La foto se sirve desde `/api/...` con su tipo; sin token responde 401 y no el `index.html` de la consola.
+
+**No verificado:** Windows (la prueba de humo nueva corre cuando la sesión «windows» empaquete) y fotos de Yapo (no tenía una URL de imagen a mano; el camino es el mismo).
+
+**Para quien cargue fotos de Portal Inmobiliario:** la variante `-F-<texto>.webp` es la grande (1200×900) y la `-O.webp` la chica (500×375). Conviene usar una sola por foto: tienen distinto contenido, así que Brecha no las toma como la misma.
+
+**Pendiente (fuera de esta versión):** las fotos no van en `exportar` ni en el CSV (§9); reordenar arrastrando (F-D3).
