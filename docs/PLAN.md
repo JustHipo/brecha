@@ -585,7 +585,7 @@ Transporte **Streamable HTTP en `/mcp` dentro del núcleo** (ADR 0018, reemplaza
 | `registrar_senal` | `POST …/senales` |
 | `listar_discrepancias` · `resolver_discrepancia` | discrepancias |
 | `editar_postulacion` | `PATCH /postulaciones/:id` |
-| `agregar_contacto` · `agendar_entrevista` | `POST …/contactos` · `POST …/entrevistas` |
+| `agregar_contacto` · `agendar_entrevista` · `registrar_resultado_entrevista` | `POST …/contactos` · `POST …/entrevistas` · `PATCH …/entrevistas/:entrevistaId` |
 | `resumen` | Qué cambió desde una fecha, ordenado por prioridad |
 | `exportar` | Todo el estado en JSON (postulaciones, señales, discrepancias, conteos por estado y prioridad), para que la IA arme o actualice un artifact (D12) |
 
