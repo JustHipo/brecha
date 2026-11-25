@@ -185,6 +185,14 @@ export interface PasoHecho {
           <span aria-hidden="true">⚠</span>{{ 'tablero.discrepancia' | transloco }}
         </p>
       }
+      @if (choque(); as c) {
+        <p
+          class="-mx-[13px] mt-0 mb-0 flex items-start gap-[7px] border-t border-aviso-borde bg-aviso-fondo px-[13px] py-[9px] text-[12.5px] font-semibold text-aviso-tinta"
+          data-choque-perfil
+        >
+          <span aria-hidden="true">⚠</span>{{ 'perfil.chocaCon' | transloco: { texto: c.texto } }}
+        </p>
+      }
     </article>
 
     <ng-template #menu>
@@ -212,6 +220,11 @@ export class Tarjeta {
   readonly mover = output<Resumen>();
   readonly hecho = output<PasoHecho>();
   protected readonly iconos = I;
+
+  /** La primera regla dura con la que choca (perfil.md §5); las blandas no se muestran en la tarjeta. */
+  protected readonly choque = computed(
+    () => this.tarjeta().perfil?.choques.find((c) => c.dura) ?? null,
+  );
 
   /** El de plazo más cercano (el núcleo ya los manda ordenados). */
   protected readonly paso = computed(() => this.tarjeta().pasosPendientes?.[0] ?? null);

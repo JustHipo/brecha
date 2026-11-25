@@ -26,6 +26,7 @@ function tarjeta(extra: Partial<Resumen> = {}): Resumen {
     discrepanciasAbiertas: 0,
     pasosPendientes: [],
     transicionesPosibles: ['por_postular', 'postulado', 'descartado'],
+    perfil: null,
     version: 0,
     actualizadaEn: '2026-11-23T12:00:00.000Z',
     ...extra,

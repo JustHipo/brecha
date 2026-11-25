@@ -10,6 +10,7 @@ import type {
   FuenteDePaso,
   RegistradorDePaso,
 } from '../dominio/paso';
+import { revisarPostulacion, type DatosPerfilEmpleo, type RevisionDePerfil } from '../dominio/perfil-empleo';
 import type { PostulacionDatos } from '../dominio/postulacion';
 import { calcularPrioridad } from '../dominio/politica-de-prioridad';
 
@@ -35,9 +36,14 @@ export interface VistaResumen {
   /** Lo que te piden hacer, el de plazo más cercano primero (docs/diseno/pasos.md §7.1). */
   pasosPendientes: VistaPasoCorto[];
   transicionesPosibles: EstadoPostulacion[];
+  /** Choques con tu perfil de búsqueda (perfil.md §3.3); null si el perfil no tiene reglas con chequeo. */
+  perfil: RevisionDePerfil | null;
   version: number;
   actualizadaEn: string;
 }
+
+/** Lo que se necesita del perfil para revisar una postulación. */
+export type PerfilParaRevisar = Pick<DatosPerfilEmpleo, 'reglas' | 'datos'> | null;
 
 export interface VistaPasoCorto {
   id: string;
@@ -195,7 +201,12 @@ export function aVistaPaso(
   };
 }
 
-export function aResumen(d: PostulacionDatos, reloj: Reloj, pasos: readonly DatosPaso[] = []): VistaResumen {
+export function aResumen(
+  d: PostulacionDatos,
+  reloj: Reloj,
+  pasos: readonly DatosPaso[] = [],
+  perfil: PerfilParaRevisar = null,
+): VistaResumen {
   return {
     id: d.id,
     titulo: d.aviso.titulo,
@@ -218,6 +229,7 @@ export function aResumen(d: PostulacionDatos, reloj: Reloj, pasos: readonly Dato
       .sort(ordenarPendientes)
       .map((p) => aPasoCorto(p, reloj)),
     transicionesPosibles: transicionesPosibles(d.estado, d.aviso.cierre, reloj),
+    perfil: perfil ? revisarPostulacion(d.aviso, perfil) : null,
     version: d.version,
     actualizadaEn: d.actualizadaEn.toISOString(),
   };
@@ -228,6 +240,7 @@ export function aDetalle(
   reloj: Reloj,
   pasos: readonly DatosPaso[] = [],
   postulacionesDePasos: ReadonlyMap<string, Omit<PostulacionDelPaso, 'id'>> = new Map(),
+  perfil: PerfilParaRevisar = null,
 ): VistaDetalle {
   // Del más nuevo al más antiguo; con la misma hora, el que se agregó después va primero.
   const nuevoPrimero = <T>(xs: T[], f: (x: T) => Date) =>
@@ -236,7 +249,7 @@ export function aDetalle(
       .sort((a, b) => f(b.x).getTime() - f(a.x).getTime() || b.i - a.i)
       .map(({ x }) => x);
   return {
-    ...aResumen(d, reloj, pasos),
+    ...aResumen(d, reloj, pasos, perfil),
     aviso: d.aviso,
     canal: d.canal ?? null,
     sueldoPretendido: d.sueldoPretendido ?? null,

@@ -126,6 +126,49 @@ describe('arriendos por REST', () => {
       .expect(400);
   });
 
+  it('una búsqueda guardada antes del perfil se lee con texto y etiquetas, y acepta cambios de a una', async () => {
+    // Así quedó la búsqueda de Juan antes del perfil (docs/diseno/perfil.md §3.2).
+    await prisma.busquedaArriendo.create({
+      data: {
+        id: 1,
+        datos: {
+          reglas: [
+            { id: 'inicial-renta', criterio: 'renta_exigida', dura: true },
+            { id: 'inicial-aval', criterio: 'aval', dura: true },
+          ],
+          persona: {},
+          historial: [],
+        },
+        actualizadaEn: new Date(),
+      },
+    });
+    const antes = await auth(http.get('/api/v1/arriendos/busqueda')).expect(200);
+    expect(antes.body.reglas).toEqual([
+      expect.objectContaining({ id: 'inicial-renta', texto: 'Renta exigida que cumples', etiquetas: [] }),
+      expect.objectContaining({ id: 'inicial-aval', texto: 'Aval (si lo piden, lo tienes)', etiquetas: [] }),
+    ]);
+    const b = await auth(http.put('/api/v1/arriendos/busqueda'))
+      .send({
+        agregar: [
+          { texto: 'Cerca de una estación de metro', dura: false, etiquetas: ['Ubicación'] },
+          { criterio: 'tipo', valor: ['departamento'], dura: false, prioridad: 1 },
+        ],
+        cambiar: [{ id: 'inicial-aval', etiquetas: ['requisitos'] }],
+        motivo: 'Juan pidió metro cerca',
+      })
+      .expect(200);
+    expect(b.body.reglas.map((r: { descripcion: string }) => r.descripcion)).toEqual([
+      'Dura · Renta exigida que cumples',
+      'Dura · Aval (si lo piden, lo tienes) #requisitos',
+      'P1 · Tipo: departamento',
+      'P2 · Cerca de una estación de metro #ubicacion',
+    ]);
+    expect(b.body.criterios).toContain('comuna');
+    await auth(http.put('/api/v1/arriendos/busqueda'))
+      .send({ quitar: ['no-existe'], motivo: 'x' })
+      .expect(404);
+  });
+
   it('señales: con URL va a la propiedad (y la segura cambia el estado); sin propiedad, a la Bandeja', async () => {
     const p = (await auth(http.post('/api/v1/arriendos/propiedades')).send(depto).expect(201)).body.propiedad;
     const s = await auth(http.post('/api/v1/arriendos/senales'), 'servicio')
@@ -211,8 +254,10 @@ describe('arriendos por MCP', () => {
     const { instructions } = c.getInstructions()
       ? { instructions: c.getInstructions() }
       : { instructions: '' };
-    expect(instructions).toMatch(/ver_busqueda/);
-    expect(texto(await c.callTool({ name: 'ver_busqueda', arguments: {} }))).toMatch(/Renta exigida/);
+    expect(instructions).toMatch(/ver_perfil \(foco arriendos\)/);
+    expect(texto(await c.callTool({ name: 'ver_perfil', arguments: { foco: 'arriendos' } }))).toMatch(
+      /Renta exigida/,
+    );
 
     const creada = texto(
       await c.callTool({
@@ -232,16 +277,24 @@ describe('arriendos por MCP', () => {
     expect(repetida.isError).toBe(true);
     expect(texto(repetida)).toMatch(/YA_EXISTE/);
 
-    await c.callTool({
-      name: 'editar_busqueda',
+    const editada = await c.callTool({
+      name: 'editar_perfil',
       arguments: {
-        reglas: [
-          { criterio: 'tipo', valor: ['casa'], dura: false, prioridad: 1 },
+        foco: 'arriendos',
+        agregar: [
+          { criterio: 'tipo', valor: ['casa'], dura: false, prioridad: 1, etiquetas: ['tipo'] },
           { criterio: 'tipo', valor: ['departamento'], dura: false, prioridad: 2 },
         ],
+        datos: { rentaLiquida: 1800000 },
         motivo: 'Juan pidió casas: casa pasa a P1',
       },
     });
+    expect(texto(editada)).toMatch(/P1 · Tipo: casa #tipo/);
+    const ajeno = await c.callTool({
+      name: 'editar_perfil',
+      arguments: { foco: 'arriendos', datos: { rentaPretendida: 1 }, motivo: 'x' },
+    });
+    expect(ajeno.isError).toBe(true);
     const b = await auth(http.get('/api/v1/arriendos/busqueda')).expect(200);
     expect(b.body.historial[0]).toMatchObject({ origen: 'ia', motivo: 'Juan pidió casas: casa pasa a P1' });
 

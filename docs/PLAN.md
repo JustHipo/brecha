@@ -232,6 +232,10 @@ Se verificaron antes de D3. Quedan como referencia por si algún día se desplie
 
 Juan pidió un segundo foco para buscar arriendo, con un selector donde dice «Brecha». Plan, respuestas de Juan y decisiones A-D1 a A-D20 en `docs/diseno/arriendos.md`; decisión de arquitectura en el ADR 0020. Se numeran aparte (A-D) para no chocar con las D de otras ramas en curso.
 
+### 6.5 Perfil de búsqueda (24-nov-2026)
+
+Juan pidió que sus reglas de búsqueda vivan en Brecha y no fuera de la app: un perfil editable en cada foco con reglas duras, blandas con prioridad, etiquetas libres e historial con motivo, que Claude lee por MCP antes de buscar y le pregunta antes de cambiar. Plan, respuestas de Juan y decisiones PB-D1 a PB-D14 en `docs/diseno/perfil.md`; también numeradas aparte.
+
 ## 7. Fases con checkpoints
 
 Cada fase termina con un checkpoint: la revisas, la pruebas y decides si seguimos.
@@ -362,6 +366,17 @@ Cada fase termina con un checkpoint: la revisas, la pruebas y decides si seguimo
 | A4-A5 | Correos de arriendo, importar texto o WhatsApp, Preguntar | pytest con correos de ejemplo, chats de iPhone y Android, teléfonos enmascarados; e2e de importar |
 | A6 | Mapa en los dos focos | Vitest de comunas, e2e de los dos mapas, Nominatim con respuestas grabadas |
 | A7 | Notificaciones y barra de menú por foco, documentación | pruebas del escritorio |
+
+### FP: Perfil de búsqueda (los dos focos)
+**Estado**: 🔄 Implementado en la rama `perfil` (24-nov-2026), P1 a P5 con checkpoints de Juan; PR hacia `windows` · detalle en `docs/diseno/perfil.md`
+
+| Fase | Qué | Pruebas |
+|---|---|---|
+| P1 | Regla común (`compartido/dominio/perfil.ts`) y Arriendos encima | Dominio, conversión de reglas viejas, API |
+| P2 | Perfil de Empleo en el núcleo, chequeos y choques en cada postulación | Casos reales de Juan (Santiago, Viña, trabajando.cl, frontend, sueldo), API |
+| P3 | `ver_perfil` y `editar_perfil` por MCP, instrucciones del servidor | MCP contra la base de pruebas |
+| P4 | Página Perfil en los dos focos, choque en tarjeta y ficha | Vitest, Playwright y axe |
+| P5 | Semilla privada, `pnpm --filter nucleo perfil cargar`, docs | Carga dos veces deja lo mismo |
 
 ## 8. Cómo se presenta el proyecto
 

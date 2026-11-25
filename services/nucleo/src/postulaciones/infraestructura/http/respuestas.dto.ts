@@ -188,6 +188,27 @@ export class PasoRegistradoDto extends PasoDto {
   @ApiProperty({ description: 'Ese correo o mensaje ya había creado este paso' }) yaEstaba!: boolean;
 }
 
+export class ChoqueConPerfilDto {
+  @ApiProperty() reglaId!: string;
+  @ApiProperty() dura!: boolean;
+  @ApiPropertyOptional({ description: 'Solo blandas' }) prioridad?: number;
+  @ApiProperty({ description: 'El texto de la regla' }) regla!: string;
+  @ApiProperty({ description: 'Por qué choca' }) texto!: string;
+}
+
+export class SinDatoDePerfilDto {
+  @ApiProperty() reglaId!: string;
+  @ApiProperty() regla!: string;
+  @ApiProperty() texto!: string;
+}
+
+export class RevisionDePerfilDto {
+  @ApiProperty({ description: 'Falso si choca con una regla dura; nunca cambia el estado' })
+  cumpleDuras!: boolean;
+  @ApiProperty({ type: [ChoqueConPerfilDto], description: 'Duras primero' }) choques!: ChoqueConPerfilDto[];
+  @ApiProperty({ type: [SinDatoDePerfilDto] }) sinDato!: SinDatoDePerfilDto[];
+}
+
 export class ResumenPostulacionDto {
   @ApiProperty() id!: string;
   @ApiProperty() titulo!: string;
@@ -218,6 +239,12 @@ export class ResumenPostulacionDto {
   })
   pasosPendientes!: PasoCortoDto[];
   @ApiProperty({ ...estado, isArray: true }) transicionesPosibles!: string[];
+  @ApiProperty({
+    type: RevisionDePerfilDto,
+    nullable: true,
+    description: 'Choques con tu perfil de búsqueda; null si el perfil no tiene reglas con chequeo',
+  })
+  perfil!: RevisionDePerfilDto | null;
   @ApiProperty() version!: number;
   @ApiProperty({ format: 'date-time' }) actualizadaEn!: string;
 }

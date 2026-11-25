@@ -207,6 +207,50 @@ interface Etapa {
 
               <b-proceso [detalle]="d" />
 
+              @if (d.perfil; as pf) {
+                @if (pf.choques.length || pf.sinDato.length) {
+                  <section
+                    aria-labelledby="ficha-perfil"
+                    class="flex flex-col gap-2 rounded-[14px] border px-4 py-3.5"
+                    [class.border-aviso-borde]="!pf.cumpleDuras"
+                    [class.bg-aviso-fondo]="!pf.cumpleDuras"
+                    [class.border-linea]="pf.cumpleDuras"
+                    data-perfil-ficha
+                  >
+                    <h2
+                      id="ficha-perfil"
+                      class="m-0 flex items-center gap-2 font-sans text-sm font-bold"
+                    >
+                      {{ 'perfil.tuPerfil' | transloco }}
+                      <a routerLink="/perfil" class="ml-auto text-[12.5px] font-semibold">{{
+                        'perfil.verPerfil' | transloco
+                      }}</a>
+                    </h2>
+                    <ul class="m-0 flex list-none flex-col gap-1.5 p-0 text-[13px]">
+                      @for (c of pf.choques; track c.reglaId) {
+                        <li>
+                          <strong
+                            >{{ c.dura ? ('perfil.dura' | transloco) : 'P' + c.prioridad }} ·
+                            {{ c.texto }}</strong
+                          >
+                          <span class="block text-tinta-suave">{{ c.regla }}</span>
+                        </li>
+                      }
+                      @for (x of pf.sinDato; track x.reglaId) {
+                        <li class="text-tinta-suave">
+                          {{ 'perfil.noSePudo' | transloco }} · {{ x.texto }}
+                        </li>
+                      }
+                    </ul>
+                    @if (!pf.cumpleDuras) {
+                      <p class="m-0 text-[12.5px] text-tinta-suave">
+                        {{ 'perfil.fichaAyuda' | transloco }}
+                      </p>
+                    }
+                  </section>
+                }
+              }
+
               <section
                 aria-labelledby="ficha-resumen"
                 class="flex flex-col gap-3 rounded-[14px] border border-linea bg-fondo px-4 py-3.5 shadow-tarjeta"

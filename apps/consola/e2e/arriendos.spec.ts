@@ -14,15 +14,21 @@ async function sinViolaciones(page: Page) {
   );
 }
 
-test('tu búsqueda: reglas duras y blandas con motivo', async ({ page }) => {
+test('perfil de Arriendos: reglas duras y blandas con motivo', async ({ page }) => {
+  // La ruta vieja lleva al Perfil (docs/diseno/perfil.md §5).
   await page.goto('/arriendos/busqueda');
-  await expect(page.getByRole('heading', { level: 1, name: 'Tu búsqueda' })).toBeVisible();
+  await expect(page).toHaveURL(/\/arriendos\/perfil$/);
+  await expect(page.getByRole('heading', { level: 1, name: 'Perfil de búsqueda' })).toBeVisible();
   await page.getByRole('button', { name: '+ Arriendo más gastos comunes (máximo)' }).click();
-  const regla = page.locator('[data-regla="presupuesto_total"]');
-  await regla.locator('input').first().fill('600000');
-  await page.locator('[data-motivo-busqueda]').fill('Empiezo a buscar');
+  // La regla nueva aún no tiene texto: se describe sola al guardar.
+  const regla = page.locator('article[data-regla=""]');
+  await regla.getByLabel('Valor').fill('600000');
+  await page.locator('[data-motivo-perfil]').fill('Empiezo a buscar');
   await page.getByRole('button', { name: 'Guardar' }).click();
   await expect(page.getByText('Empiezo a buscar')).toBeVisible();
+  await expect(
+    page.locator('[data-regla="Arriendo más gastos comunes hasta $600.000"]'),
+  ).toBeVisible();
   await sinViolaciones(page);
 });
 

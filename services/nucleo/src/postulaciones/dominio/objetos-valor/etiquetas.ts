@@ -1,15 +1,10 @@
+import { normalizarEtiqueta } from '../../../compartido/dominio/etiquetas';
 import { DatoInvalido } from '../errores';
+
+export { normalizarEtiqueta };
 
 export const MAX_ETIQUETAS = 20;
 export const MAX_LARGO_ETIQUETA = 40;
-
-/**
- * Una etiqueta se guarda normalizada (decisión P1 de csv.md): minúsculas, sin tildes y con espacios simples,
- * así «Investigación» e «investigacion» son la misma y el filtro no se parte en dos.
- */
-export function normalizarEtiqueta(texto: string): string {
-  return texto.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase().replace(/\s+/g, ' ').trim();
-}
 
 /** Objeto de valor `Etiquetas`: lista sin repetidos, en el orden en que llegaron. */
 export function crearEtiquetas(valor: unknown): string[] {

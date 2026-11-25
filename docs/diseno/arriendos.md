@@ -100,7 +100,7 @@ Una sola búsqueda activa (P4: solo arriendo). **Reglas** con: criterio (presupu
 
 **Calce:** si falla una regla dura, calce 0 y esa brecha va primero; si no, cada blanda pesa según su prioridad (P1 pesa más). Brechas en palabras: «se pasa $40.000 del presupuesto», «pide renta 3x y tienes 2,6x». Se recalcula al cambiar una regla. Con la UF del día para comparar precios en UF.
 
-**Protocolo para la IA** (en las instrucciones del servidor MCP y en la descripción de las herramientas):
+**Protocolo para la IA** (en las instrucciones del servidor MCP y en la descripción de las herramientas). Desde el 24-nov-2026 las reglas son el perfil de búsqueda común a los dos focos, con etiquetas, y `ver_busqueda`/`editar_busqueda` pasaron a `ver_perfil`/`editar_perfil` con `foco: arriendos` ([`perfil.md`](perfil.md), PB-D13):
 1. Antes de buscar o agregar, `ver_busqueda`.
 2. Antes de crear, `buscar_duplicado` (o `crear_propiedad`, que avisa si hay duplicado).
 3. Si la persona pide algo que contradice una regla, **preguntarle** si cambia la regla; si dice que sí, `editar_busqueda` con el motivo. Ejemplo: pide casa y la regla dice departamento → «¿Paso casa a P1 y departamento a P2?».

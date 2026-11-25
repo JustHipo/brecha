@@ -83,7 +83,7 @@ describe('servidor MCP por HTTP (F1-10c)', () => {
         'buscar_duplicado_propiedad',
         'cambiar_estado_propiedad',
         'crear_propiedad',
-        'editar_busqueda',
+        'editar_perfil',
         'editar_propiedad',
         'listar_bandeja_arriendos',
         'listar_canales',
@@ -93,7 +93,7 @@ describe('servidor MCP por HTTP (F1-10c)', () => {
         'registrar_interaccion_arriendo',
         'registrar_senal_arriendo',
         'unir_propiedades',
-        'ver_busqueda',
+        'ver_perfil',
         'ver_propiedad',
       ].sort(),
     );
@@ -412,5 +412,85 @@ describe('servidor MCP por HTTP (F1-10c)', () => {
     expect(r).toMatchObject({ accion: 'creado', paso: { registradoPor: 'ia' } });
     expect(await prisma.senal.count({ where: { referenciaExterna: '<tenpo@x>' } })).toBe(2);
     expect(await prisma.paso.count()).toBe(1);
+  });
+});
+
+describe('perfil de búsqueda por MCP (perfil.md §4)', () => {
+  const texto = (r: unknown) => (r as Texto).content[0]!.text;
+
+  it('las instrucciones y las herramientas piden leer el perfil antes de buscar y preguntar antes de cambiarlo', async () => {
+    const c = await cliente(t.token('mcp'));
+    const instrucciones = c.getInstructions() ?? '';
+    expect(instrucciones).toMatch(
+      /Antes de buscar, proponer o agregar ofertas de empleo o propiedades, lee el perfil/,
+    );
+    expect(instrucciones).toMatch(/pregúntale si lo agrega al perfil o es solo para esta búsqueda/);
+    expect(instrucciones).toMatch(/Nunca cambies el perfil sin preguntarle/);
+    const { tools } = await c.listTools();
+    const desc = (n: string) => tools.find((x) => x.name === n)!.description!;
+    expect(desc('ver_perfil')).toMatch(/Léelo antes de buscar/);
+    expect(desc('editar_perfil')).toMatch(/solo después de preguntarle/);
+    expect(desc('crear_postulacion')).toMatch(/ver_perfil/);
+  });
+
+  it('la IA agrega reglas con etiquetas, el cambio queda con origen ia y las postulaciones muestran el choque', async () => {
+    const c = await cliente(t.token('mcp'));
+    const r = await c.callTool({
+      name: 'editar_perfil',
+      arguments: {
+        foco: 'empleo',
+        agregar: [
+          {
+            texto: 'Santiago solo híbrido o remoto',
+            criterio: 'modalidad_por_region',
+            valor: {
+              valparaiso: ['presencial', 'hibrido', 'remoto'],
+              santiago: ['hibrido', 'remoto'],
+              otra: ['remoto'],
+              noIndicaEsPresencialEn: ['trabajando'],
+            },
+            etiquetas: ['ubicacion'],
+          },
+          { texto: 'Sin pasantías', etiquetas: ['contrato'] },
+        ],
+        datos: { rentaPretendida: 1400000 },
+        motivo: 'Juan: presencial full time en Santiago no',
+      },
+    });
+    expect(r.isError).toBeFalsy();
+    const visto = texto(await c.callTool({ name: 'ver_perfil', arguments: { foco: 'empleo' } }));
+    expect(visto).toMatch(
+      /Dura · Santiago solo híbrido o remoto #ubicacion \(id .+; la revisa el código: modalidad_por_region\)/,
+    );
+    expect(visto).toMatch(/Dura · Sin pasantías #contrato \(id [^;]+\)/);
+    expect(visto).toMatch(/renta pretendida \$1\.400\.000 líquidos/);
+    expect(
+      json(await c.callTool({ name: 'ver_perfil', arguments: { foco: 'empleo' } })).ultimosCambios[0],
+    ).toMatchObject({
+      origen: 'ia',
+      motivo: 'Juan: presencial full time en Santiago no',
+    });
+
+    await c.callTool({
+      name: 'crear_postulacion',
+      arguments: {
+        titulo: 'Backend Developer',
+        empresa: 'Logpilot',
+        url: 'https://ejemplo.test/logpilot',
+        plataforma: 'trabajando',
+        modalidad: 'no_indica',
+        ubicacion: 'Santiago',
+      },
+    });
+    const lista = texto(await c.callTool({ name: 'listar_postulaciones', arguments: {} }));
+    expect(lista).toMatch(
+      /Logpilot · Backend Developer · sin_decidir · .* · choca con tu perfil: Sin modalidad en trabajando cuenta como presencial en Santiago/,
+    );
+
+    const ajeno = await c.callTool({
+      name: 'editar_perfil',
+      arguments: { foco: 'empleo', datos: { tieneAval: true }, motivo: 'x' },
+    });
+    expect(ajeno.isError).toBe(true);
   });
 });

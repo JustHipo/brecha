@@ -179,7 +179,21 @@ export class EditarCanalArriendoDto {
 }
 
 export class ReglaEntradaDto {
-  @ApiProperty({ enum: CRITERIOS, enumName: 'CriterioDeBusqueda' }) @Allow() criterio!: string;
+  @ApiPropertyOptional({ description: 'Solo al reemplazar la lista: conserva la regla con ese id' })
+  @Allow()
+  id?: string;
+  @ApiPropertyOptional({
+    description: 'La regla en tus palabras; con criterio y sin texto, se describe sola',
+  })
+  @Allow()
+  texto?: string;
+  @ApiPropertyOptional({
+    enum: CRITERIOS,
+    enumName: 'CriterioDeBusqueda',
+    description: 'Lo que el código revisa en el calce; sin él, la regla la aplica tu IA',
+  })
+  @Allow()
+  criterio?: string;
   @ApiPropertyOptional({
     description: 'Monto máximo, mínimo, lista de opciones, sí/no o fecha; nada en renta_exigida y aval',
     oneOf: [
@@ -193,6 +207,13 @@ export class ReglaEntradaDto {
   valor?: number | boolean | string | string[];
   @ApiPropertyOptional({ description: 'true = dura (por defecto)' }) @Allow() dura?: boolean;
   @ApiPropertyOptional({ description: 'Solo blandas: 1 es la más importante' }) @Allow() prioridad?: number;
+  @ApiPropertyOptional({ type: [String], description: 'Etiquetas libres (minúsculas y sin tildes)' })
+  @Allow()
+  etiquetas?: string[];
+}
+
+export class CambioDeReglaDto extends ReglaEntradaDto {
+  @ApiProperty({ description: 'La regla que cambia; solo cambia lo que mandas' }) @Allow() declare id: string;
 }
 
 export class PersonaDto {
@@ -206,6 +227,22 @@ export class CambiarBusquedaDto {
   @IsOptional()
   @IsArray()
   reglas?: ReglaEntradaDto[];
+  @ApiPropertyOptional({ type: [ReglaEntradaDto], description: 'Reglas nuevas' })
+  @IsOptional()
+  @IsArray()
+  agregar?: ReglaEntradaDto[];
+  @ApiPropertyOptional({ type: [CambioDeReglaDto], description: 'Cambios a reglas existentes, por id' })
+  @IsOptional()
+  @IsArray()
+  cambiar?: CambioDeReglaDto[];
+  @ApiPropertyOptional({ type: [String], description: 'Id de las reglas que se quitan' })
+  @IsOptional()
+  @IsArray()
+  quitar?: string[];
+  @ApiPropertyOptional({ type: [String], description: 'Id de las blandas en el orden nuevo (P1 primero)' })
+  @IsOptional()
+  @IsArray()
+  ordenar?: string[];
   @ApiPropertyOptional({ type: PersonaDto }) @Allow() persona?: PersonaDto;
   @ApiProperty({ description: 'Por qué cambia (queda en el historial)' }) @Allow() motivo!: string;
 }
@@ -461,7 +498,8 @@ export class CanalArriendoDto {
 
 export class ReglaDto {
   @ApiProperty() id!: string;
-  @ApiProperty({ enum: CRITERIOS, enumName: 'CriterioDeBusqueda' }) criterio!: string;
+  @ApiProperty({ description: 'La regla en tus palabras' }) texto!: string;
+  @ApiPropertyOptional({ enum: CRITERIOS, enumName: 'CriterioDeBusqueda' }) criterio?: string;
   @ApiPropertyOptional({
     oneOf: [
       { type: 'number' },
@@ -473,7 +511,9 @@ export class ReglaDto {
   valor?: number | boolean | string | string[];
   @ApiProperty() dura!: boolean;
   @ApiPropertyOptional() prioridad?: number;
-  @ApiProperty({ description: '«Dura · Arriendo más gastos comunes hasta $650.000»' }) descripcion!: string;
+  @ApiProperty({ type: [String] }) etiquetas!: string[];
+  @ApiProperty({ description: '«Dura · Arriendo más gastos comunes hasta $650.000 #plata»' })
+  descripcion!: string;
 }
 
 export class PersonaSalidaDto {
@@ -501,6 +541,13 @@ export class BusquedaDto {
   historial!: CambioDeBusquedaDto[];
   @ApiProperty({ enum: CRITERIOS, enumName: 'CriterioDeBusqueda', isArray: true })
   criteriosSugeridos!: string[];
+  @ApiProperty({
+    enum: CRITERIOS,
+    enumName: 'CriterioDeBusqueda',
+    isArray: true,
+    description: 'Todos los criterios',
+  })
+  criterios!: string[];
   @nulo(UfDto) uf!: UfDto | null;
   @ApiProperty({ description: 'Ubicar direcciones con Nominatim (OpenStreetMap)' }) geocodificar!: boolean;
   @nulo(String, { format: 'date-time' }) actualizadaEn!: string | null;
