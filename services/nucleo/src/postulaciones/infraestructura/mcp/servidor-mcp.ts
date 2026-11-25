@@ -308,9 +308,7 @@ export function crearServidorMcp(casos: CasosDeUso, red?: CasosDeRed, csv?: Caso
       },
     },
     (a) =>
-      correr(async () =>
-        ok('Resultado registrado', await casos.registrarResultadoEntrevista.ejecutar(a)),
-      ),
+      correr(async () => ok('Resultado registrado', await casos.registrarResultadoEntrevista.ejecutar(a))),
   );
 
   s.registerTool(
