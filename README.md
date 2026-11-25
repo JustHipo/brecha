@@ -4,6 +4,8 @@ Seguimiento personal de postulaciones de empleo. Juntas en un tablero las postul
 
 Brecha se instala y corre en tu máquina: no hay servidor central, cuentas ni nube. Tus datos no salen de tu equipo.
 
+## 
+
 > Estado: **fase F1** (núcleo, consola y MCP). Las fuentes automáticas (lector de correo, IA) llegan en F2 y la app de escritorio en F3. El plan completo está en [`docs/PLAN.md`](docs/PLAN.md) y las decisiones en [`docs/adr/`](docs/adr/).
 
 ## Cómo está hecho
