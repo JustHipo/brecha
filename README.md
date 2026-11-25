@@ -4,7 +4,43 @@ Seguimiento personal de postulaciones de empleo. Juntas en un tablero las postul
 
 Brecha se instala y corre en tu máquina: no hay servidor central, cuentas ni nube. Tus datos no salen de tu equipo.
 
-## 
+## Cómo se usa
+
+Brecha parte vacía: no trae ofertas ni se conecta sola a los portales. Es tu tablero, y quien hace el trabajo pesado es **Claude**, que se conecta a Brecha por **MCP** y la usa por ti: busca, agrega, ordena y anota. Tú revisas y decides.
+
+Descarga la app en [Releases](https://github.com/JustHipo/brecha/releases) (Mac con chip Apple o Windows) y sigue estos pasos.
+
+### 1. Conecta Claude a Brecha y a Chrome
+
+Agrega Brecha como servidor MCP en Claude (Claude Desktop o Claude Code) y activa Claude en Chrome. Así Claude puede leer y escribir en tu tablero, y navegar los portales de empleo con tu sesión.
+
+### 2. Llena tu perfil
+
+Anota qué buscas: cargo, modalidad, ciudad, sueldo y herramientas que manejas. Hazlo en Brecha o pídele a Claude que lo llene contigo.
+
+### 3. Pídele a Claude que busque
+
+Por ejemplo: _«Busca en LinkedIn, GetOnBoard y Laborum ofertas que calcen con mi perfil de Brecha»_. Claude las revisa desde Chrome y descarta las que chocan con tu perfil.
+
+### 4. Pídele que las agregue a Brecha
+
+_«Agrega a Brecha las que valgan la pena»_. Quedan en el tablero con el link, la empresa y lo que les falta frente a tu perfil.
+
+### 5. Revisa y postula
+
+Tú eliges a cuáles postular y postulas en el portal. Después las marcas como postuladas (o se lo pides a Claude).
+
+### 6. Conecta tu correo y tu llave de OpenAI
+
+En **Ajustes** conectas tu Gmail y pones tu llave de OpenAI. Con eso Brecha lee los correos de las empresas y entiende si avanzas, te rechazan o te piden algo.
+
+**6b. ¿Sin automatización?** También sirve a mano: creas las postulaciones, las mueves en el tablero y anotas lo que pasa. Nada de lo anterior es obligatorio.
+
+### 7. Brecha se mantiene al día
+
+Cuando llega un correo claro, la postulación cambia de estado sola y te avisa. Si el correo es dudoso, queda como sugerencia para que tú decidas.
+
+> Lo mismo sirve para buscar arriendo: en el modo **Arriendos**, Claude busca departamentos que calcen con tu perfil y los guarda con sus fotos.
 
 > Estado: **fase F1** (núcleo, consola y MCP). Las fuentes automáticas (lector de correo, IA) llegan en F2 y la app de escritorio en F3. El plan completo está en [`docs/PLAN.md`](docs/PLAN.md) y las decisiones en [`docs/adr/`](docs/adr/).
 
