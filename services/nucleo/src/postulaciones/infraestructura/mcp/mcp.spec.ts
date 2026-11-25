@@ -191,6 +191,20 @@ describe('servidor MCP por HTTP (F1-10c)', () => {
       }),
     );
     expect(repetida.agregada).toBe(false);
+    // El chat de LinkedIn da el id interno del perfil; con el mismo nombre es el mismo contacto, no uno nuevo.
+    const porIdInterno = json(
+      await c.callTool({
+        name: 'registrar_interaccion_red',
+        arguments: {
+          perfilUrl: 'https://www.linkedin.com/in/ACoAAEgiV0IBnSD73tmvFKfG',
+          nombre: 'Ána Ficticia',
+          tipo: 'nota',
+          resumen: 'Es reclutadora de Ficticia',
+          ocurridaEn: '2026-11-20T16:00:00Z',
+        },
+      }),
+    );
+    expect(porIdInterno).toMatchObject({ id: r.id, pendiente: 'responder', agregada: true });
     await c.callTool({ name: 'editar_contacto_red', arguments: { id: r.id, vincular: creada.id } });
     const lista = await c.callTool({
       name: 'listar_red',

@@ -78,6 +78,32 @@ export function perfilNormalizado(url: unknown): string {
   return `https://www.linkedin.com/in/${/^AC[a-zA-Z]AA/.test(id) ? id : id.toLowerCase()}`;
 }
 
+const esIdInterno = (perfil: string) => /\/in\/AC[a-zA-Z]AA/.test(perfil);
+
+/** Sin tildes, mayúsculas, emojis ni signos: «María Fernanda Escalona Cárdenas 桜» → «maria fernanda escalona cardenas». */
+export function nombreComparable(nombre: string): string {
+  return nombre
+    .normalize('NFD')
+    .replace(/\p{M}/gu, '')
+    .toLowerCase()
+    .replace(/[^a-z\s]/g, ' ')
+    .split(/\s+/)
+    .filter(Boolean)
+    .join(' ');
+}
+
+/**
+ * LinkedIn da dos URLs para la misma persona: el id interno (`/in/ACoAA…`, el del chat) y el nombre de perfil
+ * público (`/in/felipe-lizama-…`, el de los correos de aviso). Si el contacto tiene una forma, llega la otra y el
+ * nombre es el mismo, es la misma persona. Dos URLs de la misma forma que no coinciden son personas distintas.
+ */
+export function mismaPersonaConOtroPerfil(d: DatosContactoRed, nombre: string, perfil: string): boolean {
+  if (!d.perfilUrl || d.perfilUrl === perfil) return false;
+  if (esIdInterno(d.perfilUrl) === esIdInterno(perfil)) return false;
+  const propio = nombreComparable(d.nombre);
+  return propio !== '' && propio === nombreComparable(nombre);
+}
+
 const VENTANA_AVISO_MS = 12 * 3_600_000;
 
 const opcional = (campo: string, v: unknown, max: number) =>

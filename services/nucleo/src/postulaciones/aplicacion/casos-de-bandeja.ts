@@ -1,4 +1,4 @@
-import { DatoInvalido, NoEncontrada, SenalDuplicada } from '../dominio/errores';
+import { DatoInvalido, NoEncontrada, SenalDuplicada, SenalEnBandeja } from '../dominio/errores';
 import type { EstadoPostulacion } from '../dominio/estado';
 import type { Plataforma } from '../dominio/objetos-valor/valores';
 import type { FuenteDeSenal, Senal } from '../dominio/partes';
@@ -110,6 +110,8 @@ export class RecibirSenal {
     } = e;
     const ids = [...new Set([...(postulacionId ? [postulacionId] : []), ...(postulacionIds ?? [])])];
     if (ids.length) {
+      // Antes de crear pasos: si el correo pasó por la bandeja y no está en estas postulaciones, va con «asociar».
+      await this.exigirFueraDeBandeja(ids, senal.referenciaExterna);
       const senales: SenalEnPostulacion[] = [];
       let primera: { senal: Senal; postulacion: VistaDetalle } | undefined;
       for (const id of ids) {
@@ -142,7 +144,8 @@ export class RecibirSenal {
           !pasos.sugeridos.length;
         if (nada) throw new SenalDuplicada(senal.referenciaExterna ?? '');
         const postulacion = await detalleOFalla(this.c, ids[0]!);
-        const previa = postulacion.senales.find((x) => x.referenciaExterna === senal.referenciaExterna)!;
+        const previa = postulacion.senales.find((x) => x.referenciaExterna === senal.referenciaExterna);
+        if (!previa) throw new SenalEnBandeja(senal.referenciaExterna ?? '');
         primera = { senal: { ...previa, recibidaEn: new Date(previa.recibidaEn) }, postulacion };
       } else if (pasos.paso || pasos.cerrados.length || pasos.sugeridos.length) {
         primera = { ...primera, postulacion: await detalleOFalla(this.c, primera.postulacion.id) };
@@ -167,6 +170,20 @@ export class RecibirSenal {
     // Un correo que pide algo y no sabemos de quién es avisa con prioridad alta.
     await this.c.bandeja.guardar(p, { tipo: 'senal.sin_asociar', prioridad: paso ? 'alta' : 'media' });
     return { destino: 'bandeja', pendiente: aVistaPendiente(p.datos()) };
+  }
+
+  /**
+   * Una referencia que está en la bandeja solo se repite en una postulación que ya la tiene (asociada antes).
+   * Si ninguna de las pedidas la tiene, el camino es asociar_senal (ADR 0015): se avisa antes de tocar pasos.
+   */
+  private async exigirFueraDeBandeja(ids: string[], referencia?: string): Promise<void> {
+    if (!referencia || !(await this.c.bandeja.referenciaEnBandeja(referencia))) return;
+    for (const id of ids) {
+      const p = await detalleOFalla(this.c, id);
+      if (p.senales.some((x) => x.referenciaExterna === referencia)) return;
+    }
+    const pendiente = (await this.c.bandeja.pendientes()).find((x) => x.referenciaExterna === referencia);
+    throw new SenalEnBandeja(referencia, pendiente?.id);
   }
 
   private async pasos(ids: string[], e: EntradaSenalRecibida): Promise<ResultadoDePasos> {

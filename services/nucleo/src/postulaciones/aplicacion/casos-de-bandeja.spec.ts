@@ -53,6 +53,61 @@ describe('casos de la Bandeja', () => {
     ).rejects.toMatchObject({ codigo: 'YA_EXISTE' });
   });
 
+  it('un correo que el vigía ya dejó en la bandeja, registrado con id y paso: YA_EXISTE claro y sin crear el paso', async () => {
+    const { c, pasos } = contextoDePrueba();
+    const p = await new CrearPostulacion(c).ejecutar({
+      aviso: AVISO,
+      estado: 'postulado',
+      fechaPostulacion: '2026-11-20',
+      canal: { tipo: 'portal', valor: 'x' },
+      origen: 'formulario',
+    });
+    const enBandeja = await new RecibirSenal(c).ejecutar({ ...SENAL, referenciaExterna: '<cal@x>' });
+    if (enBandeja.destino !== 'bandeja') throw new Error('esperaba bandeja');
+    await expect(
+      new RecibirSenal(c).ejecutar({
+        ...SENAL,
+        postulacionId: p.id,
+        referenciaExterna: '<cal@x>',
+        paso: { descripcion: 'Aceptar la invitación' },
+        registradoPor: 'ia',
+      }),
+    ).rejects.toMatchObject({
+      codigo: 'YA_EXISTE',
+      message: expect.stringContaining(enBandeja.pendiente.id),
+    });
+    expect(pasos.filas.size).toBe(0);
+    // Asociarla sigue siendo el camino, y funciona.
+    const d = await new AsociarSenal(c).ejecutar({ senalId: enBandeja.pendiente.id, postulacionId: p.id });
+    expect(d.senales).toHaveLength(1);
+  });
+
+  it('un correo asociado a otra postulación, registrado en esta con paso: YA_EXISTE y sin crear el paso', async () => {
+    const { c, pasos } = contextoDePrueba();
+    const crear = (url: string) =>
+      new CrearPostulacion(c).ejecutar({
+        aviso: { ...AVISO, url },
+        estado: 'postulado',
+        fechaPostulacion: '2026-11-20',
+        canal: { tipo: 'portal', valor: 'x' },
+        origen: 'formulario',
+      });
+    const a = await crear('https://ejemplo.cl/aviso/a');
+    const b = await crear('https://ejemplo.cl/aviso/b');
+    const r = await new RecibirSenal(c).ejecutar({ ...SENAL, referenciaExterna: '<otra@x>' });
+    if (r.destino !== 'bandeja') throw new Error('esperaba bandeja');
+    await new AsociarSenal(c).ejecutar({ senalId: r.pendiente.id, postulacionId: a.id });
+    await expect(
+      new RecibirSenal(c).ejecutar({
+        ...SENAL,
+        postulacionId: b.id,
+        referenciaExterna: '<otra@x>',
+        paso: { descripcion: 'Mandar el CV' },
+      }),
+    ).rejects.toMatchObject({ codigo: 'YA_EXISTE' });
+    expect(pasos.filas.size).toBe(0);
+  });
+
   it('asociar mueve la señal a la postulación y la saca de la bandeja; con D27 una entrevista segura se aplica', async () => {
     const { c, ajustes } = contextoDePrueba();
     ajustes.seguras = true;
