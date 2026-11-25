@@ -5,7 +5,7 @@ import { ErrorDeDominio } from '../../../compartido/dominio/error-de-dominio';
 import { PRIORIDADES } from '../../../compartido/dominio/evento-de-dominio';
 import { ESTADOS } from '../../dominio/estado';
 import { MODALIDADES, MONEDAS, PLATAFORMAS, TIPOS_DE_CANAL } from '../../dominio/objetos-valor/valores';
-import { FUENTES_DE_SENAL, TIPOS_DE_ENTREVISTA } from '../../dominio/partes';
+import { FUENTES_DE_SENAL, RESULTADOS_DE_ENTREVISTA, TIPOS_DE_ENTREVISTA } from '../../dominio/partes';
 import type { VistaDetalle, VistaPaso } from '../../aplicacion/vistas';
 import { ESTADOS_DE_PASO, FUENTES_DE_PASO } from '../../dominio/paso';
 import type { CasosDeRed } from '../../../red/aplicacion/casos-de-red';
@@ -291,6 +291,25 @@ export function crearServidorMcp(casos: CasosDeUso, red?: CasosDeRed, csv?: Caso
     (a) =>
       correr(async () =>
         ok('Entrevista agendada', await casos.agendarEntrevista.ejecutar({ ...a, origen: 'ia' })),
+      ),
+  );
+
+  s.registerTool(
+    'registrar_resultado_entrevista',
+    {
+      title: 'Registrar resultado de entrevista',
+      description:
+        'Cuando la persona cuente cómo le fue: avanza (pasó a la etapa siguiente), no_avanza, cancelada, o pendiente para reabrir. ' +
+        'El entrevistaId sale de ver_postulacion (entrevistas). No cambia el estado de la postulación: si el proceso terminó, usa cambiar_estado.',
+      inputSchema: {
+        id: z.string().describe('Postulación'),
+        entrevistaId: z.string(),
+        resultado: z.enum(RESULTADOS_DE_ENTREVISTA),
+      },
+    },
+    (a) =>
+      correr(async () =>
+        ok('Resultado registrado', await casos.registrarResultadoEntrevista.ejecutar(a)),
       ),
   );
 

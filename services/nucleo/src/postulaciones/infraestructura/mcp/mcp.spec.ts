@@ -71,12 +71,62 @@ describe('servidor MCP por HTTP (F1-10c)', () => {
         'registrar_contacto_red',
         'registrar_interaccion_red',
         'ver_contacto_red',
+        'registrar_resultado_entrevista',
         'registrar_senal',
         'resolver_discrepancia',
         'resumen',
         'ver_postulacion',
       ].sort(),
     );
+    await c.close();
+  });
+
+  it('registrar_resultado_entrevista marca la entrevista sin mover la postulación; una entrevista que no existe da NO_ENCONTRADO', async () => {
+    const c = await cliente(t.token('mcp'));
+    const creada = json(
+      await c.callTool({
+        name: 'crear_postulacion',
+        arguments: {
+          titulo: 'Full Stack',
+          empresa: 'Consultora Ficticia',
+          url: 'https://ejemplo.test/mcp-entrevista',
+          plataforma: 'otra',
+        },
+      }),
+    );
+    await c.callTool({ name: 'cambiar_estado', arguments: { id: creada.id, a: 'por_postular' } });
+    await c.callTool({
+      name: 'cambiar_estado',
+      arguments: {
+        id: creada.id,
+        a: 'postulado',
+        fechaPostulacion: '2026-11-24',
+        canal: { tipo: 'email', valor: 'seleccion@ejemplo.test' },
+      },
+    });
+    const agendada = json(
+      await c.callTool({
+        name: 'agendar_entrevista',
+        arguments: { id: creada.id, fecha: '2026-11-25T14:00:00.000Z', tipo: 'rrhh' },
+      }),
+    );
+    const entrevistaId = agendada.entrevistas[0].id as string;
+
+    const marcada = json(
+      await c.callTool({
+        name: 'registrar_resultado_entrevista',
+        arguments: { id: creada.id, entrevistaId, resultado: 'avanza' },
+      }),
+    );
+    expect(marcada.entrevistas[0]).toMatchObject({ id: entrevistaId, resultado: 'avanza' });
+    expect(marcada.estado).toBe('entrevista');
+
+    const mala = (await c.callTool({
+      name: 'registrar_resultado_entrevista',
+      arguments: { id: creada.id, entrevistaId: 'no-existe', resultado: 'avanza' },
+    })) as Texto;
+    expect(mala.isError).toBe(true);
+    expect(JSON.parse(mala.content[0]!.text)).toMatchObject({ codigo: 'NO_ENCONTRADO' });
     await c.close();
   });
 
