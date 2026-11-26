@@ -440,7 +440,151 @@ export function registrarHerramientasDeArriendos(
       }),
   );
 
+  registrarHerramientasDeSeguimiento(s, c);
   if (fotos) registrarHerramientasDeFotos(s, fotos);
+}
+
+/** Lo que la consola hace y faltaba por MCP: señales, discrepancias, visitas, contactos, ubicación, canales y UF. */
+function registrarHerramientasDeSeguimiento(s: McpServer, c: CasosDeArriendos): void {
+  s.registerTool(
+    'aplicar_senal_arriendo',
+    {
+      title: 'Aplicar una señal a una propiedad',
+      description:
+        'Mueve la propiedad al estado que sugiere la señal. Las señales están en ver_propiedad; úsala cuando la persona confirme la sugerencia.',
+      inputSchema: { id: z.string(), senalId: z.string() },
+    },
+    ({ id, senalId }) =>
+      correr(async () => ok(`Señal aplicada: ${fila(await c.aplicarSenal(id, senalId, 'ia'))}`)),
+  );
+
+  s.registerTool(
+    'resolver_discrepancia_propiedad',
+    {
+      title: 'Cerrar una discrepancia de una propiedad',
+      description:
+        'Cuando la persona revisó el aviso (un estado que no calza con la evidencia o una visita sin registro) y está bien así. Las discrepancias están en ver_propiedad.',
+      inputSchema: { id: z.string(), discrepanciaId: z.string() },
+    },
+    ({ id, discrepanciaId }) =>
+      correr(async () =>
+        ok(`Discrepancia resuelta: ${fila(await c.resolverDiscrepancia(id, discrepanciaId))}`),
+      ),
+  );
+
+  s.registerTool(
+    'cambiar_visita',
+    {
+      title: 'Marcar una visita como hecha o cancelada',
+      description: 'El visitaId sale de ver_propiedad (visitas). agendada la reabre.',
+      inputSchema: {
+        id: z.string(),
+        visitaId: z.string(),
+        estado: z.enum(['agendada', 'hecha', 'cancelada']),
+      },
+    },
+    ({ id, visitaId, estado }) =>
+      correr(async () => ok(`Visita ${estado}: ${fila(await c.cambiarVisita(id, visitaId, estado))}`)),
+  );
+
+  s.registerTool(
+    'quitar_contacto_propiedad',
+    {
+      title: 'Quitar un contacto de una propiedad',
+      description: 'Solo si la persona lo pide (por ejemplo, un contacto que no era de esta propiedad).',
+      inputSchema: { id: z.string(), contactoId: z.string() },
+      annotations: { destructiveHint: true, openWorldHint: false },
+    },
+    ({ id, contactoId }) =>
+      correr(async () => ok(`Contacto quitado: ${fila(await c.quitarContacto(id, contactoId))}`)),
+  );
+
+  s.registerTool(
+    'borrar_propiedad',
+    {
+      title: 'Borrar una propiedad',
+      description:
+        'La borra con sus fotos, sin vuelta atrás. Úsala solo si la persona lo pide de forma explícita; ' +
+        'para lo que ya no interesa, usa cambiar_estado_propiedad a descartada, y para duplicados, unir_propiedades.',
+      inputSchema: { id: z.string() },
+      annotations: { destructiveHint: true, openWorldHint: false },
+    },
+    ({ id }) =>
+      correr(async () => {
+        const p = await c.ver(id);
+        await c.borrar(id);
+        return ok(`Borrada: ${p.titulo}`);
+      }),
+  );
+
+  s.registerTool(
+    'fijar_ubicacion_propiedad',
+    {
+      title: 'Poner la propiedad en el mapa',
+      description:
+        'Latitud y longitud (por ejemplo, las del aviso). Queda fija: la ubicación automática no la mueve.',
+      inputSchema: {
+        id: z.string(),
+        lat: z.number().min(-90).max(90),
+        lon: z.number().min(-180).max(180),
+      },
+      annotations: { idempotentHint: true, openWorldHint: false },
+    },
+    ({ id, lat, lon }) => correr(async () => ok(`Ubicada: ${fila(await c.fijarUbicacion(id, lat, lon))}`)),
+  );
+
+  s.registerTool(
+    'descartar_senal_arriendo',
+    {
+      title: 'Descartar una señal de la Bandeja de Arriendos',
+      description: 'Cuando no es de ninguna propiedad que te interese.',
+      inputSchema: { senalId: z.string() },
+    },
+    ({ senalId }) =>
+      correr(async () => {
+        await c.descartarSenal(senalId);
+        return ok('Señal descartada');
+      }),
+  );
+
+  s.registerTool(
+    'editar_canal',
+    {
+      title: 'Editar un canal de arriendo',
+      description:
+        'Nombre, tipo, dominios web o activo (false lo oculta sin borrarlo). El id sale de listar_canales.',
+      inputSchema: {
+        id: z.string(),
+        nombre: z.string().optional(),
+        tipo: z.enum(TIPOS_DE_CANAL).optional(),
+        dominios: z.array(z.string()).optional(),
+        activo: z.boolean().optional(),
+      },
+    },
+    ({ id, ...e }) =>
+      correr(async () => {
+        const r = await c.editarCanal(id, e);
+        return ok(`Canal ${r.id} · ${r.nombre}${r.activo ? '' : ' (inactivo)'}`);
+      }),
+  );
+
+  s.registerTool(
+    'fijar_uf',
+    {
+      title: 'Guardar el valor de la UF',
+      description: 'Para comparar en pesos los arriendos publicados en UF. Usa el valor oficial del día.',
+      inputSchema: {
+        valor: z.number().min(1000).max(1_000_000).describe('Pesos por UF, por ejemplo 39500.12'),
+        fecha: z.string().describe('AAAA-MM-DD del valor'),
+      },
+      annotations: { idempotentHint: true, openWorldHint: false },
+    },
+    ({ valor, fecha }) =>
+      correr(async () => {
+        await c.fijarUf(valor, fecha);
+        return ok(`UF guardada: $${valor.toLocaleString('es-CL')} al ${fecha}`);
+      }),
+  );
 }
 
 /** Fotos de las propiedades (docs/diseno/fotos-propiedades.md §5). */

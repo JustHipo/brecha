@@ -52,6 +52,8 @@ describe('servidor MCP por HTTP (F1-10c)', () => {
         'agregar_nota',
         'asociar_senal',
         'aplicar_senal',
+        'crear_desde_senal',
+        'descartar_senal',
         'cambiar_estado',
         'crear_postulacion',
         'editar_postulacion',
@@ -101,8 +103,59 @@ describe('servidor MCP por HTTP (F1-10c)', () => {
         'elegir_portada',
         'listar_fotos',
         'quitar_foto',
+        // Lo que la consola de Arriendos hace y faltaba por MCP.
+        'aplicar_senal_arriendo',
+        'borrar_propiedad',
+        'cambiar_visita',
+        'descartar_senal_arriendo',
+        'editar_canal',
+        'fijar_ubicacion_propiedad',
+        'fijar_uf',
+        'quitar_contacto_propiedad',
+        'resolver_discrepancia_propiedad',
       ].sort(),
     );
+    await c.close();
+  });
+
+  it('la bandeja por MCP: crear_desde_senal crea la postulación con origen ia y descartar_senal la saca', async () => {
+    const c = await cliente(t.token('mcp'));
+    const senal = (n: number) =>
+      c.callTool({
+        name: 'registrar_senal',
+        arguments: {
+          fuente: 'correo',
+          resumen: `Correo ${n} sin postulación`,
+          confianza: 0.5,
+          referenciaExterna: `bandeja-${n}`,
+        },
+      });
+    await senal(1);
+    await senal(2);
+    const bandeja = json(await c.callTool({ name: 'listar_bandeja', arguments: {} })) as { id: string }[];
+    expect(bandeja).toHaveLength(2);
+
+    const creada = await c.callTool({
+      name: 'crear_desde_senal',
+      arguments: {
+        senalId: bandeja[0]!.id,
+        titulo: 'Desarrollador backend',
+        empresa: 'Acme',
+        url: 'https://www.getonbrd.com/jobs/acme-backend',
+        plataforma: 'getonboard',
+      },
+    });
+    expect(creada.isError).toBeFalsy();
+    const d = json(creada);
+    expect(d).toMatchObject({ empresa: 'Acme' });
+    expect(d.historial[0]).toMatchObject({ origen: 'ia' });
+    expect(d.senales).toHaveLength(1);
+
+    const descartada = await c.callTool({ name: 'descartar_senal', arguments: { senalId: bandeja[1]!.id } });
+    expect(descartada.isError).toBeFalsy();
+    expect(json(await c.callTool({ name: 'listar_bandeja', arguments: {} }))).toHaveLength(0);
+    const otraVez = await c.callTool({ name: 'descartar_senal', arguments: { senalId: bandeja[1]!.id } });
+    expect(otraVez.isError).toBe(true);
     await c.close();
   });
 

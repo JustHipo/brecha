@@ -272,10 +272,14 @@ export class CrearDesdeSenal {
   async ejecutar(e: {
     senalId: string;
     aviso: Parameters<CrearPostulacion['ejecutar']>[0]['aviso'];
+    origen?: 'formulario' | 'ia';
   }): Promise<VistaDetalle> {
     const pendiente = await pendienteOFalla(this.c, e.senalId);
     pendiente.exigirPendiente();
-    const creada = await new CrearPostulacion(this.c).ejecutar({ aviso: e.aviso, origen: 'formulario' });
+    const creada = await new CrearPostulacion(this.c).ejecutar({
+      aviso: e.aviso,
+      origen: e.origen ?? 'formulario',
+    });
     return new AsociarSenal(this.c).ejecutar({ senalId: e.senalId, postulacionId: creada.id });
   }
 }
