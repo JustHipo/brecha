@@ -4,19 +4,36 @@ import type { Prisma, PrismaClient } from '../../../compartido/infraestructura/p
 import { ESTADOS, type EstadoPostulacion } from '../../dominio/estado';
 import type { Modalidad, Plataforma } from '../../dominio/objetos-valor/valores';
 import { calcularPrioridad } from '../../dominio/politica-de-prioridad';
-import type { ConsultasDePostulaciones, FiltrosPostulaciones, Pagina } from '../../aplicacion/puertos';
+import type {
+  ConsultasDePostulaciones,
+  EtiquetaEnUso,
+  FiltrosPostulaciones,
+  Pagina,
+} from '../../aplicacion/puertos';
 import {
   aDetalle,
+  aPasoCorto,
+  aVistaPaso,
   diasAlCierre,
+  ordenarPendientes,
   ordenarPorPrioridad,
   ordenarTarjetas,
   transicionesPosibles,
   type ElementoResumen,
+  type PostulacionDelPaso,
   type VistaExportacion,
+  type VistaPaso,
+  type PerfilParaRevisar,
   type VistaResumen,
   type VistaTablero,
 } from '../../aplicacion/vistas';
+import type { DatosPaso, EstadoDePaso } from '../../dominio/paso';
+import { idDeAviso } from '../../dominio/id-de-aviso';
+import { revisarPostulacion, type PerfilEmpleoRepositorio } from '../../dominio/perfil-empleo';
 import { aFecha, deFecha, filaADatos, INCLUIR_TODO } from './mapper';
+import { filaAPaso, INCLUIR_PASO } from './prisma-pasos';
+
+type InfoPostulaciones = Map<string, Omit<PostulacionDelPaso, 'id'>>;
 
 const SELECT_RESUMEN = {
   id: true,
@@ -27,7 +44,10 @@ const SELECT_RESUMEN = {
   avisoModalidad: true,
   avisoUbicacion: true,
   avisoCierre: true,
+  avisoSueldoPublicado: true,
   estado: true,
+  etiquetas: true,
+  prioridadFijada: true,
   fechaPostulacion: true,
   version: true,
   actualizadaEn: true,
@@ -36,6 +56,10 @@ const SELECT_RESUMEN = {
       senales: { where: { aplicada: false } },
       discrepancias: { where: { estado: 'abierta' } },
     },
+  },
+  pasos: {
+    where: { paso: { estado: 'pendiente' } },
+    select: { paso: { select: { id: true, descripcion: true, plazo: true, pedidoEn: true } } },
   },
 } satisfies Prisma.PostulacionSelect;
 
@@ -50,11 +74,35 @@ export class PrismaConsultas implements ConsultasDePostulaciones {
   constructor(
     private readonly prisma: PrismaClient,
     private readonly reloj: Reloj,
+    /** Sin él, las vistas no traen choques con el perfil (perfil.md §3.3). */
+    private readonly perfil?: PerfilEmpleoRepositorio,
   ) {}
+
+  private async perfilParaRevisar(): Promise<PerfilParaRevisar> {
+    if (!this.perfil) return null;
+    const d = (await this.perfil.leer()).datos();
+    return d.reglas.some((r) => r.criterio) ? d : null;
+  }
 
   async listar(f: FiltrosPostulaciones, p: Pagina) {
     const where = this.donde(f);
-    const [filas, total] = await Promise.all([
+    if (f.url) {
+      // El filtro por URL busca el número del aviso con `contains`; aquí se descartan los que solo lo contienen de paso.
+      const id = idDeAviso(f.url);
+      const [filas, perfil] = await Promise.all([
+        this.prisma.postulacion.findMany({
+          where,
+          select: SELECT_RESUMEN,
+          orderBy: [{ actualizadaEn: 'desc' }, { id: 'asc' }],
+        }),
+        this.perfilParaRevisar(),
+      ]);
+      const items = filas
+        .filter((x) => x.avisoUrl === f.url!.trim() || (id !== null && idDeAviso(x.avisoUrl) === id))
+        .map((x) => this.aResumen(x, perfil));
+      return { items: items.slice(p.offset, p.offset + p.limit), total: items.length };
+    }
+    const [filas, total, perfil] = await Promise.all([
       this.prisma.postulacion.findMany({
         where,
         select: SELECT_RESUMEN,
@@ -63,13 +111,20 @@ export class PrismaConsultas implements ConsultasDePostulaciones {
         skip: p.offset,
       }),
       this.prisma.postulacion.count({ where }),
+      this.perfilParaRevisar(),
     ]);
-    return { items: filas.map((x) => this.aResumen(x)), total };
+    return { items: filas.map((x) => this.aResumen(x, perfil)), total };
   }
 
-  async tablero(): Promise<VistaTablero> {
-    const filas = await this.prisma.postulacion.findMany({ select: SELECT_RESUMEN });
-    const resumenes = filas.map((x) => this.aResumen(x));
+  async tablero(f: Pick<FiltrosPostulaciones, 'etiquetas'> = {}): Promise<VistaTablero> {
+    const [filas, perfil] = await Promise.all([
+      this.prisma.postulacion.findMany({
+        ...(f.etiquetas?.length ? { where: { etiquetas: { hasEvery: f.etiquetas } } } : {}),
+        select: SELECT_RESUMEN,
+      }),
+      this.perfilParaRevisar(),
+    ]);
+    const resumenes = filas.map((x) => this.aResumen(x, perfil));
     return {
       columnas: ESTADOS.map((estado) => {
         const items = resumenes.filter((r) => r.estado === estado).sort(ordenarTarjetas);
@@ -78,17 +133,82 @@ export class PrismaConsultas implements ConsultasDePostulaciones {
     };
   }
 
+  async etiquetasEnUso(): Promise<EtiquetaEnUso[]> {
+    const filas = await this.prisma.$queryRaw<{ etiqueta: string; total: bigint }[]>`
+      SELECT e AS etiqueta, count(*) AS total FROM postulacion, unnest(etiquetas) AS e
+      GROUP BY e ORDER BY count(*) DESC, e ASC`;
+    return filas.map((x) => ({ etiqueta: x.etiqueta, total: Number(x.total) }));
+  }
+
   async detalle(id: string) {
     if (!/^[0-9a-f-]{36}$/i.test(id)) return null;
     const fila = await this.prisma.postulacion.findUnique({ where: { id }, include: INCLUIR_TODO });
-    return fila ? aDetalle(filaADatos(fila), this.reloj) : null;
+    if (!fila) return null;
+    const [{ pasos, info }, perfil] = await Promise.all([
+      this.pasosCon({ postulaciones: { some: { postulacionId: id } } }),
+      this.perfilParaRevisar(),
+    ]);
+    return aDetalle(filaADatos(fila), this.reloj, pasos, info, perfil);
+  }
+
+  async pasos(f: { estado?: EstadoDePaso; postulacionId?: string } = {}): Promise<VistaPaso[]> {
+    if (f.postulacionId && !/^[0-9a-f-]{36}$/i.test(f.postulacionId)) return [];
+    const { pasos, info } = await this.pasosCon({
+      ...(f.estado ? { estado: f.estado } : {}),
+      ...(f.postulacionId ? { postulaciones: { some: { postulacionId: f.postulacionId } } } : {}),
+    });
+    const pendientesPrimero = (a: DatosPaso, b: DatosPaso) =>
+      Number(a.estado !== 'pendiente') - Number(b.estado !== 'pendiente') ||
+      (a.estado === 'pendiente' ? ordenarPendientes(a, b) : b.pedidoEn.getTime() - a.pedidoEn.getTime());
+    return [...pasos].sort(pendientesPrimero).map((x) => aVistaPaso(x, info, this.reloj));
+  }
+
+  async paso(id: string): Promise<VistaPaso | null> {
+    if (!/^[0-9a-f-]{36}$/i.test(id)) return null;
+    const { pasos, info } = await this.pasosCon({ id });
+    return pasos[0] ? aVistaPaso(pasos[0], info, this.reloj) : null;
+  }
+
+  /** Pasos con la empresa, el cargo y el estado de cada postulación que tocan. */
+  private async pasosCon(
+    where: Prisma.PasoWhereInput,
+  ): Promise<{ pasos: DatosPaso[]; info: InfoPostulaciones }> {
+    const filas = await this.prisma.paso.findMany({
+      where,
+      include: INCLUIR_PASO,
+      orderBy: [{ pedidoEn: 'asc' }, { id: 'asc' }],
+    });
+    const pasos = filas.map(filaAPaso);
+    return { pasos, info: await this.infoDe(pasos) };
+  }
+
+  private async infoDe(pasos: readonly DatosPaso[]): Promise<InfoPostulaciones> {
+    const ids = [...new Set(pasos.flatMap((p) => p.postulacionIds))];
+    if (!ids.length) return new Map();
+    const filas = await this.prisma.postulacion.findMany({
+      where: { id: { in: ids } },
+      select: { id: true, avisoEmpresa: true, avisoTitulo: true, estado: true },
+    });
+    return new Map(
+      filas.map((f) => [
+        f.id,
+        { empresa: f.avisoEmpresa, titulo: f.avisoTitulo, estado: f.estado as EstadoPostulacion },
+      ]),
+    );
   }
 
   async resumenDesde(desde: Date): Promise<ElementoResumen[]> {
     const post = {
-      select: { id: true, avisoEmpresa: true, avisoTitulo: true, estado: true, avisoCierre: true },
+      select: {
+        id: true,
+        avisoEmpresa: true,
+        avisoTitulo: true,
+        estado: true,
+        avisoCierre: true,
+        prioridadFijada: true,
+      },
     };
-    const [cambios, senales, discrepancias, notas] = await Promise.all([
+    const [cambios, senales, discrepancias, notas, pasos] = await Promise.all([
       this.prisma.cambioEstado.findMany({
         where: { ocurridoEn: { gte: desde } },
         include: { postulacion: post },
@@ -102,6 +222,10 @@ export class PrismaConsultas implements ConsultasDePostulaciones {
         include: { postulacion: post },
       }),
       this.prisma.nota.findMany({ where: { creadaEn: { gte: desde } }, include: { postulacion: post } }),
+      this.prisma.paso.findMany({
+        where: { OR: [{ creadoEn: { gte: desde } }, { cerradoEn: { gte: desde } }] },
+        include: { postulaciones: { select: { postulacion: post } } },
+      }),
     ]);
     const hoy = this.reloj.hoy();
     const base = (p: {
@@ -110,6 +234,7 @@ export class PrismaConsultas implements ConsultasDePostulaciones {
       avisoTitulo: string;
       estado: string;
       avisoCierre: Date | null;
+      prioridadFijada: string | null;
     }) => ({
       postulacionId: p.id,
       empresa: p.avisoEmpresa,
@@ -118,6 +243,7 @@ export class PrismaConsultas implements ConsultasDePostulaciones {
         p.estado as EstadoPostulacion,
         p.avisoCierre ? aFecha(p.avisoCierre) : undefined,
         hoy,
+        p.prioridadFijada as Prioridad | null,
       ),
     });
     const elementos: ElementoResumen[] = [
@@ -145,6 +271,19 @@ export class PrismaConsultas implements ConsultasDePostulaciones {
         descripcion: n.texto.slice(0, 200),
         ocurridoEn: n.creadaEn.toISOString(),
       })),
+      ...pasos.flatMap((x) =>
+        x.postulaciones.map(({ postulacion }) => ({
+          ...base(postulacion),
+          // Un pedido pendiente es urgente aunque la postulación esté cerrada (R18).
+          ...(x.estado === 'pendiente' ? { prioridad: 'alta' as const } : {}),
+          tipo: 'paso' as const,
+          descripcion:
+            x.estado === 'pendiente'
+              ? `te piden: ${x.descripcion}${x.plazo ? ` (plazo ${aFecha(x.plazo)})` : ''}`
+              : `${x.estado}: ${x.descripcion}`,
+          ocurridoEn: (x.cerradoEn ?? x.creadoEn).toISOString(),
+        })),
+      ),
     ];
     return elementos.sort((a, b) => ordenarPorPrioridad(a, b) || b.ocurridoEn.localeCompare(a.ocurridoEn));
   }
@@ -154,7 +293,15 @@ export class PrismaConsultas implements ConsultasDePostulaciones {
       include: INCLUIR_TODO,
       orderBy: { actualizadaEn: 'desc' },
     });
-    const postulaciones = filas.map((f) => aDetalle(filaADatos(f), this.reloj));
+    const { pasos, info } = await this.pasosCon({});
+    const postulaciones = filas.map((f) =>
+      aDetalle(
+        filaADatos(f),
+        this.reloj,
+        pasos.filter((p) => p.postulacionIds.includes(f.id)),
+        info,
+      ),
+    );
     const porPrioridad: Record<Prioridad, number> = { alta: 0, media: 0, baja: 0 };
     const porEstado: Record<string, number> = Object.fromEntries(ESTADOS.map((e) => [e, 0]));
     for (const p of postulaciones) {
@@ -168,7 +315,7 @@ export class PrismaConsultas implements ConsultasDePostulaciones {
     };
   }
 
-  private aResumen(x: FilaResumen): VistaResumen {
+  private aResumen(x: FilaResumen, perfil: PerfilParaRevisar): VistaResumen {
     const estado = x.estado as EstadoPostulacion;
     const cierre = x.avisoCierre ? aFecha(x.avisoCierre) : null;
     return {
@@ -182,11 +329,39 @@ export class PrismaConsultas implements ConsultasDePostulaciones {
       cierre,
       diasAlCierre: diasAlCierre(cierre, this.reloj),
       estado,
-      prioridad: calcularPrioridad(estado, cierre ?? undefined, this.reloj.hoy()),
+      prioridad: calcularPrioridad(
+        estado,
+        cierre ?? undefined,
+        this.reloj.hoy(),
+        x.prioridadFijada as Prioridad | null,
+      ),
+      prioridadFijada: (x.prioridadFijada as Prioridad | null) ?? null,
+      etiquetas: x.etiquetas ?? [],
       fechaPostulacion: x.fechaPostulacion ? aFecha(x.fechaPostulacion) : null,
       senalesNuevas: x._count.senales,
       discrepanciasAbiertas: x._count.discrepancias,
+      pasosPendientes: x.pasos
+        .map(({ paso: p }) => ({
+          id: p.id,
+          descripcion: p.descripcion,
+          pedidoEn: p.pedidoEn,
+          ...(p.plazo ? { plazo: aFecha(p.plazo) } : {}),
+        }))
+        .sort(ordenarPendientes)
+        .map((p) => aPasoCorto(p, this.reloj)),
       transicionesPosibles: transicionesPosibles(estado, cierre, this.reloj),
+      perfil: perfil
+        ? revisarPostulacion(
+            {
+              titulo: x.avisoTitulo,
+              modalidad: x.avisoModalidad as Modalidad,
+              ubicacion: x.avisoUbicacion,
+              plataforma: x.avisoPlataforma as Plataforma,
+              sueldoPublicado: x.avisoSueldoPublicado,
+            },
+            perfil,
+          )
+        : null,
       version: x.version,
       actualizadaEn: x.actualizadaEn.toISOString(),
     };
@@ -197,6 +372,12 @@ export class PrismaConsultas implements ConsultasDePostulaciones {
     const y: Prisma.PostulacionWhereInput[] = [];
     if (f.estados) y.push({ estado: { in: f.estados } });
     if (f.plataformas) y.push({ avisoPlataforma: { in: f.plataformas } });
+    if (f.url) {
+      const url = f.url.trim();
+      const id = idDeAviso(url);
+      y.push({ OR: [{ avisoUrl: url }, ...(id ? [{ avisoUrl: { contains: id } }] : [])] });
+    }
+    if (f.etiquetas?.length) y.push({ etiquetas: { hasEvery: f.etiquetas } });
     if (f.q) {
       y.push({
         OR: [
@@ -210,17 +391,27 @@ export class PrismaConsultas implements ConsultasDePostulaciones {
       const en2 = new Date(hoy.getTime() + 2 * 86_400_000);
       const cierraPronto: Prisma.PostulacionWhereInput = { avisoCierre: { gte: hoy, lte: en2 } };
       const o: Prisma.PostulacionWhereInput[] = [];
+      // Una prioridad fijada a mano manda en los estados abiertos (csv.md P2); si no hay, R12.
+      const fijada = (p: Prioridad): Prisma.PostulacionWhereInput => ({
+        AND: [{ prioridadFijada: p }, { estado: { notIn: CERRADOS } }],
+      });
+      const calculada: Prisma.PostulacionWhereInput = { prioridadFijada: null };
       if (f.prioridades.includes('alta')) {
-        o.push({ estado: { in: AVANCE } }, { AND: [{ estado: { in: PREVIOS } }, cierraPronto] });
+        o.push(fijada('alta'), {
+          AND: [
+            calculada,
+            { OR: [{ estado: { in: AVANCE } }, { AND: [{ estado: { in: PREVIOS } }, cierraPronto] }] },
+          ],
+        });
       }
       if (f.prioridades.includes('media')) {
         // Sin cierre o con cierre fuera de los próximos 2 días (un NOT con null en SQL dejaría fuera las sin cierre).
         const noPronto: Prisma.PostulacionWhereInput = {
           OR: [{ avisoCierre: null }, { avisoCierre: { lt: hoy } }, { avisoCierre: { gt: en2 } }],
         };
-        o.push({ AND: [{ estado: { in: PREVIOS } }, noPronto] });
+        o.push(fijada('media'), { AND: [calculada, { estado: { in: PREVIOS } }, noPronto] });
       }
-      if (f.prioridades.includes('baja')) o.push({ estado: { in: CERRADOS } });
+      if (f.prioridades.includes('baja')) o.push(fijada('baja'), { estado: { in: CERRADOS } });
       y.push({ OR: o });
     }
     return y.length ? { AND: y } : {};

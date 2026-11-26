@@ -7,7 +7,12 @@ import {
   type OnApplicationShutdown,
 } from '@nestjs/common';
 import { APP_GUARD } from '@nestjs/core';
-import { AccesoController } from './acceso/acceso.controller';
+import { AccesoController, VerificacionController } from './acceso/acceso.controller';
+import { BandejaController } from './postulaciones/infraestructura/http/bandeja.controller';
+import { PasosController } from './postulaciones/infraestructura/http/pasos.controller';
+import { PerfilController } from './postulaciones/infraestructura/http/perfil.controller';
+import { CasosDePerfil } from './postulaciones/aplicacion/casos-de-perfil';
+import { PrismaPerfilEmpleo } from './postulaciones/infraestructura/prisma/prisma-perfil';
 import { AccesoGuard } from './acceso/acceso.guard';
 import { AccesoService } from './acceso/acceso.service';
 import { AlmacenDeTokens } from './acceso/almacen-de-tokens';
@@ -22,8 +27,35 @@ import { CasosDeUso } from './postulaciones/infraestructura/casos';
 import { PostulacionesController } from './postulaciones/infraestructura/http/postulaciones.controller';
 import { McpController } from './postulaciones/infraestructura/mcp/mcp.controller';
 import { PrismaAjustes } from './postulaciones/infraestructura/prisma/prisma-ajustes';
+import { PrismaBandeja } from './postulaciones/infraestructura/prisma/prisma-bandeja';
 import { PrismaConsultas } from './postulaciones/infraestructura/prisma/prisma-consultas';
+import { PrismaPasos } from './postulaciones/infraestructura/prisma/prisma-pasos';
 import { PrismaPostulacionRepositorio } from './postulaciones/infraestructura/prisma/prisma-postulacion.repositorio';
+import { CasosDeRed } from './red/aplicacion/casos-de-red';
+import { CasosDeRedInyectables } from './red/infraestructura/casos-de-red.provider';
+import { PrismaRed } from './red/infraestructura/prisma-red';
+import { RedController } from './red/infraestructura/red.controller';
+import { CasosCsv } from './csv/aplicacion/casos-csv';
+import { CasosCsvInyectables } from './csv/infraestructura/casos-csv.provider';
+import { CsvController } from './csv/infraestructura/csv.controller';
+import { LectorCsvParse } from './csv/infraestructura/lector-csv';
+import { ImportarFichas } from './postulaciones/aplicacion/importar-fichas';
+import { CasosDeArriendos } from './arriendos/aplicacion/casos';
+import { ArriendosController } from './arriendos/infraestructura/arriendos.controller';
+import { GeocodificadorNominatim } from './arriendos/infraestructura/nominatim';
+import {
+  PrismaAjustesArriendos,
+  PrismaBandejaArriendos,
+  PrismaBusqueda,
+  PrismaCanales,
+  PrismaPropiedades,
+} from './arriendos/infraestructura/prisma-arriendos';
+import { join } from 'node:path';
+import { CasosDeFotos } from './arriendos/aplicacion/fotos';
+import type { ObtenedorDeImagenes } from './arriendos/aplicacion/puertos';
+import { AlmacenDeFotosEnDisco } from './arriendos/infraestructura/almacen-de-fotos';
+import { ObtenedorSeguro } from './arriendos/infraestructura/obtener-imagenes';
+import { avisoDeFotos, PrismaFotos } from './arriendos/infraestructura/prisma-fotos';
 
 @Injectable()
 class CicloDeVida implements OnApplicationBootstrap, OnApplicationShutdown {
@@ -42,10 +74,25 @@ class CicloDeVida implements OnApplicationBootstrap, OnApplicationShutdown {
 /** Composición del núcleo: aquí se conectan los puertos con sus adaptadores (ADR 0003). */
 @Module({})
 export class AppModule {
-  static para(config: Config, extra: { reloj?: Reloj } = {}): DynamicModule {
+  static para(
+    config: Config,
+    extra: { reloj?: Reloj; obtenerImagenes?: ObtenedorDeImagenes } = {},
+  ): DynamicModule {
     return {
       module: AppModule,
-      controllers: [AccesoController, PostulacionesController, EventosController, McpController],
+      controllers: [
+        AccesoController,
+        VerificacionController,
+        PostulacionesController,
+        BandejaController,
+        PasosController,
+        PerfilController,
+        EventosController,
+        McpController,
+        RedController,
+        CsvController,
+        ArriendosController,
+      ],
       providers: [
         { provide: CONFIG, useValue: config },
         { provide: PRISMA, useFactory: () => crearPrisma(config.databaseUrl) },
@@ -62,12 +109,112 @@ export class AppModule {
           useFactory: (prisma: PrismaClient, reloj: Reloj, ids: GeneradorId, flujo: FlujoDeEventos) =>
             new CasosDeUso({
               repo: new PrismaPostulacionRepositorio(prisma, ids, flujo),
-              consultas: new PrismaConsultas(prisma, reloj),
+              bandeja: new PrismaBandeja(prisma, ids, flujo),
+              pasos: new PrismaPasos(prisma, ids, flujo),
+              consultas: new PrismaConsultas(prisma, reloj, new PrismaPerfilEmpleo(prisma)),
               reloj,
               ids,
               ajustes: new PrismaAjustes(prisma),
             }),
           inject: [PRISMA, RELOJ, IDS, FLUJO],
+        },
+        {
+          provide: CasosDePerfil,
+          useFactory: (prisma: PrismaClient, reloj: Reloj, ids: GeneradorId) =>
+            new CasosDePerfil({ perfil: new PrismaPerfilEmpleo(prisma), reloj, ids }),
+          inject: [PRISMA, RELOJ, IDS],
+        },
+        {
+          provide: CasosDeRedInyectables,
+          useFactory: (prisma: PrismaClient, reloj: Reloj, ids: GeneradorId, flujo: FlujoDeEventos) =>
+            new CasosDeRedInyectables(
+              new CasosDeRed({
+                red: new PrismaRed(prisma, flujo),
+                reloj,
+                ids,
+                existePostulacion: async (id) =>
+                  /^[0-9a-f-]{36}$/i.test(id) && (await prisma.postulacion.count({ where: { id } })) > 0,
+              }),
+            ),
+          inject: [PRISMA, RELOJ, IDS, FLUJO],
+        },
+        {
+          provide: CasosCsvInyectables,
+          useFactory: (
+            prisma: PrismaClient,
+            reloj: Reloj,
+            ids: GeneradorId,
+            flujo: FlujoDeEventos,
+            red: CasosDeRedInyectables,
+          ) => {
+            const repo = new PrismaPostulacionRepositorio(prisma, ids, flujo);
+            const consultas = new PrismaConsultas(prisma, reloj);
+            return new CasosCsvInyectables(
+              new CasosCsv({
+                lector: new LectorCsvParse(),
+                reloj,
+                fichas: new ImportarFichas({
+                  repo,
+                  bandeja: new PrismaBandeja(prisma, ids, flujo),
+                  pasos: new PrismaPasos(prisma, ids, flujo),
+                  consultas,
+                  reloj,
+                  ids,
+                  ajustes: new PrismaAjustes(prisma),
+                }),
+                registrarContacto: red.red.registrarContacto,
+                red: new PrismaRed(prisma, flujo),
+                consultas,
+                idPorUrl: (url) => repo.idPorUrl(url.trim()),
+              }),
+            );
+          },
+          inject: [PRISMA, RELOJ, IDS, FLUJO, CasosDeRedInyectables],
+        },
+        {
+          // Fotos de las propiedades en <instancia>/fotos (docs/diseno/fotos-propiedades.md F-D4).
+          provide: CasosDeFotos,
+          useFactory: (prisma: PrismaClient, reloj: Reloj, ids: GeneradorId, flujo: FlujoDeEventos) =>
+            new CasosDeFotos({
+              fotos: new PrismaFotos(prisma),
+              almacen: new AlmacenDeFotosEnDisco(join(config.dir, 'fotos')),
+              obtener: extra.obtenerImagenes ?? new ObtenedorSeguro(),
+              existePropiedad: async (id) =>
+                /^[0-9a-f-]{36}$/i.test(id) && (await prisma.propiedad.count({ where: { id } })) > 0,
+              avisar: avisoDeFotos(flujo),
+              reloj,
+              ids,
+            }),
+          inject: [PRISMA, RELOJ, IDS, FLUJO],
+        },
+        {
+          provide: CasosDeArriendos,
+          useFactory: (
+            prisma: PrismaClient,
+            reloj: Reloj,
+            ids: GeneradorId,
+            flujo: FlujoDeEventos,
+            fotos: CasosDeFotos,
+          ) =>
+            new CasosDeArriendos({
+              propiedades: new PrismaPropiedades(prisma, flujo),
+              canales: new PrismaCanales(prisma),
+              busqueda: new PrismaBusqueda(prisma),
+              bandeja: new PrismaBandejaArriendos(prisma, flujo),
+              ajustes: new PrismaAjustesArriendos(prisma),
+              // En las pruebas no se sale a internet (BRECHA_GEOCODIFICADOR=apagado).
+              ...(process.env.BRECHA_GEOCODIFICADOR === 'apagado'
+                ? {}
+                : {
+                    geocodificador: new GeocodificadorNominatim(prisma, () =>
+                      new PrismaAjustesArriendos(prisma).geocodificar(),
+                    ),
+                  }),
+              fotos,
+              reloj,
+              ids,
+            }),
+          inject: [PRISMA, RELOJ, IDS, FLUJO, CasosDeFotos],
         },
         { provide: APP_GUARD, useClass: AccesoGuard },
         CicloDeVida,

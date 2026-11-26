@@ -42,13 +42,14 @@ import {
 import {
   DetallePostulacionDto,
   ElementoResumenDto,
+  EtiquetaEnUsoDto,
   ErrorDto,
   ListaPostulacionesDto,
   ResultadoImportacionDto,
   SenalRegistradaDto,
   TableroDto,
 } from './respuestas.dto';
-import { ResumenQueryDto } from './dto';
+import { ResumenQueryDto, TableroQueryDto } from './dto';
 
 const HTTP = {
   400: 'VALIDACION',
@@ -87,7 +88,9 @@ export class PostulacionesController {
       ...(q.estado ? { estados: q.estado } : {}),
       ...(q.plataforma ? { plataformas: q.plataforma } : {}),
       ...(q.prioridad ? { prioridades: q.prioridad } : {}),
+      ...(q.etiqueta ? { etiquetas: q.etiqueta } : {}),
       ...(q.q ? { q: q.q } : {}),
+      ...(q.url ? { url: q.url } : {}),
       ...(q.limit !== undefined ? { limit: q.limit } : {}),
       ...(q.offset !== undefined ? { offset: q.offset } : {}),
     });
@@ -99,9 +102,17 @@ export class PostulacionesController {
     summary: 'Tarjetas por estado, ordenadas por prioridad, cierre y actualización',
   })
   @ApiOkResponse({ type: TableroDto })
+  @Errores(400)
+  tablero(@Query() q: TableroQueryDto) {
+    return this.casos.tablero.ejecutar(q.etiqueta ? { etiquetas: q.etiqueta } : {});
+  }
+
+  @Get('etiquetas')
+  @ApiOperation({ operationId: 'etiquetasEnUso', summary: 'Etiquetas en uso, de la más usada a la menos' })
+  @ApiOkResponse({ type: [EtiquetaEnUsoDto] })
   @Errores()
-  tablero() {
-    return this.casos.tablero.ejecutar();
+  etiquetas() {
+    return this.casos.etiquetas.ejecutar();
   }
 
   @Get('resumen')

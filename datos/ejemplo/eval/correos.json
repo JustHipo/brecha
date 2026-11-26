@@ -1,0 +1,193 @@
+{
+  "_nota": "Set inventado para probar la mecánica de la evaluación (F2-14). Empresas y personas ficticias. El set real va en datos/privado/eval/.",
+  "postulaciones": [
+    {
+      "id": "p-norte",
+      "empresa": "Norte Datos SpA",
+      "titulo": "Desarrollador Backend NestJS",
+      "plataforma": "getonboard",
+      "activa": true,
+      "dominios": [
+        "nortedatos.example"
+      ]
+    },
+    {
+      "id": "p-lago",
+      "empresa": "Lago Software",
+      "titulo": "Ingeniero de Software Full Stack",
+      "plataforma": "linkedin",
+      "activa": true,
+      "dominios": [
+        "lagosoftware.example"
+      ]
+    },
+    {
+      "id": "p-cumbre",
+      "empresa": "Cumbre Pagos",
+      "titulo": "Analista de Datos",
+      "plataforma": "sitio_empresa",
+      "activa": true
+    },
+    {
+      "id": "p-cumbre-2",
+      "empresa": "Cumbre Pagos",
+      "titulo": "Senior Backend Engineer",
+      "plataforma": "sitio_empresa",
+      "activa": false
+    },
+    {
+      "id": "p-rio",
+      "empresa": "Río Logística",
+      "titulo": "Desarrollador Python",
+      "plataforma": "trabajando",
+      "activa": true
+    },
+    {
+      "id": "p-sur",
+      "empresa": "Sur Robótica",
+      "titulo": "Ingeniero/a de Software Backend & IA",
+      "plataforma": "chiletrabajos",
+      "activa": true,
+      "url": "https://www.chiletrabajos.cl/trabajo/ingeniero-de-software-backend-ia-3916453"
+    }
+  ],
+  "casos": [
+    {
+      "id": "c01",
+      "remitente": "notificaciones@getonbrd.com",
+      "asunto": "Postulaste a Desarrollador Backend NestJS en Norte Datos SpA",
+      "texto": "Hola, tu postulación a Desarrollador Backend NestJS en Norte Datos SpA fue enviada con éxito. Te avisaremos cuando la empresa la revise.",
+      "estado": "postulado",
+      "postulacion": "p-norte"
+    },
+    {
+      "id": "c02",
+      "remitente": "seleccion@nortedatos.example",
+      "asunto": "Prueba técnica: Desarrollador Backend NestJS",
+      "texto": "Gracias por postular a Norte Datos SpA. Avanzaste a la etapa de prueba técnica: tienes 5 días para resolver el desafío técnico que adjuntamos.",
+      "estado": "en_proceso",
+      "postulacion": "p-norte"
+    },
+    {
+      "id": "c03",
+      "remitente": "jobs-noreply@linkedin.com",
+      "asunto": "Tu postulación a Ingeniero de Software Full Stack en Lago Software",
+      "texto": "Lago Software recibió tu postulación a Ingeniero de Software Full Stack. Te avisaremos si hay novedades.",
+      "estado": "postulado",
+      "postulacion": "p-lago"
+    },
+    {
+      "id": "c04",
+      "remitente": "talento@lagosoftware.example",
+      "asunto": "Entrevista con el equipo de Lago Software",
+      "texto": "Hola, nos gustó tu perfil para Ingeniero de Software Full Stack. ¿Podemos agendar una entrevista de 45 minutos esta semana? Elige un horario en el enlace.",
+      "estado": "en_proceso",
+      "postulacion": "p-lago",
+      "paso": true
+    },
+    {
+      "id": "c05",
+      "remitente": "no-reply@cumbrepagos.teamtailor-mail.com",
+      "asunto": "Actualización de tu postulación: Analista de Datos",
+      "texto": "Gracias por tu interés en Cumbre Pagos. Después de revisar los perfiles para Analista de Datos, decidimos no continuar con tu postulación en esta oportunidad.",
+      "estado": "rechazado",
+      "postulacion": "p-cumbre"
+    },
+    {
+      "id": "c06",
+      "remitente": "no-reply@cumbrepagos.teamtailor-mail.com",
+      "asunto": "Gracias por tu interés en Cumbre Pagos",
+      "texto": "Confirmamos que tus datos quedaron registrados en nuestra base de talento. Te contactaremos si aparece una oportunidad.",
+      "estado": null,
+      "postulacion": null
+    },
+    {
+      "id": "c07",
+      "remitente": "avisos@trabajando.cl",
+      "asunto": "Río Logística revisó tu postulación",
+      "texto": "Tu postulación al cargo Desarrollador Python en Río Logística está en revisión por la empresa.",
+      "estado": "en_proceso",
+      "postulacion": "p-rio"
+    },
+    {
+      "id": "c08",
+      "remitente": "newsletter@getonbrd.com",
+      "asunto": "10 empleos nuevos de backend para ti",
+      "texto": "Mira estos empleos nuevos que calzan con tus búsquedas guardadas. Postula hoy.",
+      "estado": null,
+      "postulacion": null
+    },
+    {
+      "id": "c09",
+      "remitente": "rrhh@riologistica.example",
+      "asunto": "Oferta para el cargo de Desarrollador Python",
+      "texto": "Nos alegra ofrecerte el cargo de Desarrollador Python en Río Logística. Adjuntamos la carta oferta con el sueldo y la fecha de inicio.",
+      "estado": "oferta",
+      "postulacion": "p-rio"
+    },
+    {
+      "id": "c10",
+      "remitente": "jobs-noreply@linkedin.com",
+      "asunto": "Tu postulación fue vista por Lago Software",
+      "texto": "Buenas noticias: Lago Software vio tu postulación a Ingeniero de Software Full Stack.",
+      "estado": null,
+      "postulacion": "p-lago"
+    },
+    {
+      "id": "c11",
+      "remitente": "info@chiletrabajos.cl",
+      "asunto": "Juan. Continua tu Postulacion #3916453 [23/11/2026]",
+      "texto": "Hola Juan, para continuar con tu postulación debes completar la etapa 2: un test de personalidad. Hazlo aquí: https://www.chiletrabajos.cl/test/abc. Tienes plazo hasta el 30 de noviembre.",
+      "estado": "en_proceso",
+      "postulacion": "p-sur",
+      "paso": true
+    },
+    {
+      "id": "c12",
+      "remitente": "talento@cumbre.teamtailor-mail.com",
+      "asunto": "Siguiente paso en tu proceso con Cumbre Pagos",
+      "texto": "Hola Juan, gracias por tu interés en Cumbre Pagos. Para seguir con tus postulaciones, completa el formulario de antecedentes en nuestro portal: https://cumbre.teamtailor.com/formulario",
+      "estado": null,
+      "postulaciones": [
+        "p-cumbre",
+        "p-cumbre-2"
+      ],
+      "paso": true
+    },
+    {
+      "id": "c13",
+      "remitente": "info@chiletrabajos.cl",
+      "asunto": "Recibimos tu test de personalidad #3916453",
+      "texto": "Hola Juan, recibimos tu test de personalidad para la postulación 3916453. La empresa revisará los resultados y te contactará.",
+      "estado": null,
+      "postulacion": "p-sur",
+      "paso": false
+    },
+    {
+      "id": "c14",
+      "remitente": "novedades@getonbrd.com",
+      "asunto": "Completa tu perfil y destaca",
+      "texto": "Completa tu perfil para que las empresas te encuentren. Nuevos empleos recomendados para ti esta semana.",
+      "estado": null,
+      "postulacion": null,
+      "paso": false
+    },
+    {
+      "id": "c15",
+      "remitente": "talento@nortedatos.example",
+      "asunto": "Un cargo nuevo en Norte Datos",
+      "texto": "Hola Juan, te escribo del equipo de talento de Norte Datos. Abrimos un cargo nuevo de Data Engineer, distinto al que postulaste, y creemos que tu perfil calza. ¿Te interesaría conversar sobre esa vacante?",
+      "estado": null,
+      "postulaciones": []
+    },
+    {
+      "id": "c16",
+      "remitente": "camila.soto@lagosoftware.example",
+      "asunto": "Invitation: Entrevista Juan / Camila @ Thu Nov 26, 2026 10am - 10:45am (GMT-3) (juan@ejemplo.test)",
+      "texto": "You have been invited to the following event. Entrevista Juan / Camila. When: Thursday Nov 26, 2026 10am – 10:45am (GMT-3). Joining info: Join with Google Meet meet.google.com/abc-defg-hij. Invitation from Google Calendar",
+      "estado": "entrevista",
+      "postulacion": "p-lago",
+      "paso": false
+    }
+  ]
+}

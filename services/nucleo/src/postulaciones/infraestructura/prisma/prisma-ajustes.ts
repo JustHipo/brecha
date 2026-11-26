@@ -10,8 +10,9 @@ export class PrismaAjustes implements Ajustes {
     return fila?.valor;
   }
 
+  /** D27: encendido por defecto (solo aplica a fuentes automáticas, con confianza ≥ umbral). */
   async aplicarSenalesSeguras(): Promise<boolean> {
-    return (await this.valor('aplicar_senales_seguras')) === true;
+    return (await this.valor('aplicar_senales_seguras')) !== false;
   }
 
   async umbralConfianza(): Promise<number> {

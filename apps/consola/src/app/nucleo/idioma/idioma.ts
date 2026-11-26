@@ -61,6 +61,20 @@ export class Formato {
     }).format(monto);
   }
 
+  /** Gasto en dólares con hasta 4 decimales (las llamadas a OpenAI cuestan centavos). */
+  usd(valor: number): string {
+    return new Intl.NumberFormat(this.locale, {
+      style: 'currency',
+      currency: 'USD',
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 4,
+    }).format(valor);
+  }
+
+  numero(valor: number): string {
+    return new Intl.NumberFormat(this.locale, { maximumFractionDigits: 1 }).format(valor);
+  }
+
   porcentaje(valor: number): string {
     return new Intl.NumberFormat(this.locale, {
       style: 'percent',

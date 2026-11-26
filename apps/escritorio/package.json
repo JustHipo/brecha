@@ -1,0 +1,123 @@
+{
+  "name": "escritorio",
+  "version": "0.2.4",
+  "private": true,
+  "description": "Brecha como app de escritorio para macOS y Windows: vive en la barra de menú (o en la bandeja de Windows) y levanta PostgreSQL, el núcleo y el servicio con IA en segundo plano (F3).",
+  "author": "Brecha",
+  "main": "dist/main.js",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "lint": "eslint src",
+    "test": "vitest run",
+    "dev": "tsc -p tsconfig.json && electron .",
+    "empaquetar": "node scripts/empaquetar.mjs"
+  },
+  "dependencies": {
+    "pg": "8.23.1"
+  },
+  "devDependencies": {
+    "@brecha/config": "workspace:*",
+    "@types/node": "22.20.5",
+    "@types/pg": "8.23.1",
+    "electron": "45.4.1",
+    "electron-builder": "26.18.0",
+    "eslint": "10.15.0",
+    "typescript": "6.0.3",
+    "vitest": "5.1.1"
+  },
+  "build": {
+    "appId": "cl.brecha.app",
+    "productName": "Brecha",
+    "copyright": "Brecha",
+    "extraMetadata": {
+      "name": "brecha"
+    },
+    "directories": {
+      "output": "empaquetado/app",
+      "buildResources": "recursos-app"
+    },
+    "files": [
+      "dist/**/*.js",
+      "recursos-app/barraTemplate*.png",
+      "recursos-app/bandeja*.png",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "recursos/postgres",
+        "to": "postgres"
+      },
+      {
+        "from": "empaquetado/nucleo",
+        "to": "nucleo",
+        "filter": [
+          "**/*",
+          "!.turbo/**",
+          "!**/*.map",
+          "!**/*.spec.js",
+          "!**/*.d.ts",
+          "!eslint.config.mjs",
+          "!vitest.config.mts",
+          "!tsconfig*.json",
+          "!.dependency-cruiser.cjs"
+        ]
+      },
+      {
+        "from": "../consola/dist/consola/browser",
+        "to": "consola"
+      },
+      {
+        "from": "../../services/ia/dist/brecha-ia",
+        "to": "ia"
+      }
+    ],
+    "asar": true,
+    "mac": {
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "arm64"
+          ]
+        }
+      ],
+      "category": "public.app-category.productivity",
+      "icon": "recursos-app/icono.png",
+      "identity": "-",
+      "hardenedRuntime": false,
+      "gatekeeperAssess": false,
+      "extendInfo": {
+        "NSUserNotificationAlertStyle": "alert"
+      }
+    },
+    "dmg": {
+      "title": "Brecha",
+      "artifactName": "Brecha-${version}-${arch}.${ext}"
+    },
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "recursos-app/icono.png"
+    },
+    "nsis": {
+      "oneClick": true,
+      "perMachine": false,
+      "shortcutName": "Brecha",
+      "runAfterFinish": true,
+      "artifactName": "Brecha-Setup-${version}.${ext}",
+      "deleteAppDataOnUninstall": false
+    },
+    "afterPack": "./scripts/despues-de-empaquetar.cjs"
+  },
+  "optionalDependencies": {
+    "@embedded-postgres/darwin-arm64": "17.12.0-beta.19",
+    "@embedded-postgres/windows-x64": "17.12.0-beta.19"
+  }
+}

@@ -15,7 +15,8 @@
     "test:cobertura": "vitest run --coverage",
     "contrato:exportar": "tsc -p tsconfig.build.json && node dist/contrato.js && pnpm --filter @brecha/contratos tipos",
     "clave": "tsc -p tsconfig.build.json && node dist/acceso/cli-clave.js",
-    "importar": "tsc -p tsconfig.build.json && node dist/postulaciones/infraestructura/importacion/cli-importar.js"
+    "importar": "tsc -p tsconfig.build.json && node dist/postulaciones/infraestructura/importacion/cli-importar.js",
+    "perfil": "tsc -p tsconfig.build.json && node dist/postulaciones/infraestructura/semilla/cli-perfil.js"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "1.32.2",
@@ -28,6 +29,9 @@
     "argon2": "0.45.2",
     "class-transformer": "0.5.1",
     "class-validator": "0.15.1",
+    "csv-parse": "7.0.3",
+    "csv-stringify": "6.9.0",
+    "express": "5.3.0",
     "pg": "8.23.1",
     "reflect-metadata": "0.2.2",
     "rxjs": "7.8.2",

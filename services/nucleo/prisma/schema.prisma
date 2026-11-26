@@ -20,6 +20,14 @@ model Postulacion {
   avisoCierre      DateTime? @map("aviso_cierre") @db.Date
   avisoIdMercado   String?   @map("aviso_id_mercado")
   avisoCalce       Decimal?  @map("aviso_calce") @db.Decimal(4, 3)
+  /// Herramientas que pide el aviso (csv.md §4.1).
+  avisoStack       String[]  @default([]) @map("aviso_stack")
+  avisoRequisitos  String?   @map("aviso_requisitos")
+  avisoSueldoPublicado String? @map("aviso_sueldo_publicado")
+  /// Etiquetas normalizadas (minúsculas, sin tildes).
+  etiquetas        String[]  @default([])
+  /// Prioridad fijada a mano; null = la calcula R12.
+  prioridadFijada  String?   @map("prioridad_fijada")
   estado           String
   canalTipo        String?   @map("canal_tipo")
   canalValor       String?   @map("canal_valor")
@@ -40,9 +48,11 @@ model Postulacion {
   entrevistas   Entrevista[]
   contactos     Contacto[]
   notas         Nota[]
+  pasos         PasoPostulacion[]
 
   @@index([estado])
   @@index([actualizadaEn])
+  @@index([etiquetas], type: Gin)
   @@map("postulacion")
 }
 
@@ -69,11 +79,16 @@ model Senal {
   resumen           String
   estadoSugerido    String?      @map("estado_sugerido")
   confianza         Decimal      @db.Decimal(4, 3)
-  referenciaExterna String?      @unique @map("referencia_externa")
+  /// Única por postulación: un mismo correo puede ser señal de varias (docs/diseno/pasos.md §4.2).
+  referenciaExterna String?      @map("referencia_externa")
+  remitente         String?
+  asunto            String?
   recibidaEn        DateTime     @map("recibida_en") @db.Timestamptz(3)
   aplicada          Boolean      @default(false)
   postulacion       Postulacion? @relation(fields: [postulacionId], references: [id], onDelete: Cascade)
 
+  @@unique([postulacionId, referenciaExterna])
+  @@index([referenciaExterna])
   @@index([postulacionId, recibidaEn])
   @@map("senal")
 }
@@ -161,4 +176,189 @@ model Outbox {
 
   @@index([publicadoEn, ocurridoEn])
   @@map("outbox")
+}
+
+/// Señales que llegaron sin postulación (la Bandeja, docs/diseno/f2.md §5).
+model SenalPendiente {
+  id                String    @id @db.Uuid
+  fuente            String
+  plataforma        String
+  resumen           String
+  estadoSugerido    String?   @map("estado_sugerido")
+  confianza         Decimal   @db.Decimal(4, 3)
+  referenciaExterna String?   @unique @map("referencia_externa")
+  recibidaEn        DateTime  @map("recibida_en") @db.Timestamptz(3)
+  remitente         String?
+  asunto            String?
+  empresaDetectada  String?   @map("empresa_detectada")
+  cargoDetectado    String?   @map("cargo_detectado")
+  estado            String
+  postulacionId     String?   @map("postulacion_id") @db.Uuid
+  /// Postulaciones propuestas sin certeza, para marcarlas al asociar.
+  candidatas        String[]  @default([]) @db.Uuid
+  /// El paso que pidió el correo; se crea al asociar (docs/diseno/pasos.md §4.3).
+  pasoPropuesto     Json?     @map("paso_propuesto")
+  resueltaEn        DateTime? @map("resuelta_en") @db.Timestamptz(3)
+  creadaEn          DateTime  @map("creada_en") @db.Timestamptz(3)
+
+  @@index([estado, recibidaEn])
+  @@map("senal_pendiente")
+}
+
+/// Lo que una o más postulaciones te piden hacer (docs/diseno/pasos.md §4.1). Texto libre; nunca se borra.
+model Paso {
+  id                String            @id @db.Uuid
+  descripcion       String
+  detalle           String?
+  plazo             DateTime?         @db.Date
+  enlace            String?
+  estado            String
+  fuente            String
+  registradoPor     String            @map("registrado_por")
+  contactoRedId     String?           @map("contacto_red_id") @db.Uuid
+  referenciaExterna String?           @unique @map("referencia_externa")
+  cerradoPor        String?           @map("cerrado_por")
+  cerradoEn         DateTime?         @map("cerrado_en") @db.Timestamptz(3)
+  notaCierre        String?           @map("nota_cierre")
+  referenciaCierre  String?           @map("referencia_cierre")
+  /// Un correo posterior parece decir que ya se hizo (confianza bajo el umbral, R20).
+  sugerenciaCierre  Json?             @map("sugerencia_cierre")
+  pedidoEn          DateTime          @map("pedido_en") @db.Timestamptz(3)
+  version           Int               @default(0)
+  creadoEn          DateTime          @map("creado_en") @db.Timestamptz(3)
+  actualizadoEn     DateTime          @map("actualizado_en") @db.Timestamptz(3)
+  postulaciones     PasoPostulacion[]
+
+  @@index([estado])
+  @@map("paso")
+}
+
+model PasoPostulacion {
+  pasoId        String      @map("paso_id") @db.Uuid
+  postulacionId String      @map("postulacion_id") @db.Uuid
+  paso          Paso        @relation(fields: [pasoId], references: [id], onDelete: Cascade)
+  postulacion   Postulacion @relation(fields: [postulacionId], references: [id], onDelete: Cascade)
+
+  @@id([pasoId, postulacionId])
+  @@index([postulacionId])
+  @@map("paso_postulacion")
+}
+
+/// Tu red de LinkedIn: personas, solicitudes y conversaciones (LinkedIn no tiene API: la actualiza tu IA por MCP).
+model ContactoRed {
+  id             String   @id @db.Uuid
+  nombre         String
+  /// null = sin perfil de LinkedIn (se reconoce por nombre y empresa).
+  perfilUrl      String?  @unique @map("perfil_url")
+  titular        String?
+  empresa        String?
+  conexion       String
+  /// Interacciones (solicitudes, mensajes y notas) en orden: son pocas por persona.
+  interacciones  Json
+  postulacionIds String[] @map("postulacion_ids") @db.Uuid
+  seguimiento    String?
+  notas          String?
+  creadoEn       DateTime @map("creado_en") @db.Timestamptz(3)
+  actualizadoEn  DateTime @map("actualizado_en") @db.Timestamptz(3)
+
+  @@map("contacto_red")
+}
+
+// ── Arriendos (docs/diseno/arriendos.md). Contexto aparte: no comparte tablas con empleo salvo outbox y ajuste. ──
+
+/// Una propiedad que sigues para arrendar. Lo que se lee junto (publicaciones, contactos, visitas, señales) va en `datos`.
+model Propiedad {
+  id            String   @id @db.Uuid
+  estado        String
+  titulo        String
+  comuna        String?
+  /// URLs normalizadas de sus publicaciones: la llave de los duplicados seguros.
+  urls          String[]
+  datos         Json
+  version       Int      @default(0)
+  creadaEn      DateTime @map("creada_en") @db.Timestamptz(3)
+  actualizadaEn DateTime @map("actualizada_en") @db.Timestamptz(3)
+  fotos         FotoPropiedad[]
+
+  @@index([estado])
+  @@index([urls], type: Gin)
+  @@map("propiedad")
+}
+
+/// Portales, mensajería, correo, teléfono y corredoras: el catálogo que Juan o su IA amplían.
+model CanalArriendo {
+  id          String   @id
+  nombre      String
+  tipo        String
+  dominios    String[]
+  activo      Boolean  @default(true)
+  predefinido Boolean  @default(false)
+  creadoEn    DateTime @map("creado_en") @db.Timestamptz(3)
+
+  @@map("canal_arriendo")
+}
+
+/// El perfil de búsqueda de Empleo (una sola fila, id = 1): reglas, datos e historial (docs/diseno/perfil.md).
+model PerfilEmpleo {
+  id            Int      @id
+  datos         Json
+  actualizadaEn DateTime @map("actualizada_en") @db.Timestamptz(3)
+
+  @@map("perfil_empleo")
+}
+
+/// La búsqueda de arriendo (una sola fila, id = 1): reglas, datos de la persona e historial.
+model BusquedaArriendo {
+  id            Int      @id
+  datos         Json
+  actualizadaEn DateTime @map("actualizada_en") @db.Timestamptz(3)
+
+  @@map("busqueda_arriendo")
+}
+
+/// Señales de arriendo que llegaron sin propiedad: la Bandeja de Arriendos.
+model SenalArriendoPendiente {
+  id                String    @id @db.Uuid
+  estado            String
+  datos             Json
+  referenciaExterna String?   @unique @map("referencia_externa")
+  recibidaEn        DateTime  @map("recibida_en") @db.Timestamptz(3)
+  propiedadId       String?   @map("propiedad_id") @db.Uuid
+  creadaEn          DateTime  @map("creada_en") @db.Timestamptz(3)
+  resueltaEn        DateTime? @map("resuelta_en") @db.Timestamptz(3)
+
+  @@index([estado, recibidaEn])
+  @@map("senal_arriendo_pendiente")
+}
+
+/// Direcciones ya buscadas en el geocodificador (Nominatim): una consulta por dirección, nunca dos.
+model Geocodificacion {
+  consulta String   @id
+  lat      Float?
+  lon      Float?
+  creadaEn DateTime @map("creada_en") @db.Timestamptz(3)
+
+  @@map("geocodificacion")
+}
+
+/// Fotos de una propiedad (docs/diseno/fotos-propiedades.md). El archivo vive en `<instancia>/fotos/<archivo>`; la portada es la de orden 0.
+model FotoPropiedad {
+  id           String    @id @db.Uuid
+  propiedadId  String    @map("propiedad_id") @db.Uuid
+  propiedad    Propiedad @relation(fields: [propiedadId], references: [id], onDelete: Cascade)
+  orden        Int
+  /// Solo `idFoto.ext`, sin carpetas: la ruta se arma en cada sistema.
+  archivo      String
+  tipo         String
+  bytes        Int
+  sha256       String
+  /// `url` (se descargó) o `archivo` (venía de tu equipo).
+  origen       String
+  urlOrigen    String?   @map("url_origen")
+  nombreOrigen String?   @map("nombre_origen")
+  creadaEn     DateTime  @map("creada_en") @db.Timestamptz(3)
+
+  @@unique([propiedadId, sha256])
+  @@index([propiedadId, orden])
+  @@map("foto_propiedad")
 }

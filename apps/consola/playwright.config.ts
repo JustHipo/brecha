@@ -9,8 +9,10 @@ if (existsSync(join(raiz, '.env'))) process.loadEnvFile(join(raiz, '.env'));
 const url = process.env.DATABASE_URL_PRUEBAS;
 if (!url) throw new Error('Falta DATABASE_URL_PRUEBAS (ver .env.example)');
 
-const NUCLEO = 4310;
-const CONSOLA = 4210;
+// Puertos por variable para correr las e2e en dos worktrees a la vez (lección de 24-nov-2026).
+const NUCLEO = Number(process.env.E2E_NUCLEO ?? 4310);
+const CONSOLA = Number(process.env.E2E_CONSOLA ?? 4210);
+const IA_SIN_SERVICIO = Number(process.env.E2E_IA ?? 4419);
 const dir = process.env.BRECHA_DIR_E2E ?? mkdtempSync(join(tmpdir(), 'brecha-e2e-'));
 process.env.BRECHA_DIR_E2E = dir;
 process.env.NUCLEO_E2E = String(NUCLEO);
@@ -27,6 +29,16 @@ export default defineConfig({
     viewport: { width: 1280, height: 860 },
     trace: 'retain-on-failure',
     locale: 'es-CL',
+    // El recorrido guiado sale la primera vez: las pruebas parten con él ya visto, salvo recorrido.spec.ts.
+    storageState: {
+      cookies: [],
+      origins: [
+        {
+          origin: `http://localhost:${CONSOLA}`,
+          localStorage: [{ name: 'brecha.recorrido', value: '1' }],
+        },
+      ],
+    },
   },
   projects: [
     {
@@ -42,6 +54,8 @@ export default defineConfig({
       env: {
         DATABASE_URL: url,
         NUCLEO_PUERTO: String(NUCLEO),
+        // El e2e nunca sale a internet a ubicar direcciones.
+        BRECHA_GEOCODIFICADOR: 'apagado',
         CONSOLA_ORIGEN: `http://localhost:${CONSOLA}`,
         BRECHA_DIR: dir,
       },
@@ -51,7 +65,8 @@ export default defineConfig({
       url: `http://localhost:${CONSOLA}`,
       reuseExistingServer: false,
       timeout: 120_000,
-      env: { NUCLEO_PUERTO: String(NUCLEO), BRECHA_DIR: dir },
+      // La API de IA no corre en el e2e: un puerto sin nadie, para no tocar nunca la de desarrollo.
+      env: { NUCLEO_PUERTO: String(NUCLEO), IA_PUERTO: String(IA_SIN_SERVICIO), BRECHA_DIR: dir },
     },
   ],
 });

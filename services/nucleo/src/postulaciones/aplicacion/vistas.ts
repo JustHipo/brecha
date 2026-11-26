@@ -3,6 +3,14 @@ import { diasEntre, type Fecha, type Reloj } from '../../compartido/dominio/puer
 import { destinosDe, type EstadoPostulacion } from '../dominio/estado';
 import type { AvisoResumen, Canal, Contacto, Dinero } from '../dominio/objetos-valor/valores';
 import type { CambioDeEstado, Discrepancia, Entrevista, Nota, Senal } from '../dominio/partes';
+import type {
+  CerradorDePaso,
+  DatosPaso,
+  EstadoDePaso,
+  FuenteDePaso,
+  RegistradorDePaso,
+} from '../dominio/paso';
+import { revisarPostulacion, type DatosPerfilEmpleo, type RevisionDePerfil } from '../dominio/perfil-empleo';
 import type { PostulacionDatos } from '../dominio/postulacion';
 import { calcularPrioridad } from '../dominio/politica-de-prioridad';
 
@@ -19,12 +27,58 @@ export interface VistaResumen {
   diasAlCierre: number | null;
   estado: EstadoPostulacion;
   prioridad: Prioridad;
+  /** La que fijó la persona, o null si se calcula (R12). */
+  prioridadFijada: Prioridad | null;
+  etiquetas: string[];
   fechaPostulacion: Fecha | null;
   senalesNuevas: number;
   discrepanciasAbiertas: number;
+  /** Lo que te piden hacer, el de plazo más cercano primero (docs/diseno/pasos.md §7.1). */
+  pasosPendientes: VistaPasoCorto[];
   transicionesPosibles: EstadoPostulacion[];
+  /** Choques con tu perfil de búsqueda (perfil.md §3.3); null si el perfil no tiene reglas con chequeo. */
+  perfil: RevisionDePerfil | null;
   version: number;
   actualizadaEn: string;
+}
+
+/** Lo que se necesita del perfil para revisar una postulación. */
+export type PerfilParaRevisar = Pick<DatosPerfilEmpleo, 'reglas' | 'datos'> | null;
+
+export interface VistaPasoCorto {
+  id: string;
+  descripcion: string;
+  plazo: Fecha | null;
+  diasAlPlazo: number | null;
+}
+
+export interface PostulacionDelPaso {
+  id: string;
+  empresa: string;
+  titulo: string;
+  estado: EstadoPostulacion;
+}
+
+export interface VistaPaso {
+  id: string;
+  postulacionIds: string[];
+  postulaciones: PostulacionDelPaso[];
+  descripcion: string;
+  detalle: string | null;
+  plazo: Fecha | null;
+  diasAlPlazo: number | null;
+  enlace: string | null;
+  estado: EstadoDePaso;
+  fuente: FuenteDePaso;
+  registradoPor: RegistradorDePaso;
+  contactoRedId: string | null;
+  referenciaExterna: string | null;
+  cierre: { por: CerradorDePaso; en: string; nota: string | null; referenciaExterna: string | null } | null;
+  sugerenciaCierre: { referenciaExterna: string | null; confianza: number; en: string } | null;
+  pedidoEn: string;
+  creadoEn: string;
+  actualizadoEn: string;
+  version: number;
 }
 
 type ConFechaIso<T, K extends keyof T> = Omit<T, K> & { [P in K]: string };
@@ -42,6 +96,8 @@ export interface VistaDetalle extends VistaResumen {
     detectadaEn: string;
     resueltaEn: string | null;
   })[];
+  /** El proceso: todos los pasos (pedidos, hechos y descartados) en el orden en que te los pidieron. */
+  pasos: VistaPaso[];
   creadaEn: string;
 }
 
@@ -59,7 +115,7 @@ export interface ElementoResumen {
   postulacionId: string;
   empresa: string;
   titulo: string;
-  tipo: 'cambio' | 'senal' | 'discrepancia' | 'nota';
+  tipo: 'cambio' | 'senal' | 'discrepancia' | 'nota' | 'paso';
   descripcion: string;
   prioridad: Prioridad;
   ocurridoEn: string;
@@ -88,7 +144,69 @@ export function transicionesPosibles(
   return destinos.filter((a) => a !== 'postulado' && !(estado === 'descartado' && a === 'sin_decidir'));
 }
 
-export function aResumen(d: PostulacionDatos, reloj: Reloj): VistaResumen {
+/** Pendientes primero por plazo (sin plazo al final) y después por cuándo te los pidieron. */
+export function ordenarPendientes<T extends { plazo?: Fecha | null; pedidoEn: Date | string }>(a: T, b: T) {
+  const pa = a.plazo ?? '9999-12-31';
+  const pb = b.plazo ?? '9999-12-31';
+  return pa.localeCompare(pb) || new Date(a.pedidoEn).getTime() - new Date(b.pedidoEn).getTime();
+}
+
+export function aPasoCorto(p: Pick<DatosPaso, 'id' | 'descripcion' | 'plazo'>, reloj: Reloj): VistaPasoCorto {
+  return {
+    id: p.id,
+    descripcion: p.descripcion,
+    plazo: p.plazo ?? null,
+    diasAlPlazo: p.plazo ? diasEntre(reloj.hoy(), p.plazo) : null,
+  };
+}
+
+export function aVistaPaso(
+  p: DatosPaso,
+  postulaciones: ReadonlyMap<string, Omit<PostulacionDelPaso, 'id'>>,
+  reloj: Reloj,
+): VistaPaso {
+  return {
+    ...aPasoCorto(p, reloj),
+    postulacionIds: p.postulacionIds,
+    postulaciones: p.postulacionIds.flatMap((id) => {
+      const x = postulaciones.get(id);
+      return x ? [{ id, ...x }] : [];
+    }),
+    detalle: p.detalle ?? null,
+    enlace: p.enlace ?? null,
+    estado: p.estado,
+    fuente: p.fuente,
+    registradoPor: p.registradoPor,
+    contactoRedId: p.contactoRedId ?? null,
+    referenciaExterna: p.referenciaExterna ?? null,
+    cierre: p.cierre
+      ? {
+          por: p.cierre.por,
+          en: p.cierre.en.toISOString(),
+          nota: p.cierre.nota ?? null,
+          referenciaExterna: p.cierre.referenciaExterna ?? null,
+        }
+      : null,
+    sugerenciaCierre: p.sugerenciaCierre
+      ? {
+          referenciaExterna: p.sugerenciaCierre.referenciaExterna ?? null,
+          confianza: p.sugerenciaCierre.confianza,
+          en: p.sugerenciaCierre.en.toISOString(),
+        }
+      : null,
+    pedidoEn: p.pedidoEn.toISOString(),
+    creadoEn: p.creadoEn.toISOString(),
+    actualizadoEn: p.actualizadoEn.toISOString(),
+    version: p.version,
+  };
+}
+
+export function aResumen(
+  d: PostulacionDatos,
+  reloj: Reloj,
+  pasos: readonly DatosPaso[] = [],
+  perfil: PerfilParaRevisar = null,
+): VistaResumen {
   return {
     id: d.id,
     titulo: d.aviso.titulo,
@@ -100,17 +218,30 @@ export function aResumen(d: PostulacionDatos, reloj: Reloj): VistaResumen {
     cierre: d.aviso.cierre ?? null,
     diasAlCierre: diasAlCierre(d.aviso.cierre, reloj),
     estado: d.estado,
-    prioridad: calcularPrioridad(d.estado, d.aviso.cierre, reloj.hoy()),
+    prioridad: calcularPrioridad(d.estado, d.aviso.cierre, reloj.hoy(), d.prioridadFijada),
+    prioridadFijada: d.prioridadFijada ?? null,
+    etiquetas: d.etiquetas,
     fechaPostulacion: d.fechaPostulacion ?? null,
     senalesNuevas: d.senales.filter((s) => !s.aplicada).length,
     discrepanciasAbiertas: d.discrepancias.filter((x) => x.estado === 'abierta').length,
+    pasosPendientes: pasos
+      .filter((p) => p.estado === 'pendiente')
+      .sort(ordenarPendientes)
+      .map((p) => aPasoCorto(p, reloj)),
     transicionesPosibles: transicionesPosibles(d.estado, d.aviso.cierre, reloj),
+    perfil: perfil ? revisarPostulacion(d.aviso, perfil) : null,
     version: d.version,
     actualizadaEn: d.actualizadaEn.toISOString(),
   };
 }
 
-export function aDetalle(d: PostulacionDatos, reloj: Reloj): VistaDetalle {
+export function aDetalle(
+  d: PostulacionDatos,
+  reloj: Reloj,
+  pasos: readonly DatosPaso[] = [],
+  postulacionesDePasos: ReadonlyMap<string, Omit<PostulacionDelPaso, 'id'>> = new Map(),
+  perfil: PerfilParaRevisar = null,
+): VistaDetalle {
   // Del más nuevo al más antiguo; con la misma hora, el que se agregó después va primero.
   const nuevoPrimero = <T>(xs: T[], f: (x: T) => Date) =>
     xs
@@ -118,7 +249,7 @@ export function aDetalle(d: PostulacionDatos, reloj: Reloj): VistaDetalle {
       .sort((a, b) => f(b.x).getTime() - f(a.x).getTime() || b.i - a.i)
       .map(({ x }) => x);
   return {
-    ...aResumen(d, reloj),
+    ...aResumen(d, reloj, pasos, perfil),
     aviso: d.aviso,
     canal: d.canal ?? null,
     sueldoPretendido: d.sueldoPretendido ?? null,
@@ -141,6 +272,9 @@ export function aDetalle(d: PostulacionDatos, reloj: Reloj): VistaDetalle {
       detectadaEn: x.detectadaEn.toISOString(),
       resueltaEn: x.resueltaEn?.toISOString() ?? null,
     })),
+    pasos: [...pasos]
+      .sort((a, b) => a.pedidoEn.getTime() - b.pedidoEn.getTime() || a.id.localeCompare(b.id))
+      .map((p) => aVistaPaso(p, postulacionesDePasos, reloj)),
     creadaEn: d.creadaEn.toISOString(),
   };
 }

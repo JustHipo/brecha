@@ -1,0 +1,178 @@
+name: App de escritorio
+
+# Arma y prueba Brecha instalada en Windows y en macOS (docs/diseno/windows.md W4).
+# Corre en PRs que tocan la app, los servicios o la consola, y a mano (W-m). El repo es público: no se cobra.
+on:
+  pull_request:
+    paths:
+      - 'apps/**'
+      - 'services/**'
+      - 'packages/**'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - 'pnpm-workspace.yaml'
+      - '.github/workflows/escritorio.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: escritorio-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # prisma generate pide una URL aunque no se conecta.
+  DATABASE_URL: postgresql://nadie:nada@127.0.0.1:5432/nada?schema=nucleo
+
+jobs:
+  windows:
+    name: Windows (instalador NSIS y prueba de humo)
+    runs-on: windows-2025
+    timeout-minutes: 75
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Instalar dependencias
+        run: pnpm install --frozen-lockfile
+
+      - uses: astral-sh/setup-uv@v10.4.0
+        with:
+          enable-cache: true
+          cache-dependency-glob: services/ia/uv.lock
+
+      - name: Dependencias del servicio con IA
+        working-directory: services/ia
+        run: uv sync --frozen
+
+      - name: Pruebas del supervisor en Windows
+        run: pnpm --filter escritorio test
+
+      - name: Compilar consola y núcleo
+        run: |
+          pnpm turbo run generar
+          pnpm --filter consola build
+          pnpm --filter nucleo build
+
+      - name: Servicio con IA (PyInstaller, Windows x64)
+        run: bash services/ia/scripts/empaquetar.sh
+
+      - name: pgvector para Windows (nmake contra el PostgreSQL 17.12 del runner)
+        shell: pwsh
+        run: ./apps/escritorio/scripts/compilar-pgvector-windows.ps1
+
+      - name: PostgreSQL 17.12 con pgvector y su prueba
+        # preparar-postgres.mjs toma pgvector de PGROOT (la variable del runner) si no hay PGVECTOR_DIR.
+        run: |
+          node apps/escritorio/scripts/preparar-postgres.mjs
+          pnpm --filter escritorio build
+          node apps/escritorio/scripts/probar-pgvector.mjs
+
+      - name: Instalador NSIS
+        run: node apps/escritorio/scripts/empaquetar.mjs --sin-compilar
+
+      - name: Prueba de humo (instala, abre, crea y mueve, llavero, huérfanos, salir)
+        run: |
+          instalador=$(ls apps/escritorio/empaquetado/app/Brecha-Setup-*.exe | head -1)
+          node apps/escritorio/scripts/prueba-de-humo.mjs --instalador "$(cygpath -w "$instalador")" --salida humo-windows || {
+            codigo=$?
+            echo "::error::la prueba de humo salió con $codigo"
+            cat humo-windows/pasos.txt || true
+            tail -n 40 humo-windows/*/logs/*.log || true
+            exit $codigo
+          }
+
+      - name: Instalador como artefacto
+        uses: actions/upload-artifact@v4
+        with:
+          name: Brecha-Setup-windows
+          path: apps/escritorio/empaquetado/app/Brecha-Setup-*.exe
+          retention-days: 30
+          if-no-files-found: error
+
+      - name: Captura y registros de la prueba de humo
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: humo-windows
+          path: humo-windows
+          retention-days: 14
+          if-no-files-found: ignore
+
+  macos:
+    name: macOS (.dmg y prueba de humo)
+    runs-on: macos-15
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Instalar dependencias
+        run: pnpm install --frozen-lockfile
+
+      - name: pgvector para PostgreSQL 17 (compilado; la fórmula de Homebrew ya no trae la 17)
+        run: |
+          brew install postgresql@17
+          bash apps/escritorio/scripts/compilar-pgvector-macos.sh "$RUNNER_TEMP/pgvector"
+          # Para todos los pasos que siguen: preparar-postgres.mjs corre aquí y de nuevo al armar el .dmg.
+          echo "PGVECTOR_DIR=$RUNNER_TEMP/pgvector" >> "$GITHUB_ENV"
+
+      - uses: astral-sh/setup-uv@v10.4.0
+        with:
+          enable-cache: true
+          cache-dependency-glob: services/ia/uv.lock
+
+      - name: Dependencias del servicio con IA
+        working-directory: services/ia
+        run: uv sync --frozen
+
+      - name: Compilar consola y núcleo
+        run: |
+          pnpm turbo run generar
+          pnpm --filter consola build
+          pnpm --filter nucleo build
+
+      - name: Servicio con IA (PyInstaller, macOS arm64)
+        run: bash services/ia/scripts/empaquetar.sh
+
+      - name: PostgreSQL 17.12 con pgvector y su prueba
+        run: |
+          node apps/escritorio/scripts/preparar-postgres.mjs
+          pnpm --filter escritorio build
+          node apps/escritorio/scripts/probar-pgvector.mjs
+
+      - name: .dmg
+        run: node apps/escritorio/scripts/empaquetar.mjs --sin-compilar
+
+      - name: Prueba de humo (abre, crea y mueve, huérfanos, salir)
+        run: node apps/escritorio/scripts/prueba-de-humo.mjs --app apps/escritorio/empaquetado/app/mac-arm64/Brecha.app/Contents/MacOS/Brecha --salida humo-macos || { tail -n 40 humo-macos/*/logs/*.log; exit 1; }
+
+      - name: .dmg como artefacto
+        uses: actions/upload-artifact@v4
+        with:
+          name: Brecha-macos
+          path: apps/escritorio/empaquetado/app/*.dmg
+          retention-days: 30
+          if-no-files-found: error
+
+      - name: Captura y registros de la prueba de humo
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: humo-macos
+          path: humo-macos
+          retention-days: 14
+          if-no-files-found: ignore

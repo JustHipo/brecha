@@ -8,8 +8,10 @@ import {
   signal,
 } from '@angular/core';
 import { Router } from '@angular/router';
-import { TranslocoPipe } from '@jsverse/transloco';
+import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
+import { Foco } from '../../nucleo/foco/foco';
 import { Formato } from '../../nucleo/idioma/idioma';
+import { RecorridoStore } from '../recorrido/recorrido.store';
 import { TableroStore } from '../tablero/tablero.store';
 
 interface Opcion {
@@ -98,6 +100,9 @@ export class PaletaDeComandos {
   private readonly router = inject(Router);
   private readonly store = inject(TableroStore);
   private readonly formato = inject(Formato);
+  private readonly recorrido = inject(RecorridoStore);
+  private readonly foco = inject(Foco);
+  private readonly t = inject(TranslocoService);
   protected readonly texto = signal('');
   protected readonly activo = signal(0);
 
@@ -110,10 +115,28 @@ export class PaletaDeComandos {
     },
     { id: 'c-lista', texto: 'busqueda.irLista', traducir: true, accion: () => this.ir('/lista') },
     {
+      id: 'c-importar',
+      texto: 'busqueda.importarCsv',
+      traducir: true,
+      accion: () => this.ir('/importar'),
+    },
+    {
       id: 'c-crear',
       texto: 'busqueda.crear',
       traducir: true,
       accion: () => this.ir('/postulaciones/nueva'),
+    },
+    {
+      id: 'c-foco-empleo',
+      texto: 'foco.irEmpleo',
+      traducir: true,
+      accion: () => this.foco.cambiar('empleo'),
+    },
+    {
+      id: 'c-foco-arriendos',
+      texto: 'foco.irArriendos',
+      traducir: true,
+      accion: () => this.foco.cambiar('arriendos'),
     },
     {
       id: 'c-es',
@@ -126,6 +149,12 @@ export class PaletaDeComandos {
       texto: 'busqueda.idiomaEn',
       traducir: true,
       accion: () => this.formato.cambiarIdioma('en'),
+    },
+    {
+      id: 'c-recorrido',
+      texto: 'busqueda.recorrido',
+      traducir: true,
+      accion: () => this.recorrido.iniciar(),
     },
   ];
 
@@ -141,7 +170,11 @@ export class PaletaDeComandos {
         traducir: false,
         accion: () => this.ir(`/postulaciones/${t.id}`),
       }));
-    return [...postulaciones, ...(q ? [] : this.comandos)];
+    // Los comandos también se filtran por su texto, para encontrar «recorrido» escribiéndolo.
+    const comandos = this.comandos.filter(
+      (c) => !q || this.t.translate(c.texto).toLowerCase().includes(q),
+    );
+    return [...postulaciones, ...comandos];
   });
 
   protected tecla(e: KeyboardEvent): void {

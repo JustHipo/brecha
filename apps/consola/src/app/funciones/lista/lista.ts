@@ -6,7 +6,7 @@ import {
   inject,
   signal,
 } from '@angular/core';
-import { Router } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { TranslocoPipe } from '@jsverse/transloco';
 import type { EstadoPostulacion, Resumen } from '@brecha/contratos';
 import { HlmButton } from '@brecha/ui/button';
@@ -15,7 +15,10 @@ import { firstValueFrom } from 'rxjs';
 import { Api } from '../../nucleo/api/api.service';
 import { ErrorDeApi } from '../../nucleo/errores/error-de-api';
 import { Formato } from '../../nucleo/idioma/idioma';
-import { EtiquetaPlataforma, PuntoPrioridad } from '../../compartido/piezas';
+import { EtiquetaPlataforma, Etiquetas, PuntoPrioridad } from '../../compartido/piezas';
+import { Avisos } from '../../nucleo/avisos';
+import { guardarArchivo, nombreDeArchivo } from '../../nucleo/descargas';
+import type { EtiquetaEnUso } from '../../nucleo/api/api.service';
 import { ABIERTOS, CERRADOS } from '../tablero/tablero.store';
 
 type Columna =
@@ -26,11 +29,34 @@ const POR_PAGINA = 25;
 /** Lista (ui.md §4.3): para buscar y revisar, no para mover. Filtros, orden por columna y paginación. */
 @Component({
   selector: 'b-lista',
-  imports: [TranslocoPipe, HlmButton, HlmInput, EtiquetaPlataforma, PuntoPrioridad],
+  imports: [
+    TranslocoPipe,
+    RouterLink,
+    HlmButton,
+    HlmInput,
+    EtiquetaPlataforma,
+    Etiquetas,
+    PuntoPrioridad,
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: { class: 'flex flex-col gap-4 px-6 pt-[22px] pb-6' },
   template: `
-    <h1 class="titulo-pagina m-0">{{ 'lista.titulo' | transloco }}</h1>
+    <div class="flex flex-wrap items-center gap-2">
+      <h1 class="titulo-pagina m-0 flex-1">{{ 'lista.titulo' | transloco }}</h1>
+      <a hlmBtn variant="outline" size="sm" routerLink="/importar">{{
+        'csv.importarCsv' | transloco
+      }}</a>
+      <button
+        hlmBtn
+        variant="outline"
+        size="sm"
+        type="button"
+        (click)="exportar()"
+        [disabled]="exportando()"
+      >
+        {{ 'csv.exportarCsv' | transloco }}
+      </button>
+    </div>
     <div class="flex flex-wrap items-end gap-3">
       <label class="flex flex-col gap-1">
         <span class="text-xs font-semibold text-tinta-suave">{{ 'lista.buscar' | transloco }}</span>
@@ -92,6 +118,25 @@ const POR_PAGINA = 25;
           }
         </select>
       </label>
+      @if (etiquetasEnUso().length) {
+        <label class="flex flex-col gap-1">
+          <span class="text-xs font-semibold text-tinta-suave">{{
+            'etiquetas.filtro' | transloco
+          }}</span>
+          <select
+            data-filtro-etiqueta
+            class="h-9 rounded-md border border-linea bg-fondo px-2"
+            (change)="etiqueta.set($any($event.target).value); offset.set(0)"
+          >
+            <option value="">{{ 'etiquetas.todas' | transloco }}</option>
+            @for (e of etiquetasEnUso(); track e.etiqueta) {
+              <option [value]="e.etiqueta" [selected]="etiqueta() === e.etiqueta">
+                #{{ e.etiqueta }} ({{ e.total }})
+              </option>
+            }
+          </select>
+        </label>
+      }
     </div>
 
     @if (error(); as e) {
@@ -150,7 +195,14 @@ const POR_PAGINA = 25;
                   >{{ p.empresa }}</a
                 >
               </td>
-              <td class="px-3 py-2">{{ p.titulo }}</td>
+              <td class="px-3 py-2">
+                <span class="flex flex-col gap-1">
+                  {{ p.titulo }}
+                  @if (p.etiquetas.length) {
+                    <b-etiquetas [etiquetas]="p.etiquetas" />
+                  }
+                </span>
+              </td>
               <td class="px-3 py-2"><b-plataforma [plataforma]="p.plataforma" /></td>
               <td class="px-3 py-2">{{ 'estados.' + p.estado | transloco }}</td>
               <td class="px-3 py-2 tabular-nums">{{ formato.fechaCorta(p.cierre) }}</td>
@@ -236,6 +288,10 @@ export class ListaPagina {
   protected readonly estados = signal<string[]>([]);
   protected readonly plataforma = signal('');
   protected readonly prioridad = signal('');
+  protected readonly etiqueta = signal('');
+  protected readonly etiquetasEnUso = signal<EtiquetaEnUso[]>([]);
+  protected readonly exportando = signal(false);
+  private readonly avisos = inject(Avisos);
   protected readonly offset = signal(0);
   protected readonly orden = signal<{ col: Columna; asc: boolean }>({
     col: 'actualizada',
@@ -272,9 +328,29 @@ export class ListaPagina {
       this.estados();
       this.plataforma();
       this.prioridad();
+      this.etiqueta();
       this.offset();
       void this.cargar();
     });
+    void firstValueFrom(this.api.etiquetas())
+      .then((e) => this.etiquetasEnUso.set(e))
+      .catch(() => this.etiquetasEnUso.set([]));
+  }
+
+  /** Baja los dos CSV (postulaciones y contactos) en el formato de importar (csv.md §7). */
+  protected async exportar(): Promise<void> {
+    this.exportando.set(true);
+    try {
+      for (const tipo of ['postulaciones', 'contactos'] as const) {
+        const r = await firstValueFrom(this.api.descargarCsv(`exportar/${tipo}`));
+        if (r.body) guardarArchivo(r.body, nombreDeArchivo(r, `brecha-${tipo}.csv`));
+      }
+      this.avisos.exito('csv.exportado');
+    } catch (e) {
+      this.avisos.error(e);
+    } finally {
+      this.exportando.set(false);
+    }
   }
 
   async cargar(): Promise<void> {
@@ -286,6 +362,7 @@ export class ListaPagina {
           estado: this.estados(),
           plataforma: this.plataforma() ? [this.plataforma()] : [],
           prioridad: this.prioridad() ? [this.prioridad()] : [],
+          etiqueta: this.etiqueta() ? [this.etiqueta()] : [],
           limit: POR_PAGINA,
           offset: this.offset(),
         }),

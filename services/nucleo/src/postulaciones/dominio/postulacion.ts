@@ -1,6 +1,6 @@
 import { AggregateRoot } from '../../compartido/dominio/aggregate-root';
 import { ErrorDeDominio } from '../../compartido/dominio/error-de-dominio';
-import type { Prioridad } from '../../compartido/dominio/evento-de-dominio';
+import { PRIORIDADES, type Prioridad } from '../../compartido/dominio/evento-de-dominio';
 import { diasEntre, type Deps, type Fecha, type Reloj } from '../../compartido/dominio/puertos';
 import {
   AvisoCerrado,
@@ -20,9 +20,12 @@ import {
   type EstadoPostulacion,
 } from './estado';
 import { EVENTOS } from './eventos';
+import { crearEtiquetas } from './objetos-valor/etiquetas';
 import {
   crearContacto,
+  crearStack,
   esUno,
+  textoOpcional,
   fechaValida,
   textoObligatorio,
   type AvisoResumen,
@@ -50,6 +53,8 @@ import { calcularPrioridad } from './politica-de-prioridad';
 /** Orígenes que son movimientos de una persona o de su IA: los revisa R13. */
 const ORIGENES_MANUALES: readonly Origen[] = ['tablero', 'formulario', 'ia'];
 const VENTANA_EVIDENCIA_MS = 30 * 86_400_000;
+/** Fuentes que leen solas (el vigía); son las únicas que «aplicar señales seguras» puede aplicar (D27). */
+export const FUENTES_AUTOMATICAS: readonly FuenteDeSenal[] = ['correo', 'plataforma'];
 const MAX_NOTA = 5000;
 
 export interface PostulacionDatos {
@@ -59,6 +64,10 @@ export interface PostulacionDatos {
   canal?: Canal;
   fechaPostulacion?: Fecha;
   sueldoPretendido?: Dinero;
+  /** Etiquetas normalizadas (objeto de valor `Etiquetas`). */
+  etiquetas: string[];
+  /** Prioridad que fijó la persona; sin ella, la calcula R12. */
+  prioridadFijada?: Prioridad;
   contactos: Contacto[];
   entrevistas: Entrevista[];
   notas: Nota[];
@@ -78,6 +87,8 @@ export interface DatosSenal {
   confianza: number;
   recibidaEn?: Date;
   referenciaExterna?: string;
+  remitente?: string;
+  asunto?: string;
 }
 
 export interface DatosEntrevista {
@@ -126,6 +137,8 @@ export class Postulacion extends AggregateRoot {
       fechaPostulacion?: Fecha;
       canal?: Canal;
       motivo?: string;
+      etiquetas?: unknown;
+      prioridadFijada?: Prioridad;
       origen: Origen;
     },
     deps: Deps,
@@ -143,6 +156,9 @@ export class Postulacion extends AggregateRoot {
       );
     }
     if (p.fechaPostulacion !== undefined) fechaValida('fechaPostulacion', p.fechaPostulacion);
+    const etiquetas = crearEtiquetas(p.etiquetas);
+    if (p.prioridadFijada !== undefined && !esUno(PRIORIDADES, p.prioridadFijada))
+      throw new DatoInvalido('prioridad', 'Prioridad desconocida');
     if (estado === 'postulado' && !importada) {
       Postulacion.exigirDatosDePostular(p.fechaPostulacion, p.canal, deps.reloj);
       if (Postulacion.avisoCerrado(p.aviso, deps.reloj)) throw new AvisoCerrado();
@@ -163,6 +179,8 @@ export class Postulacion extends AggregateRoot {
       ...(p.canal ? { canal: p.canal } : {}),
       ...(p.fechaPostulacion ? { fechaPostulacion: p.fechaPostulacion } : {}),
       ...(p.sueldoPretendido ? { sueldoPretendido: p.sueldoPretendido } : {}),
+      etiquetas,
+      ...(p.prioridadFijada ? { prioridadFijada: p.prioridadFijada } : {}),
       contactos: [],
       entrevistas: [],
       notas: [],
@@ -214,7 +232,7 @@ export class Postulacion extends AggregateRoot {
   }
 
   prioridad(reloj: Reloj): Prioridad {
-    return calcularPrioridad(this.d.estado, this.d.aviso.cierre, reloj.hoy());
+    return calcularPrioridad(this.d.estado, this.d.aviso.cierre, reloj.hoy(), this.d.prioridadFijada);
   }
 
   /** Destinos válidos. Con reloj, quita los que el aviso cerrado impide (R3 y R6). */
@@ -301,14 +319,20 @@ export class Postulacion extends AggregateRoot {
       confianza: datos.confianza,
       recibidaEn: datos.recibidaEn ?? ahora,
       ...(referencia ? { referenciaExterna: referencia } : {}),
+      ...(datos.remitente?.trim() ? { remitente: datos.remitente.trim().slice(0, 320) } : {}),
+      ...(datos.asunto?.trim() ? { asunto: datos.asunto.trim().slice(0, 500) } : {}),
       aplicada: false,
     };
     this.d.senales.push(senal);
     this.pendientes.nuevos.add(senal.id);
     this.tocar(ahora);
 
+    // D27: solo las fuentes automáticas se aplican solas; lo que registra una persona o su IA queda como sugerencia.
     const segura =
-      deps.aplicarSeguras && senal.estadoSugerido !== undefined && senal.confianza >= deps.umbral;
+      deps.aplicarSeguras &&
+      FUENTES_AUTOMATICAS.includes(senal.fuente) &&
+      senal.estadoSugerido !== undefined &&
+      senal.confianza >= deps.umbral;
     if (segura && this.intentarAplicar(senal, deps)) {
       senal = this.buscarSenal(senal.id);
     }
@@ -333,7 +357,7 @@ export class Postulacion extends AggregateRoot {
     if (senal.aplicada) throw new DatoInvalido('senalId', 'La señal ya está aplicada');
     if (!senal.estadoSugerido) throw new DatoInvalido('senalId', 'La señal no sugiere un estado');
     if (senal.estadoSugerido !== this.d.estado) {
-      this.cambiarEstado(senal.estadoSugerido, { motivo: senal.resumen, origen: 'senal' }, deps);
+      this.cambiarEstado(senal.estadoSugerido, this.transicionDesde(senal, deps.reloj), deps);
     }
     this.marcarSenalAplicada(senal.id, deps.reloj.ahora());
   }
@@ -450,7 +474,60 @@ export class Postulacion extends AggregateRoot {
   }
 
   /** Edita canal, sueldo pretendido y cierre del aviso (`null` lo borra). */
-  editar(p: { canal?: Canal; sueldoPretendido?: Dinero | null; cierre?: Fecha | null }, reloj: Reloj): void {
+  /** El servicio con IA liga el aviso analizado y su calce (PLAN §11.4, F2). */
+  vincularAviso(p: { avisoId?: string; calce?: number }, reloj: Reloj): void {
+    if (p.calce !== undefined && !(p.calce >= 0 && p.calce <= 1))
+      throw new DatoInvalido('calce', 'El calce va de 0 a 1');
+    const avisoId = p.avisoId?.trim();
+    this.d.aviso = {
+      ...this.d.aviso,
+      ...(avisoId ? { avisoId: avisoId.slice(0, 100) } : {}),
+      ...(p.calce !== undefined ? { calce: p.calce } : {}),
+    };
+    this.tocar(reloj.ahora());
+  }
+
+  editar(
+    p: {
+      canal?: Canal;
+      sueldoPretendido?: Dinero | null;
+      cierre?: Fecha | null;
+      etiquetas?: unknown;
+      prioridad?: Prioridad | null;
+      stack?: unknown;
+      requisitos?: string | null;
+      sueldoPublicado?: string | null;
+    },
+    reloj: Reloj,
+  ): void {
+    // Todo se valida antes de cambiar nada.
+    const etiquetas = p.etiquetas !== undefined ? crearEtiquetas(p.etiquetas) : undefined;
+    if (p.prioridad !== undefined && p.prioridad !== null && !esUno(PRIORIDADES, p.prioridad))
+      throw new DatoInvalido('prioridad', 'Prioridad desconocida');
+    const stack = p.stack !== undefined ? crearStack(p.stack) : undefined;
+    const requisitos =
+      p.requisitos === undefined ? undefined : (textoOpcional('requisitos', p.requisitos, 5000) ?? null);
+    const sueldoPublicado =
+      p.sueldoPublicado === undefined
+        ? undefined
+        : (textoOpcional('sueldoPublicado', p.sueldoPublicado, 200) ?? null);
+
+    if (etiquetas) this.d.etiquetas = etiquetas;
+    if (p.prioridad === null) delete this.d.prioridadFijada;
+    else if (p.prioridad) this.d.prioridadFijada = p.prioridad;
+    if (stack || requisitos !== undefined || sueldoPublicado !== undefined) {
+      const { stack: _s, requisitos: _r, sueldoPublicado: _sp, ...base } = this.d.aviso;
+      const s2 = stack ?? this.d.aviso.stack ?? [];
+      const r2 = requisitos === undefined ? this.d.aviso.requisitos : (requisitos ?? undefined);
+      const sp2 =
+        sueldoPublicado === undefined ? this.d.aviso.sueldoPublicado : (sueldoPublicado ?? undefined);
+      this.d.aviso = {
+        ...base,
+        ...(s2.length ? { stack: s2 } : {}),
+        ...(r2 ? { requisitos: r2 } : {}),
+        ...(sp2 ? { sueldoPublicado: sp2 } : {}),
+      };
+    }
     if (p.canal) this.d.canal = p.canal;
     if (p.sueldoPretendido === null) delete this.d.sueldoPretendido;
     else if (p.sueldoPretendido) this.d.sueldoPretendido = p.sueldoPretendido;
@@ -542,7 +619,7 @@ export class Postulacion extends AggregateRoot {
   private intentarAplicar(senal: Senal, deps: Deps): boolean {
     try {
       if (senal.estadoSugerido !== this.d.estado) {
-        this.cambiarEstado(senal.estadoSugerido!, { motivo: senal.resumen, origen: 'senal' }, deps);
+        this.cambiarEstado(senal.estadoSugerido!, this.transicionDesde(senal, deps.reloj), deps);
       }
       this.marcarSenalAplicada(senal.id, deps.reloj.ahora());
       return true;
@@ -550,6 +627,26 @@ export class Postulacion extends AggregateRoot {
       if (e instanceof ErrorDeDominio) return false; // queda como sugerencia
       throw e;
     }
+  }
+
+  /**
+   * Una señal de «postulado» trae la evidencia de cuándo y por dónde: la fecha es el día en que llegó
+   * (nunca futura) y el canal, el portal de su plataforma (o la del aviso si no se supo),
+   * salvo que la postulación ya tenga los suyos.
+   */
+  private transicionDesde(senal: Senal, reloj: Reloj) {
+    if (senal.estadoSugerido !== 'postulado') return { motivo: senal.resumen, origen: 'senal' as const };
+    const dia = reloj.fechaDe(senal.recibidaEn);
+    const hoy = reloj.hoy();
+    return {
+      motivo: senal.resumen,
+      origen: 'senal' as const,
+      fechaPostulacion: this.d.fechaPostulacion ?? (dia > hoy ? hoy : dia),
+      canal: this.d.canal ?? {
+        tipo: 'portal' as const,
+        valor: senal.plataforma === 'otra' ? this.d.aviso.plataforma : senal.plataforma,
+      },
+    };
   }
 
   private marcarSenalAplicada(id: string, ahora: Date): void {

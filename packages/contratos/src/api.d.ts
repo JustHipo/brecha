@@ -38,6 +38,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/acceso/verificar": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Tipo del token del pedido; 401 si no es válido */
+        get: operations["verificarToken"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/postulaciones": {
         parameters: {
             query?: never;
@@ -64,6 +81,23 @@ export interface paths {
         };
         /** Tarjetas por estado, ordenadas por prioridad, cierre y actualización */
         get: operations["verTablero"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/postulaciones/etiquetas": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Etiquetas en uso, de la más usada a la menos */
+        get: operations["etiquetasEnUso"];
         put?: never;
         post?: never;
         delete?: never;
@@ -255,6 +289,175 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/senales": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Registra una señal en su postulación o, sin postulación, en la bandeja */
+        post: operations["recibirSenal"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/bandeja": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Señales que esperan postulación, de la más nueva a la más antigua */
+        get: operations["listarBandeja"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/bandeja/{senalId}/asociar": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["asociarSenal"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/bandeja/{senalId}/crear": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Crea la postulación con los datos del aviso y le asocia la señal */
+        post: operations["crearDesdeSenal"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/bandeja/{senalId}/descartar": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["descartarSenal"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/postulaciones/{id}/aviso": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** El servicio con IA liga el aviso analizado y su calce */
+        patch: operations["vincularAviso"];
+        trace?: never;
+    };
+    "/api/v1/pasos": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Pendientes primero (por plazo) y después los cerrados, del más nuevo al más antiguo */
+        get: operations["listarPasos"];
+        put?: never;
+        /** Anota un paso pendiente o ya hecho */
+        post: operations["registrarPaso"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/pasos/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch: operations["editarPaso"];
+        trace?: never;
+    };
+    "/api/v1/pasos/{id}/resolver": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Hecho, descartado o reabrir (pendiente) */
+        post: operations["resolverPaso"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/perfil": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Tus reglas de búsqueda de empleo, datos e historial */
+        get: operations["verPerfilEmpleo"];
+        /** Cambia reglas (de a una o todas) o tus datos, con motivo */
+        put: operations["cambiarPerfilEmpleo"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/eventos/stream": {
         parameters: {
             query?: never;
@@ -288,6 +491,627 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/red": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Contactos con lo que está pendiente primero */
+        get: operations["listarRed"];
+        put?: never;
+        /** Crea el contacto o actualiza el del mismo perfil */
+        post: operations["registrarContactoRed"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/red/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["verContactoRed"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Datos, notas, seguimiento y postulaciones ligadas */
+        patch: operations["editarContactoRed"];
+        trace?: never;
+    };
+    "/api/v1/red/{id}/interacciones": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Solicitud, mensaje o nota (no se repite) */
+        post: operations["registrarInteraccionRed"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/csv/importar": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Importa postulaciones o contactos; idempotente; informa cada fila sin cortar */
+        post: operations["importarCsv"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/csv/exportar/{tipo}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Todas las postulaciones o contactos, en el formato de importar */
+        get: operations["exportarCsv"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/csv/plantillas/{tipo}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Encabezado y dos filas de ejemplo inventadas */
+        get: operations["plantillaCsv"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/arriendos/propiedades/{id}/fotos": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** De la portada a la última */
+        get: operations["listarFotos"];
+        put?: never;
+        /** Agrega por URL (Brecha la descarga) o ruta de este equipo; cada una por separado */
+        post: operations["agregarFotos"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/arriendos/propiedades/{id}/fotos/archivo": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Sube un archivo jpg, png o webp (hasta 10 MB) en el cuerpo, tal cual */
+        post: operations["subirFoto"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/arriendos/propiedades/{id}/fotos/{fotoId}/portada": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** La pasa al frente; las demás quedan en su orden */
+        post: operations["elegirPortada"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/arriendos/propiedades/{id}/fotos/{fotoId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Borra la foto y su archivo; devuelve las que quedan */
+        delete: operations["quitarFoto"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/arriendos/fotos/{fotoId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** La imagen guardada */
+        get: operations["verFoto"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/arriendos/propiedades": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Propiedades con su calce; lo que te toca responder primero */
+        get: operations["listarPropiedades"];
+        put?: never;
+        /** Crea una propiedad (o une la publicación a otra con unirA). La misma URL devuelve YA_EXISTE */
+        post: operations["crearPropiedad"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/arriendos/propiedades/duplicados": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Antes de crear: ¿ya la sigues? */
+        get: operations["buscarDuplicadosPropiedad"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/arriendos/propiedades/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["verPropiedad"];
+        put?: never;
+        post?: never;
+        delete: operations["borrarPropiedad"];
+        options?: never;
+        head?: never;
+        /** Cambia solo lo que mandas; null borra un dato */
+        patch: operations["editarPropiedad"];
+        trace?: never;
+    };
+    "/api/v1/arriendos/propiedades/{id}/estado": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["cambiarEstadoPropiedad"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/arriendos/propiedades/{id}/publicaciones": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["agregarPublicacion"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/arriendos/propiedades/{id}/unir": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Suma un duplicado a esta propiedad y lo borra */
+        post: operations["unirPropiedades"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/arriendos/propiedades/{id}/contactos": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Agrega o completa un contacto */
+        post: operations["registrarContactoPropiedad"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/arriendos/propiedades/{id}/contactos/{contactoId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: operations["quitarContactoPropiedad"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/arriendos/propiedades/{id}/interacciones": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Mensaje, llamada o nota con un contacto */
+        post: operations["registrarInteraccionArriendo"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/arriendos/propiedades/{id}/visitas": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["agendarVisita"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/arriendos/propiedades/{id}/visitas/{visitaId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch: operations["cambiarVisita"];
+        trace?: never;
+    };
+    "/api/v1/arriendos/propiedades/{id}/notas": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["agregarNotaPropiedad"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/arriendos/propiedades/{id}/discrepancias/{discrepanciaId}/resolver": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["resolverDiscrepanciaPropiedad"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/arriendos/propiedades/{id}/senales/{senalId}/aplicar": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["aplicarSenalPropiedad"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/arriendos/propiedades/{id}/ubicacion": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Mueve el pin a mano; queda fijo */
+        put: operations["fijarUbicacionPropiedad"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/arriendos/senales": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Evidencia de un arriendo: va a la propiedad (por id o URL) o a la Bandeja de Arriendos */
+        post: operations["registrarSenalArriendo"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/arriendos/bandeja": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["listarBandejaArriendos"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/arriendos/bandeja/{senalId}/asociar": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["asociarSenalArriendo"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/arriendos/bandeja/{senalId}/descartar": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["descartarSenalArriendo"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/arriendos/canales": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["listarCanales"];
+        put?: never;
+        /** Crea un canal o actualiza el que tiene ese id */
+        post: operations["registrarCanal"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/arriendos/canales/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch: operations["editarCanal"];
+        trace?: never;
+    };
+    "/api/v1/arriendos/busqueda": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Tus reglas duras y blandas y su historial */
+        get: operations["verBusquedaArriendo"];
+        /** Cambia reglas o tus datos, con motivo */
+        put: operations["cambiarBusquedaArriendo"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/arriendos/uf": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Valor de la UF para comparar precios en UF */
+        put: operations["fijarUf"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/arriendos/geocodificar": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Prende o apaga la ubicación de direcciones con Nominatim (OpenStreetMap) */
+        put: operations["fijarGeocodificar"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/arriendos/mapa/ubicar": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Ubica las propiedades sin punto, de a una por segundo */
+        post: operations["ubicarPendientes"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/arriendos/mapa": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Propiedades abiertas con y sin ubicación */
+        get: operations["mapaArriendos"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -306,6 +1130,10 @@ export interface components {
             /** Format: date-time */
             expiraEn: string;
         };
+        VerificacionDto: {
+            /** @enum {string} */
+            tipo: "sesion" | "mcp" | "servicio";
+        };
         /** @enum {string} */
         Plataforma: "linkedin" | "trabajando" | "getonboard" | "computrabajo" | "chiletrabajos" | "indeed" | "sitio_empresa" | "otra";
         /** @enum {string} */
@@ -314,6 +1142,36 @@ export interface components {
         EstadoPostulacion: "sin_decidir" | "por_postular" | "postulado" | "en_proceso" | "entrevista" | "oferta" | "aceptada" | "rechazado" | "descartado";
         /** @enum {string} */
         Prioridad: "alta" | "media" | "baja";
+        PasoCortoDto: {
+            id: string;
+            descripcion: string;
+            /** Format: date */
+            plazo: string | null;
+            /** @description Días hasta el plazo (negativo si venció) */
+            diasAlPlazo: number | null;
+        };
+        ChoqueConPerfilDto: {
+            reglaId: string;
+            dura: boolean;
+            /** @description Solo blandas */
+            prioridad?: number;
+            /** @description El texto de la regla */
+            regla: string;
+            /** @description Por qué choca */
+            texto: string;
+        };
+        SinDatoDePerfilDto: {
+            reglaId: string;
+            regla: string;
+            texto: string;
+        };
+        RevisionDePerfilDto: {
+            /** @description Falso si choca con una regla dura; nunca cambia el estado */
+            cumpleDuras: boolean;
+            /** @description Duras primero */
+            choques: components["schemas"]["ChoqueConPerfilDto"][];
+            sinDato: components["schemas"]["SinDatoDePerfilDto"][];
+        };
         ResumenPostulacionDto: {
             id: string;
             titulo: string;
@@ -328,12 +1186,19 @@ export interface components {
             diasAlCierre: number | null;
             estado: components["schemas"]["EstadoPostulacion"];
             prioridad: components["schemas"]["Prioridad"];
+            /** @description La que fijó la persona; null si la calcula el núcleo */
+            prioridadFijada: components["schemas"]["Prioridad"] | null;
+            etiquetas: string[];
             /** Format: date */
             fechaPostulacion: string | null;
             /** @description Señales sin aplicar */
             senalesNuevas: number;
             discrepanciasAbiertas: number;
+            /** @description Lo que te piden hacer, el de plazo más cercano primero */
+            pasosPendientes: components["schemas"]["PasoCortoDto"][];
             transicionesPosibles: components["schemas"]["EstadoPostulacion"][];
+            /** @description Choques con tu perfil de búsqueda; null si el perfil no tiene reglas con chequeo */
+            perfil: components["schemas"]["RevisionDePerfilDto"] | null;
             version: number;
             /** Format: date-time */
             actualizadaEn: string;
@@ -362,12 +1227,16 @@ export interface components {
         TableroDto: {
             columnas: components["schemas"]["ColumnaTableroDto"][];
         };
+        EtiquetaEnUsoDto: {
+            etiqueta: string;
+            total: number;
+        };
         ElementoResumenDto: {
             postulacionId: string;
             empresa: string;
             titulo: string;
             /** @enum {string} */
-            tipo: "cambio" | "senal" | "discrepancia" | "nota";
+            tipo: "cambio" | "senal" | "discrepancia" | "nota" | "paso";
             descripcion: string;
             prioridad: components["schemas"]["Prioridad"];
             /** Format: date-time */
@@ -383,6 +1252,12 @@ export interface components {
             ubicacion?: string;
             /** Format: date */
             cierre?: string | null;
+            /** @description Herramientas que pide el aviso */
+            stack?: string[];
+            /** @description Requisitos en texto libre */
+            requisitos?: string;
+            /** @description Sueldo tal como lo publica el aviso */
+            sueldoPublicado?: string;
         };
         /** @enum {string} */
         Moneda: "CLP" | "USD";
@@ -413,6 +1288,13 @@ export interface components {
             /** Format: date */
             fechaPostulacion?: string;
             canal?: components["schemas"]["CanalEntradaDto"];
+            /** @description Se guardan en minúsculas y sin tildes */
+            etiquetas?: string[];
+            /**
+             * @description Sin ella, la calcula el núcleo (R12)
+             * @enum {string}
+             */
+            prioridad?: "alta" | "media" | "baja";
         };
         AvisoDto: {
             titulo: string;
@@ -425,6 +1307,9 @@ export interface components {
             cierre?: string;
             avisoId?: string;
             calce?: number;
+            stack?: string[];
+            requisitos?: string;
+            sueldoPublicado?: string;
         };
         CanalDto: {
             tipo: components["schemas"]["TipoDeCanal"];
@@ -484,6 +1369,10 @@ export interface components {
             /** Format: date-time */
             recibidaEn: string;
             referenciaExterna?: string;
+            /** @description Quién la mandó (correos) */
+            remitente?: string;
+            /** @description Asunto del correo */
+            asunto?: string;
             aplicada: boolean;
         };
         /** @enum {string} */
@@ -505,6 +1394,63 @@ export interface components {
             /** Format: date-time */
             resueltaEn: string | null;
         };
+        PostulacionDelPasoDto: {
+            id: string;
+            empresa: string;
+            titulo: string;
+            estado: components["schemas"]["EstadoPostulacion"];
+        };
+        /** @enum {string} */
+        EstadoDePaso: "pendiente" | "hecho" | "descartado";
+        /** @enum {string} */
+        FuenteDePaso: "correo" | "linkedin" | "portal" | "persona";
+        /** @enum {string} */
+        RegistradorDePaso: "vigia" | "ia" | "persona";
+        /** @enum {string} */
+        CerradorDePaso: "persona" | "ia" | "correo" | "sistema";
+        CierreDePasoDto: {
+            por: components["schemas"]["CerradorDePaso"];
+            /** Format: date-time */
+            en: string;
+            nota: string | null;
+            /** @description El correo que lo dio por hecho */
+            referenciaExterna: string | null;
+        };
+        SugerenciaDeCierreDto: {
+            referenciaExterna: string | null;
+            confianza: number;
+            /** Format: date-time */
+            en: string;
+        };
+        PasoDto: {
+            id: string;
+            descripcion: string;
+            /** Format: date */
+            plazo: string | null;
+            /** @description Días hasta el plazo (negativo si venció) */
+            diasAlPlazo: number | null;
+            postulacionIds: string[];
+            postulaciones: components["schemas"]["PostulacionDelPasoDto"][];
+            detalle: string | null;
+            enlace: string | null;
+            estado: components["schemas"]["EstadoDePaso"];
+            fuente: components["schemas"]["FuenteDePaso"];
+            registradoPor: components["schemas"]["RegistradorDePaso"];
+            contactoRedId: string | null;
+            referenciaExterna: string | null;
+            cierre: components["schemas"]["CierreDePasoDto"] | null;
+            sugerenciaCierre: components["schemas"]["SugerenciaDeCierreDto"] | null;
+            /**
+             * Format: date-time
+             * @description Cuándo te lo pidieron
+             */
+            pedidoEn: string;
+            /** Format: date-time */
+            creadoEn: string;
+            /** Format: date-time */
+            actualizadoEn: string;
+            version: number;
+        };
         DetallePostulacionDto: {
             id: string;
             titulo: string;
@@ -519,12 +1465,19 @@ export interface components {
             diasAlCierre: number | null;
             estado: components["schemas"]["EstadoPostulacion"];
             prioridad: components["schemas"]["Prioridad"];
+            /** @description La que fijó la persona; null si la calcula el núcleo */
+            prioridadFijada: components["schemas"]["Prioridad"] | null;
+            etiquetas: string[];
             /** Format: date */
             fechaPostulacion: string | null;
             /** @description Señales sin aplicar */
             senalesNuevas: number;
             discrepanciasAbiertas: number;
+            /** @description Lo que te piden hacer, el de plazo más cercano primero */
+            pasosPendientes: components["schemas"]["PasoCortoDto"][];
             transicionesPosibles: components["schemas"]["EstadoPostulacion"][];
+            /** @description Choques con tu perfil de búsqueda; null si el perfil no tiene reglas con chequeo */
+            perfil: components["schemas"]["RevisionDePerfilDto"] | null;
             version: number;
             /** Format: date-time */
             actualizadaEn: string;
@@ -540,6 +1493,8 @@ export interface components {
             /** @description De la más nueva a la más antigua */
             senales: components["schemas"]["SenalDto"][];
             discrepancias: components["schemas"]["DiscrepanciaDto"][];
+            /** @description El proceso: todos los pasos, en el orden en que te los pidieron */
+            pasos: components["schemas"]["PasoDto"][];
             /** Format: date-time */
             creadaEn: string;
         };
@@ -577,6 +1532,19 @@ export interface components {
              * @description Cierre del aviso; null lo borra
              */
             cierre?: string | null;
+            /** @description Se guardan en minúsculas y sin tildes */
+            etiquetas?: string[];
+            /**
+             * @description Fija la prioridad mientras la postulación esté abierta; null vuelve a la calculada
+             * @enum {string|null}
+             */
+            prioridad?: "alta" | "media" | "baja" | null;
+            /** @description Reemplaza el stack del aviso */
+            stack?: string[];
+            /** @description null lo borra */
+            requisitos?: string | null;
+            /** @description null lo borra */
+            sueldoPublicado?: string | null;
         };
         TransicionDto: {
             a: components["schemas"]["EstadoPostulacion"];
@@ -591,6 +1559,8 @@ export interface components {
             origen?: "tablero" | "formulario";
             /** @description Versión que tenías (bloqueo optimista) */
             version: number;
+            /** @description Al cerrarla, descartar sus pasos pendientes que solo tocan postulaciones cerradas (R17) */
+            descartarPasos?: boolean;
         };
         NotaDto: {
             texto: string;
@@ -639,6 +1609,285 @@ export interface components {
             canal?: components["schemas"]["CanalEntradaDto"];
             version?: number;
         };
+        PasoPedidoDto: {
+            descripcion: string;
+            detalle?: string;
+            /** Format: date */
+            plazo?: string;
+            enlace?: string;
+            /** @description Id de un paso pendiente que este correo solo recuerda (R19) */
+            mismoQue?: string;
+        };
+        PasoCumplidoDto: {
+            id: string;
+            confianza: number;
+        };
+        SenalRecibidaEntradaDto: {
+            /** @description Sin postulación, la señal va a la bandeja */
+            postulacionId?: string;
+            /** @description Varias postulaciones: una señal en cada una */
+            postulacionIds?: string[];
+            /** @description Sin postulación: las propuestas sin certeza */
+            candidatas?: string[];
+            /** @description Lo que el correo pide hacer */
+            paso?: components["schemas"]["PasoPedidoDto"];
+            /** @description Pasos pendientes que este correo da por hechos */
+            pasosCumplidos?: components["schemas"]["PasoCumplidoDto"][];
+            fuente: components["schemas"]["FuenteDeSenal"];
+            plataforma?: components["schemas"]["Plataforma"];
+            resumen: string;
+            estadoSugerido?: components["schemas"]["EstadoPostulacion"];
+            confianza: number;
+            /** Format: date-time */
+            recibidaEn?: string;
+            /** @description Message-ID u otra id de la fuente: no se duplica */
+            referenciaExterna?: string;
+            remitente?: string;
+            asunto?: string;
+            empresaDetectada?: string;
+            cargoDetectado?: string;
+        };
+        SenalEnPostulacionDto: {
+            postulacionId: string;
+            senalId: string | null;
+            aplicada: boolean;
+            /** @description Ya estaba registrada en esa postulación */
+            repetida: boolean;
+        };
+        /** @enum {string} */
+        EstadoDePendiente: "pendiente" | "asociada" | "descartada";
+        SenalPendienteDto: {
+            id: string;
+            fuente: components["schemas"]["FuenteDeSenal"];
+            plataforma: components["schemas"]["Plataforma"];
+            resumen: string;
+            estadoSugerido?: components["schemas"]["EstadoPostulacion"];
+            confianza: number;
+            /** Format: date-time */
+            recibidaEn: string;
+            referenciaExterna?: string;
+            remitente?: string;
+            asunto?: string;
+            empresaDetectada?: string;
+            cargoDetectado?: string;
+            candidatas: string[];
+            pasoPropuesto?: components["schemas"]["PasoPedidoDto"];
+            estado: components["schemas"]["EstadoDePendiente"];
+            postulacionId?: string;
+            /** Format: date-time */
+            resueltaEn: string | null;
+            /** Format: date-time */
+            creadaEn: string;
+        };
+        ResultadoRecepcionDto: {
+            /** @enum {string} */
+            destino: "postulacion" | "bandeja";
+            /** @description La primera señal nueva */
+            senal?: components["schemas"]["SenalDto"];
+            postulacion?: components["schemas"]["DetallePostulacionDto"];
+            senales?: components["schemas"]["SenalEnPostulacionDto"][];
+            paso?: components["schemas"]["PasoDto"] | null;
+            /** @enum {string|null} */
+            accion?: "creado" | "recordado" | "ya_estaba" | null;
+            /** @description Pasos que este correo cerró */
+            cerrados?: string[];
+            /** @description Pasos que quedaron con la sugerencia de cierre */
+            sugeridos?: string[];
+            pendiente?: components["schemas"]["SenalPendienteDto"];
+        };
+        AsociarDto: {
+            postulacionId?: string;
+            /** @description A varias postulaciones a la vez */
+            postulacionIds?: string[];
+        };
+        CrearDesdeSenalDto: {
+            aviso: components["schemas"]["AvisoEntradaDto"];
+        };
+        VincularAvisoDto: {
+            avisoId?: string;
+            calce?: number;
+        };
+        RegistrarPasoDto: {
+            /** @description Una o más postulaciones, abiertas o cerradas */
+            postulacionIds: string[];
+            /** @description Texto libre corto: lo que se ve en la tarjeta */
+            descripcion: string;
+            /** @description Qué piden exactamente y cómo */
+            detalle?: string;
+            /** Format: date */
+            plazo?: string;
+            enlace?: string;
+            /**
+             * @description hecho: para anotar algo que ya hiciste
+             * @enum {string}
+             */
+            estado?: "pendiente" | "hecho";
+            /** @description Por defecto persona */
+            fuente?: components["schemas"]["FuenteDePaso"];
+            /** @description La persona de tu red que lo pidió */
+            contactoRedId?: string;
+            /** @description Correo o mensaje que lo pidió: no se duplica */
+            referenciaExterna?: string;
+            /**
+             * Format: date-time
+             * @description Cuándo te lo pidieron
+             */
+            pedidoEn?: string;
+            nota?: string;
+        };
+        PasoRegistradoDto: {
+            id: string;
+            descripcion: string;
+            /** Format: date */
+            plazo: string | null;
+            /** @description Días hasta el plazo (negativo si venció) */
+            diasAlPlazo: number | null;
+            postulacionIds: string[];
+            postulaciones: components["schemas"]["PostulacionDelPasoDto"][];
+            detalle: string | null;
+            enlace: string | null;
+            estado: components["schemas"]["EstadoDePaso"];
+            fuente: components["schemas"]["FuenteDePaso"];
+            registradoPor: components["schemas"]["RegistradorDePaso"];
+            contactoRedId: string | null;
+            referenciaExterna: string | null;
+            cierre: components["schemas"]["CierreDePasoDto"] | null;
+            sugerenciaCierre: components["schemas"]["SugerenciaDeCierreDto"] | null;
+            /**
+             * Format: date-time
+             * @description Cuándo te lo pidieron
+             */
+            pedidoEn: string;
+            /** Format: date-time */
+            creadoEn: string;
+            /** Format: date-time */
+            actualizadoEn: string;
+            version: number;
+            /** @description Ese correo o mensaje ya había creado este paso */
+            yaEstaba: boolean;
+        };
+        EditarPasoDto: {
+            version: number;
+            descripcion?: string;
+            /** @description null lo borra */
+            detalle?: string | null;
+            /** Format: date */
+            plazo?: string | null;
+            enlace?: string | null;
+            postulacionIds?: string[];
+        };
+        ResolverPasoDto: {
+            /** @description pendiente lo reabre */
+            estado: components["schemas"]["EstadoDePaso"];
+            nota?: string;
+            /** @description Versión que tenías; si cambió, CONFLICTO */
+            version?: number;
+        };
+        /** @enum {string} */
+        CriterioDeEmpleo: "titulo" | "modalidad_por_region" | "sueldo_publicado";
+        ReglaDePerfilDto: {
+            id: string;
+            /** @description La regla en tus palabras */
+            texto: string;
+            criterio?: components["schemas"]["CriterioDeEmpleo"];
+            /** @description Según el criterio. titulo: { incluir: string[], excluir: string[] }. modalidad_por_region: { valparaiso, santiago, otra: ("remoto" | "hibrido" | "presencial")[], noIndicaEsPresencialEn: Plataforma[] }. sueldo_publicado: { minimo?: number } (sin mínimo, tu renta pretendida) */
+            valor?: {
+                [key: string]: unknown;
+            };
+            dura: boolean;
+            prioridad?: number;
+            etiquetas: string[];
+            /** @description «Dura · Santiago solo híbrido o remoto #ubicacion» */
+            descripcion: string;
+            /** @description El código la revisa en cada postulación */
+            porCodigo: boolean;
+        };
+        DatosDePerfilSalidaDto: {
+            rentaPretendida?: number;
+            /** Format: date */
+            disponibleDesde?: string;
+            notas?: string;
+        };
+        CambioDePerfilDto: {
+            /** Format: date-time */
+            ocurridoEn: string;
+            origen: string;
+            motivo: string;
+            resumen: string[];
+        };
+        EtiquetaDePerfilDto: {
+            etiqueta: string;
+            total: number;
+        };
+        PerfilEmpleoDto: {
+            /** @description Duras primero; después las blandas por prioridad */
+            reglas: components["schemas"]["ReglaDePerfilDto"][];
+            datos: components["schemas"]["DatosDePerfilSalidaDto"];
+            /** @description Del más nuevo al más antiguo (30) */
+            historial: components["schemas"]["CambioDePerfilDto"][];
+            criterios: components["schemas"]["CriterioDeEmpleo"][];
+            etiquetas: components["schemas"]["EtiquetaDePerfilDto"][];
+            /** Format: date-time */
+            actualizadaEn: string | null;
+        };
+        ReglaDePerfilEntradaDto: {
+            /** @description Solo al reemplazar la lista: conserva la regla con ese id */
+            id?: string;
+            /** @description La regla en tus palabras; con criterio y sin texto, se describe sola */
+            texto?: string;
+            /** @description Lo que el código revisa en cada postulación; sin él, la regla la aplica tu IA */
+            criterio?: components["schemas"]["CriterioDeEmpleo"];
+            /** @description Según el criterio. titulo: { incluir: string[], excluir: string[] }. modalidad_por_region: { valparaiso, santiago, otra: ("remoto" | "hibrido" | "presencial")[], noIndicaEsPresencialEn: Plataforma[] }. sueldo_publicado: { minimo?: number } (sin mínimo, tu renta pretendida) */
+            valor?: {
+                [key: string]: unknown;
+            };
+            /** @description true = dura (por defecto) */
+            dura?: boolean;
+            /** @description Solo blandas: 1 es la más importante */
+            prioridad?: number;
+            /** @description Etiquetas libres (minúsculas y sin tildes) */
+            etiquetas?: string[];
+        };
+        CambioDeReglaDePerfilDto: {
+            /** @description La regla que cambia; solo cambia lo que mandas */
+            id: string;
+            /** @description La regla en tus palabras; con criterio y sin texto, se describe sola */
+            texto?: string;
+            /** @description Lo que el código revisa en cada postulación; sin él, la regla la aplica tu IA */
+            criterio?: components["schemas"]["CriterioDeEmpleo"];
+            /** @description Según el criterio. titulo: { incluir: string[], excluir: string[] }. modalidad_por_region: { valparaiso, santiago, otra: ("remoto" | "hibrido" | "presencial")[], noIndicaEsPresencialEn: Plataforma[] }. sueldo_publicado: { minimo?: number } (sin mínimo, tu renta pretendida) */
+            valor?: {
+                [key: string]: unknown;
+            };
+            /** @description true = dura (por defecto) */
+            dura?: boolean;
+            /** @description Solo blandas: 1 es la más importante */
+            prioridad?: number;
+            /** @description Etiquetas libres (minúsculas y sin tildes) */
+            etiquetas?: string[];
+        };
+        DatosDePerfilDto: {
+            /** @description Pesos líquidos */
+            rentaPretendida?: number | null;
+            /** Format: date */
+            disponibleDesde?: string | null;
+            notas?: string | null;
+        };
+        CambiarPerfilDto: {
+            /** @description Reemplaza todas las reglas */
+            reglas?: components["schemas"]["ReglaDePerfilEntradaDto"][];
+            /** @description Reglas nuevas */
+            agregar?: components["schemas"]["ReglaDePerfilEntradaDto"][];
+            /** @description Cambios a reglas existentes, por id */
+            cambiar?: components["schemas"]["CambioDeReglaDePerfilDto"][];
+            /** @description Id de las reglas que se quitan */
+            quitar?: string[];
+            /** @description Id de las blandas en el orden nuevo (P1 primero) */
+            ordenar?: string[];
+            datos?: components["schemas"]["DatosDePerfilDto"];
+            /** @description Por qué cambia (queda en el historial) */
+            motivo: string;
+        };
         EventoDto: {
             id: string;
             /** @example postulacion.estado_cambiado */
@@ -652,6 +1901,752 @@ export interface components {
             datos: {
                 [key: string]: unknown;
             };
+        };
+        /** @enum {string} */
+        EstadoDeConexion: "ninguna" | "solicitud_enviada" | "solicitud_recibida" | "conectados" | "rechazada" | "retirada";
+        /**
+         * @description responder: te toca a ti; esperando: le toca a la otra persona
+         * @enum {string}
+         */
+        PendienteDeRed: "responder" | "esperando";
+        /** @enum {string} */
+        TipoDeInteraccion: "solicitud_enviada" | "solicitud_recibida" | "solicitud_aceptada" | "solicitud_rechazada" | "solicitud_retirada" | "mensaje_enviado" | "mensaje_recibido" | "conversacion_cerrada" | "nota";
+        /** @enum {string} */
+        OrigenDeRed: "consola" | "ia" | "correo";
+        InteraccionDto: {
+            id: string;
+            tipo: components["schemas"]["TipoDeInteraccion"];
+            resumen: string;
+            /** Format: date-time */
+            ocurridaEn: string;
+            origen: components["schemas"]["OrigenDeRed"];
+        };
+        ContactoRedDto: {
+            id: string;
+            nombre: string;
+            perfilUrl: string | null;
+            titular: string | null;
+            empresa: string | null;
+            conexion: components["schemas"]["EstadoDeConexion"];
+            /** @description responder: te toca a ti; esperando: le toca a la otra persona */
+            pendiente: components["schemas"]["PendienteDeRed"] | null;
+            ultimaInteraccion: components["schemas"]["InteraccionDto"] | null;
+            diasDesdeUltima: number | null;
+            seguimiento: string | null;
+            seguimientoVencido: boolean;
+            postulacionIds: string[];
+            notas: string | null;
+            /** Format: date-time */
+            actualizadoEn: string;
+        };
+        ResumenDeRedDto: {
+            total: number;
+            conectados: number;
+            porResponder: number;
+            esperando: number;
+            solicitudesEnviadas: number;
+            seguimientosVencidos: number;
+        };
+        ListaDeRedDto: {
+            items: components["schemas"]["ContactoRedDto"][];
+            resumen: components["schemas"]["ResumenDeRedDto"];
+        };
+        ContactoRedEntradaDto: {
+            nombre: string;
+            /** @description linkedin.com/in/…; sin perfil, el contacto se reconoce por nombre y empresa */
+            perfilUrl?: string;
+            titular?: string;
+            empresa?: string;
+            /** @description Liga el contacto a esta postulación */
+            postulacionId?: string;
+        };
+        ContactoRedRegistradoDto: {
+            id: string;
+            nombre: string;
+            perfilUrl: string | null;
+            titular: string | null;
+            empresa: string | null;
+            conexion: components["schemas"]["EstadoDeConexion"];
+            /** @description responder: te toca a ti; esperando: le toca a la otra persona */
+            pendiente: components["schemas"]["PendienteDeRed"] | null;
+            ultimaInteraccion: components["schemas"]["InteraccionDto"] | null;
+            diasDesdeUltima: number | null;
+            seguimiento: string | null;
+            seguimientoVencido: boolean;
+            postulacionIds: string[];
+            notas: string | null;
+            /** Format: date-time */
+            actualizadoEn: string;
+            /** @description De la más nueva a la más antigua */
+            interacciones: components["schemas"]["InteraccionDto"][];
+            nuevo?: boolean;
+            /** @description false si ya estaba igual */
+            cambiado?: boolean;
+            agregada?: boolean;
+        };
+        ContactoRedDetalleDto: {
+            id: string;
+            nombre: string;
+            perfilUrl: string | null;
+            titular: string | null;
+            empresa: string | null;
+            conexion: components["schemas"]["EstadoDeConexion"];
+            /** @description responder: te toca a ti; esperando: le toca a la otra persona */
+            pendiente: components["schemas"]["PendienteDeRed"] | null;
+            ultimaInteraccion: components["schemas"]["InteraccionDto"] | null;
+            diasDesdeUltima: number | null;
+            seguimiento: string | null;
+            seguimientoVencido: boolean;
+            postulacionIds: string[];
+            notas: string | null;
+            /** Format: date-time */
+            actualizadoEn: string;
+            /** @description De la más nueva a la más antigua */
+            interacciones: components["schemas"]["InteraccionDto"][];
+        };
+        EditarContactoRedDto: {
+            nombre?: string;
+            /** @description Completa el perfil de LinkedIn de un contacto que no lo tenía */
+            perfilUrl?: string;
+            titular?: string | null;
+            empresa?: string | null;
+            notas?: string | null;
+            /** @description AAAA-MM-DD, o null para quitarlo */
+            seguimiento?: string | null;
+            /** @description Id de una postulación para ligar */
+            vincular?: string;
+            /** @description Id de una postulación para desligar */
+            desvincular?: string;
+        };
+        InteraccionEntradaDto: {
+            tipo: components["schemas"]["TipoDeInteraccion"];
+            resumen: string;
+            /** Format: date-time */
+            ocurridaEn?: string;
+            referenciaExterna?: string;
+        };
+        ImportarCsvDto: {
+            /** @description El contenido del archivo CSV (UTF-8, coma, con encabezado) */
+            csv: string;
+            /**
+             * @description Si no viene, se reconoce por el encabezado
+             * @enum {string}
+             */
+            tipo?: "postulaciones" | "contactos";
+        };
+        /** @enum {string} */
+        TipoCsv: "postulaciones" | "contactos";
+        /** @enum {string} */
+        ResultadoDeFila: "creada" | "ya_estaba" | "actualizada" | "error";
+        FilaImportadaDto: {
+            /** @description Línea del archivo (el encabezado es la 1) */
+            fila: number;
+            resultado: components["schemas"]["ResultadoDeFila"];
+            /** @description URL del aviso o nombre del contacto */
+            clave: string;
+            id?: string;
+            advertencias: string[];
+            codigo?: string;
+            /** @description Columna del CSV */
+            campo?: string;
+            mensaje?: string;
+        };
+        ResultadoCsvDto: {
+            tipo: components["schemas"]["TipoCsv"];
+            creadas: number;
+            yaEstaban: number;
+            actualizadas: number;
+            errores: number;
+            conAdvertencias: number;
+            /** @description Del archivo entero */
+            advertencias: string[];
+            filas: components["schemas"]["FilaImportadaDto"][];
+        };
+        FotoDto: {
+            id: string;
+            /** @description 0 = portada */
+            orden: number;
+            portada: boolean;
+            /** @enum {string} */
+            tipo: "image/jpeg" | "image/png" | "image/webp";
+            bytes: number;
+            /** @enum {string} */
+            origen: "url" | "archivo";
+            urlOrigen: string | null;
+            nombreOrigen: string | null;
+            /** Format: date-time */
+            creadaEn: string;
+        };
+        AgregarFotosDto: {
+            /** @description URL http(s) o rutas de este equipo (/Users/…, C:\Users\…, ~/…, file://…). Hasta 20 */
+            fuentes: string[];
+            /** @description Posición en fuentes (desde 0) de la que va de portada */
+            portada?: number;
+        };
+        ResultadoDeFotoDto: {
+            fuente: string;
+            /** @enum {string} */
+            estado: "agregada" | "ya_estaba" | "error";
+            foto?: components["schemas"]["FotoDto"];
+            codigo?: string;
+            mensaje?: string;
+        };
+        FotosAgregadasDto: {
+            resultados: components["schemas"]["ResultadoDeFotoDto"][];
+            /** @description Todas, de la portada a la última */
+            fotos: components["schemas"]["FotoDto"][];
+        };
+        FotoSubidaDto: {
+            foto: components["schemas"]["FotoDto"];
+            /** @description true si ya estaba (mismo contenido) */
+            yaEstaba: boolean;
+        };
+        /** @enum {string} */
+        EstadoPropiedad: "vista" | "contactada" | "visita_agendada" | "visitada" | "en_evaluacion" | "aprobada" | "arrendada" | "rechazada" | "descartada" | "no_disponible";
+        /** @enum {string} */
+        TipoDePropiedad: "departamento" | "casa" | "pieza" | "otro";
+        UbicacionDto: {
+            lat: number;
+            lon: number;
+            /** @enum {string} */
+            origen: "geocodificada" | "manual" | "comuna";
+        };
+        /** @enum {string} */
+        MonedaArriendo: "CLP" | "UF";
+        PrecioSalidaDto: {
+            monto: number;
+            moneda: components["schemas"]["MonedaArriendo"];
+        };
+        /** @enum {string} */
+        CriterioDeBusqueda: "presupuesto_total" | "gastos_comunes" | "comuna" | "tipo" | "dormitorios" | "banos" | "m2" | "mascota" | "estacionamiento" | "amoblado" | "renta_exigida" | "aval" | "disponible_desde";
+        BrechaDto: {
+            reglaId: string;
+            criterio: components["schemas"]["CriterioDeBusqueda"];
+            dura: boolean;
+            prioridad?: number;
+            texto: string;
+        };
+        SinDatoDto: {
+            reglaId: string;
+            criterio: components["schemas"]["CriterioDeBusqueda"];
+            texto: string;
+        };
+        CalceDto: {
+            /** @description 0 a 100 */
+            puntaje: number | null;
+            cumpleDuras: boolean;
+            brechas: components["schemas"]["BrechaDto"][];
+            sinDato: components["schemas"]["SinDatoDto"][];
+        };
+        PropiedadDto: {
+            id: string;
+            titulo: string;
+            tipo: components["schemas"]["TipoDePropiedad"];
+            estado: components["schemas"]["EstadoPropiedad"];
+            transicionesPosibles: components["schemas"]["EstadoPropiedad"][];
+            comuna: string | null;
+            direccion: string | null;
+            ubicacion: components["schemas"]["UbicacionDto"] | null;
+            precio: components["schemas"]["PrecioSalidaDto"] | null;
+            precioPesos: number | null;
+            gastosComunes: number | null;
+            dormitorios: number | null;
+            banos: number | null;
+            m2: number | null;
+            calce: components["schemas"]["CalceDto"];
+            /** @enum {string|null} */
+            pendiente: "responder" | "esperando" | null;
+            canales: string[];
+            cantidadContactos: number;
+            /** Format: date-time */
+            proximaVisita: string | null;
+            discrepanciasAbiertas: number;
+            senalesSinAplicar: number;
+            motivoCierre: string | null;
+            /** @description Id de la foto de portada (la primera); null sin fotos */
+            portada: string | null;
+            cantidadFotos: number;
+            version: number;
+            /** Format: date-time */
+            actualizadaEn: string;
+        };
+        ResumenArriendosDto: {
+            total: number;
+            abiertas: number;
+            porEstado: {
+                [key: string]: number;
+            };
+            porResponder: number;
+            bandeja: number;
+            discrepancias: number;
+        };
+        ListaPropiedadesDto: {
+            items: components["schemas"]["PropiedadDto"][];
+            resumen: components["schemas"]["ResumenArriendosDto"];
+        };
+        PrecioDto: {
+            monto: number;
+            moneda: components["schemas"]["MonedaArriendo"];
+        };
+        RequisitosDto: {
+            /** @description Renta líquida mínima en veces el arriendo */
+            rentaVeces?: number | null;
+            aval?: boolean | null;
+            mesesGarantia?: number | null;
+            /** @description Comisión de corretaje en meses */
+            comisionMeses?: number | null;
+            documentos?: string[] | null;
+        };
+        PublicacionEntradaDto: {
+            /** @description Id del canal; sin él se reconoce por la URL */
+            canalId?: string;
+            url?: string;
+            precio?: components["schemas"]["PrecioDto"] | null;
+        };
+        /** @enum {string} */
+        RolDeContacto: "corredor" | "dueno" | "conserje" | "administracion" | "otro";
+        ContactoPropiedadEntradaDto: {
+            nombre: string;
+            rol?: components["schemas"]["RolDeContacto"];
+            telefono?: string;
+            correo?: string;
+            whatsapp?: string;
+            /** @description Formulario o link donde postulaste */
+            enlace?: string;
+            linkedin?: string;
+            /** @description Por dónde hablan (id de un canal) */
+            canalId?: string;
+        };
+        CrearPropiedadDto: {
+            tipo?: components["schemas"]["TipoDePropiedad"] | null;
+            titulo?: string | null;
+            direccion?: string | null;
+            comuna?: string | null;
+            precio?: components["schemas"]["PrecioDto"] | null;
+            gastosComunes?: number | null;
+            m2Utiles?: number | null;
+            m2Totales?: number | null;
+            dormitorios?: number | null;
+            banos?: number | null;
+            estacionamientos?: number | null;
+            bodega?: boolean | null;
+            amoblado?: boolean | null;
+            mascotas?: boolean | null;
+            /** @description AAAA-MM-DD */
+            disponibleDesde?: string | null;
+            descripcion?: string | null;
+            requisitos?: components["schemas"]["RequisitosDto"] | null;
+            estado?: components["schemas"]["EstadoPropiedad"];
+            publicacion?: components["schemas"]["PublicacionEntradaDto"];
+            contactos?: components["schemas"]["ContactoPropiedadEntradaDto"][];
+            nota?: string;
+            /** @description Une la publicación a esta propiedad en vez de crear otra */
+            unirA?: string;
+        };
+        RequisitosSalidaDto: {
+            rentaVeces?: number;
+            aval?: boolean;
+            mesesGarantia?: number;
+            comisionMeses?: number;
+            documentos?: string[];
+        };
+        PublicacionDto: {
+            id: string;
+            canalId: string;
+            url?: string;
+            precio?: components["schemas"]["PrecioSalidaDto"];
+            /** Format: date-time */
+            vistaEn: string;
+        };
+        /** @enum {string} */
+        TipoDeInteraccionArriendo: "mensaje_enviado" | "mensaje_recibido" | "llamada" | "nota";
+        InteraccionArriendoDto: {
+            id: string;
+            tipo: components["schemas"]["TipoDeInteraccionArriendo"];
+            resumen: string;
+            /** Format: date-time */
+            ocurridaEn: string;
+            canalId?: string;
+            origen: string;
+        };
+        ContactoPropiedadDto: {
+            id: string;
+            nombre: string;
+            rol: components["schemas"]["RolDeContacto"];
+            telefono?: string;
+            correo?: string;
+            whatsapp?: string;
+            enlace?: string;
+            linkedin?: string;
+            canalId?: string;
+            interacciones: components["schemas"]["InteraccionArriendoDto"][];
+        };
+        VisitaDto: {
+            id: string;
+            /** Format: date-time */
+            fecha: string;
+            /** @enum {string} */
+            estado: "agendada" | "hecha" | "cancelada";
+            notas?: string;
+        };
+        NotaArriendoDto: {
+            id: string;
+            texto: string;
+            /** Format: date-time */
+            creadaEn: string;
+        };
+        CambioPropiedadDto: {
+            de: string | null;
+            a: string;
+            motivo?: string;
+            origen: string;
+            /** Format: date-time */
+            ocurridoEn: string;
+        };
+        /** @enum {string} */
+        FuenteDeSenalArriendo: "correo" | "portal" | "mensajeria" | "manual" | "ia";
+        SenalDePropiedadDto: {
+            id: string;
+            fuente: components["schemas"]["FuenteDeSenalArriendo"];
+            canalId?: string;
+            resumen: string;
+            estadoSugerido?: components["schemas"]["EstadoPropiedad"];
+            confianza: number;
+            remitente?: string;
+            asunto?: string;
+            /** Format: date-time */
+            recibidaEn: string;
+            aplicada: boolean;
+        };
+        DiscrepanciaArriendoDto: {
+            id: string;
+            /** @enum {string} */
+            regla: "contra_senal" | "visita_sin_registro";
+            detalle: string;
+            /** @enum {string} */
+            estado: "abierta" | "resuelta";
+            /** Format: date-time */
+            detectadaEn: string;
+        };
+        PropiedadDetalleDto: {
+            id: string;
+            titulo: string;
+            tipo: components["schemas"]["TipoDePropiedad"];
+            estado: components["schemas"]["EstadoPropiedad"];
+            transicionesPosibles: components["schemas"]["EstadoPropiedad"][];
+            comuna: string | null;
+            direccion: string | null;
+            ubicacion: components["schemas"]["UbicacionDto"] | null;
+            precio: components["schemas"]["PrecioSalidaDto"] | null;
+            precioPesos: number | null;
+            gastosComunes: number | null;
+            dormitorios: number | null;
+            banos: number | null;
+            m2: number | null;
+            calce: components["schemas"]["CalceDto"];
+            /** @enum {string|null} */
+            pendiente: "responder" | "esperando" | null;
+            canales: string[];
+            cantidadContactos: number;
+            /** Format: date-time */
+            proximaVisita: string | null;
+            discrepanciasAbiertas: number;
+            senalesSinAplicar: number;
+            motivoCierre: string | null;
+            /** @description Id de la foto de portada (la primera); null sin fotos */
+            portada: string | null;
+            cantidadFotos: number;
+            version: number;
+            /** Format: date-time */
+            actualizadaEn: string;
+            m2Utiles?: number;
+            m2Totales?: number;
+            estacionamientos?: number;
+            bodega?: boolean;
+            amoblado?: boolean;
+            mascotas?: boolean;
+            disponibleDesde?: string;
+            descripcion?: string;
+            requisitos: components["schemas"]["RequisitosSalidaDto"];
+            publicaciones: components["schemas"]["PublicacionDto"][];
+            contactos: components["schemas"]["ContactoPropiedadDto"][];
+            visitas: components["schemas"]["VisitaDto"][];
+            documentosEnviados: string[];
+            /** @description De la más nueva a la más antigua */
+            notas: components["schemas"]["NotaArriendoDto"][];
+            /** @description Del más nuevo al más antiguo */
+            cambios: components["schemas"]["CambioPropiedadDto"][];
+            /** @description De la más nueva a la más antigua */
+            senales: components["schemas"]["SenalDePropiedadDto"][];
+            discrepancias: components["schemas"]["DiscrepanciaArriendoDto"][];
+            /** @description De la portada a la última */
+            fotos: components["schemas"]["FotoDto"][];
+            /** Format: date-time */
+            creadaEn: string;
+        };
+        PropiedadCreadaDto: {
+            propiedad: components["schemas"]["PropiedadDetalleDto"];
+            /** @description Mismas dirección o pin cercano: ¿es la misma? */
+            posiblesDuplicados: components["schemas"]["PropiedadDto"][];
+            /** @description true si se unió a una existente (unirA) */
+            unida: boolean;
+        };
+        DuplicadosDto: {
+            seguro: components["schemas"]["PropiedadDto"] | null;
+            candidatos: components["schemas"]["PropiedadDto"][];
+        };
+        EditarPropiedadDto: {
+            tipo?: components["schemas"]["TipoDePropiedad"] | null;
+            titulo?: string | null;
+            direccion?: string | null;
+            comuna?: string | null;
+            precio?: components["schemas"]["PrecioDto"] | null;
+            gastosComunes?: number | null;
+            m2Utiles?: number | null;
+            m2Totales?: number | null;
+            dormitorios?: number | null;
+            banos?: number | null;
+            estacionamientos?: number | null;
+            bodega?: boolean | null;
+            amoblado?: boolean | null;
+            mascotas?: boolean | null;
+            /** @description AAAA-MM-DD */
+            disponibleDesde?: string | null;
+            descripcion?: string | null;
+            requisitos?: components["schemas"]["RequisitosDto"] | null;
+            /** @description Versión leída (control optimista) */
+            version?: number;
+        };
+        CambiarEstadoPropiedadDto: {
+            a: components["schemas"]["EstadoPropiedad"];
+            motivo?: string;
+            /** @description Fecha y hora ISO de la visita (para visita_agendada) */
+            fechaVisita?: string;
+            documentos?: string[];
+            version?: number;
+        };
+        UnirDto: {
+            /** @description La propiedad duplicada que se suma a esta y desaparece */
+            origenId: string;
+        };
+        ContactoRegistradoDto: {
+            contactoId: string;
+            propiedad: components["schemas"]["PropiedadDetalleDto"];
+        };
+        InteraccionArriendoEntradaDto: {
+            contactoId?: string;
+            contacto?: components["schemas"]["ContactoPropiedadEntradaDto"];
+            tipo: components["schemas"]["TipoDeInteraccionArriendo"];
+            resumen: string;
+            /** Format: date-time */
+            ocurridaEn?: string;
+            canalId?: string;
+            referenciaExterna?: string;
+        };
+        InteraccionRegistradaDto: {
+            registrada: boolean;
+            propiedad: components["schemas"]["PropiedadDetalleDto"];
+        };
+        VisitaEntradaDto: {
+            /** Format: date-time */
+            fecha: string;
+            notas?: string;
+        };
+        EstadoVisitaDto: {
+            /** @enum {string} */
+            estado: "agendada" | "hecha" | "cancelada";
+        };
+        TextoDto: {
+            texto: string;
+        };
+        UbicacionEntradaDto: {
+            lat: number;
+            lon: number;
+        };
+        SenalArriendoEntradaDto: {
+            propiedadId?: string;
+            /** @description URL de la publicación: ubica la propiedad si ya la sigues */
+            url?: string;
+            fuente: components["schemas"]["FuenteDeSenalArriendo"];
+            resumen: string;
+            estadoSugerido?: components["schemas"]["EstadoPropiedad"];
+            confianza?: number;
+            canalId?: string;
+            referenciaExterna?: string;
+            remitente?: string;
+            asunto?: string;
+            /** Format: date-time */
+            recibidaEn?: string;
+            direccion?: string;
+            comuna?: string;
+            contacto?: components["schemas"]["ContactoPropiedadEntradaDto"];
+        };
+        ResultadoSenalArriendoDto: {
+            /** @enum {string} */
+            destino: "propiedad" | "bandeja" | "repetida";
+            propiedadId?: string;
+            aplicada?: boolean;
+            senalId?: string;
+        };
+        ContactoDetectadoDto: {
+            nombre?: string;
+            telefono?: string;
+            correo?: string;
+        };
+        SenalArriendoPendienteDto: {
+            id: string;
+            /** @enum {string} */
+            estado: "pendiente" | "asociada" | "descartada";
+            fuente: components["schemas"]["FuenteDeSenalArriendo"];
+            canalId?: string;
+            resumen: string;
+            estadoSugerido?: components["schemas"]["EstadoPropiedad"];
+            confianza: number;
+            remitente?: string;
+            asunto?: string;
+            /** Format: date-time */
+            recibidaEn: string;
+            urlDetectada?: string;
+            direccionDetectada?: string;
+            comunaDetectada?: string;
+            contactoDetectado?: components["schemas"]["ContactoDetectadoDto"];
+            /** Format: date-time */
+            creadaEn: string;
+        };
+        AsociarSenalArriendoDto: {
+            propiedadId: string;
+        };
+        /** @enum {string} */
+        TipoDeCanalArriendo: "portal" | "mensajeria" | "correo" | "telefono" | "corredora" | "otro";
+        CanalArriendoDto: {
+            id: string;
+            nombre: string;
+            tipo: components["schemas"]["TipoDeCanalArriendo"];
+            dominios: string[];
+            activo: boolean;
+            predefinido: boolean;
+        };
+        CanalArriendoEntradaDto: {
+            /** @description minúsculas y guiones; si falta sale del nombre */
+            id?: string;
+            nombre: string;
+            tipo?: components["schemas"]["TipoDeCanalArriendo"];
+            dominios?: string[];
+        };
+        EditarCanalArriendoDto: {
+            nombre?: string;
+            tipo?: components["schemas"]["TipoDeCanalArriendo"];
+            dominios?: string[];
+            activo?: boolean;
+        };
+        ReglaDto: {
+            id: string;
+            /** @description La regla en tus palabras */
+            texto: string;
+            criterio?: components["schemas"]["CriterioDeBusqueda"];
+            valor?: number | boolean | string | string[];
+            dura: boolean;
+            prioridad?: number;
+            etiquetas: string[];
+            /** @description «Dura · Arriendo más gastos comunes hasta $650.000 #plata» */
+            descripcion: string;
+        };
+        PersonaSalidaDto: {
+            rentaLiquida?: number;
+            tieneAval?: boolean;
+            tieneMascota?: boolean;
+        };
+        CambioDeBusquedaDto: {
+            /** Format: date-time */
+            ocurridoEn: string;
+            origen: string;
+            motivo: string;
+            resumen: string[];
+        };
+        UfDto: {
+            valor: number;
+            fecha: string;
+        };
+        BusquedaDto: {
+            reglas: components["schemas"]["ReglaDto"][];
+            persona: components["schemas"]["PersonaSalidaDto"];
+            /** @description Del más nuevo al más antiguo (30) */
+            historial: components["schemas"]["CambioDeBusquedaDto"][];
+            criteriosSugeridos: components["schemas"]["CriterioDeBusqueda"][];
+            /** @description Todos los criterios */
+            criterios: components["schemas"]["CriterioDeBusqueda"][];
+            uf: components["schemas"]["UfDto"] | null;
+            /** @description Ubicar direcciones con Nominatim (OpenStreetMap) */
+            geocodificar: boolean;
+            /** Format: date-time */
+            actualizadaEn: string | null;
+        };
+        ReglaEntradaDto: {
+            /** @description Solo al reemplazar la lista: conserva la regla con ese id */
+            id?: string;
+            /** @description La regla en tus palabras; con criterio y sin texto, se describe sola */
+            texto?: string;
+            /** @description Lo que el código revisa en el calce; sin él, la regla la aplica tu IA */
+            criterio?: components["schemas"]["CriterioDeBusqueda"];
+            /** @description Monto máximo, mínimo, lista de opciones, sí/no o fecha; nada en renta_exigida y aval */
+            valor?: number | boolean | string | string[];
+            /** @description true = dura (por defecto) */
+            dura?: boolean;
+            /** @description Solo blandas: 1 es la más importante */
+            prioridad?: number;
+            /** @description Etiquetas libres (minúsculas y sin tildes) */
+            etiquetas?: string[];
+        };
+        CambioDeReglaDto: {
+            /** @description La regla que cambia; solo cambia lo que mandas */
+            id: string;
+            /** @description La regla en tus palabras; con criterio y sin texto, se describe sola */
+            texto?: string;
+            /** @description Lo que el código revisa en el calce; sin él, la regla la aplica tu IA */
+            criterio?: components["schemas"]["CriterioDeBusqueda"];
+            /** @description Monto máximo, mínimo, lista de opciones, sí/no o fecha; nada en renta_exigida y aval */
+            valor?: number | boolean | string | string[];
+            /** @description true = dura (por defecto) */
+            dura?: boolean;
+            /** @description Solo blandas: 1 es la más importante */
+            prioridad?: number;
+            /** @description Etiquetas libres (minúsculas y sin tildes) */
+            etiquetas?: string[];
+        };
+        PersonaDto: {
+            rentaLiquida?: number | null;
+            tieneAval?: boolean | null;
+            tieneMascota?: boolean | null;
+        };
+        CambiarBusquedaDto: {
+            /** @description Reemplaza todas las reglas */
+            reglas?: components["schemas"]["ReglaEntradaDto"][];
+            /** @description Reglas nuevas */
+            agregar?: components["schemas"]["ReglaEntradaDto"][];
+            /** @description Cambios a reglas existentes, por id */
+            cambiar?: components["schemas"]["CambioDeReglaDto"][];
+            /** @description Id de las reglas que se quitan */
+            quitar?: string[];
+            /** @description Id de las blandas en el orden nuevo (P1 primero) */
+            ordenar?: string[];
+            persona?: components["schemas"]["PersonaDto"];
+            /** @description Por qué cambia (queda en el historial) */
+            motivo: string;
+        };
+        UfEntradaDto: {
+            valor: number;
+            /** @description AAAA-MM-DD */
+            fecha: string;
+        };
+        GeocodificarDto: {
+            activo: boolean;
+        };
+        UbicarPendientesDto: {
+            pendientes: number;
+        };
+        MapaArriendosDto: {
+            ubicadas: components["schemas"]["PropiedadDto"][];
+            sinUbicar: components["schemas"]["PropiedadDto"][];
         };
     };
     responses: never;
@@ -704,6 +2699,25 @@ export interface operations {
             };
         };
     };
+    verificarToken: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VerificacionDto"];
+                };
+            };
+        };
+    };
     listarPostulaciones: {
         parameters: {
             query?: {
@@ -713,8 +2727,12 @@ export interface operations {
                 plataforma?: string[];
                 /** @description alta, media o baja; varias separadas por coma */
                 prioridad?: string[];
+                /** @description Etiquetas que debe tener (todas); varias separadas por coma */
+                etiqueta?: string[];
                 /** @description Texto en título o empresa */
                 q?: string;
+                /** @description URL del aviso o solo su número (por ejemplo 3916453) */
+                url?: string;
                 limit?: number;
                 offset?: number;
             };
@@ -813,7 +2831,10 @@ export interface operations {
     };
     verTablero: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description Etiquetas que debe tener (todas); varias separadas por coma */
+                etiqueta?: string[];
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -826,6 +2847,43 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["TableroDto"];
+                };
+            };
+            /** @description VALIDACION */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorDto"];
+                };
+            };
+            /** @description NO_AUTENTICADO */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorDto"];
+                };
+            };
+        };
+    };
+    etiquetasEnUso: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EtiquetaEnUsoDto"][];
                 };
             };
             /** @description NO_AUTENTICADO */
@@ -1520,6 +3578,487 @@ export interface operations {
             };
         };
     };
+    recibirSenal: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SenalRecibidaEntradaDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResultadoRecepcionDto"];
+                };
+            };
+            /** @description VALIDACION */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorDto"];
+                };
+            };
+            /** @description NO_ENCONTRADO */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorDto"];
+                };
+            };
+            /** @description YA_EXISTE */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorDto"];
+                };
+            };
+        };
+    };
+    listarBandeja: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SenalPendienteDto"][];
+                };
+            };
+        };
+    };
+    asociarSenal: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                senalId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AsociarDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DetallePostulacionDto"];
+                };
+            };
+            /** @description VALIDACION */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorDto"];
+                };
+            };
+            /** @description NO_ENCONTRADO */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorDto"];
+                };
+            };
+            /** @description YA_EXISTE o CONFLICTO */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorDto"];
+                };
+            };
+        };
+    };
+    crearDesdeSenal: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                senalId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CrearDesdeSenalDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DetallePostulacionDto"];
+                };
+            };
+            /** @description VALIDACION */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorDto"];
+                };
+            };
+            /** @description NO_ENCONTRADO */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorDto"];
+                };
+            };
+            /** @description YA_EXISTE */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorDto"];
+                };
+            };
+        };
+    };
+    descartarSenal: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                senalId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SenalPendienteDto"];
+                };
+            };
+            /** @description VALIDACION */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorDto"];
+                };
+            };
+            /** @description NO_ENCONTRADO */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorDto"];
+                };
+            };
+        };
+    };
+    vincularAviso: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["VincularAvisoDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DetallePostulacionDto"];
+                };
+            };
+            /** @description VALIDACION */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorDto"];
+                };
+            };
+            /** @description NO_ENCONTRADO */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorDto"];
+                };
+            };
+        };
+    };
+    listarPasos: {
+        parameters: {
+            query?: {
+                estado?: components["schemas"]["EstadoDePaso"];
+                postulacionId?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PasoDto"][];
+                };
+            };
+        };
+    };
+    registrarPaso: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RegistrarPasoDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PasoRegistradoDto"];
+                };
+            };
+            /** @description VALIDACION */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorDto"];
+                };
+            };
+            /** @description NO_ENCONTRADO */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorDto"];
+                };
+            };
+        };
+    };
+    editarPaso: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EditarPasoDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PasoDto"];
+                };
+            };
+            /** @description VALIDACION */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorDto"];
+                };
+            };
+            /** @description NO_ENCONTRADO */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorDto"];
+                };
+            };
+            /** @description CONFLICTO */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorDto"];
+                };
+            };
+        };
+    };
+    resolverPaso: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ResolverPasoDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PasoDto"];
+                };
+            };
+            /** @description VALIDACION */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorDto"];
+                };
+            };
+            /** @description NO_ENCONTRADO */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorDto"];
+                };
+            };
+            /** @description CONFLICTO */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorDto"];
+                };
+            };
+        };
+    };
+    verPerfilEmpleo: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PerfilEmpleoDto"];
+                };
+            };
+        };
+    };
+    cambiarPerfilEmpleo: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CambiarPerfilDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PerfilEmpleoDto"];
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorDto"];
+                };
+            };
+            /** @description Una regla con ese id no existe */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorDto"];
+                };
+            };
+        };
+    };
     flujoDeEventos: {
         parameters: {
             query?: never;
@@ -1554,6 +4093,1129 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+        };
+    };
+    listarRed: {
+        parameters: {
+            query?: {
+                filtro?: "todos" | "responder" | "esperando" | "solicitudes" | "seguimiento";
+                texto?: string;
+                postulacionId?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ListaDeRedDto"];
+                };
+            };
+            /** @description VALIDACION */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorDto"];
+                };
+            };
+        };
+    };
+    registrarContactoRed: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ContactoRedEntradaDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContactoRedRegistradoDto"];
+                };
+            };
+            /** @description VALIDACION */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorDto"];
+                };
+            };
+            /** @description NO_ENCONTRADO */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorDto"];
+                };
+            };
+        };
+    };
+    verContactoRed: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContactoRedDetalleDto"];
+                };
+            };
+            /** @description NO_ENCONTRADO */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorDto"];
+                };
+            };
+        };
+    };
+    editarContactoRed: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EditarContactoRedDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContactoRedDetalleDto"];
+                };
+            };
+            /** @description VALIDACION */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorDto"];
+                };
+            };
+            /** @description NO_ENCONTRADO */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorDto"];
+                };
+            };
+        };
+    };
+    registrarInteraccionRed: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["InteraccionEntradaDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContactoRedRegistradoDto"];
+                };
+            };
+            /** @description VALIDACION */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorDto"];
+                };
+            };
+            /** @description NO_ENCONTRADO */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorDto"];
+                };
+            };
+        };
+    };
+    importarCsv: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ImportarCsvDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResultadoCsvDto"];
+                };
+            };
+            /** @description VALIDACION (archivo ilegible o encabezado sin las columnas obligatorias) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorDto"];
+                };
+            };
+        };
+    };
+    exportarCsv: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                tipo: "postulaciones" | "contactos";
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Archivo CSV (UTF-8 con BOM) */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/csv": string;
+                };
+            };
+            /** @description VALIDACION */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/csv": components["schemas"]["ErrorDto"];
+                };
+            };
+        };
+    };
+    plantillaCsv: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                tipo: "postulaciones" | "contactos";
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Archivo CSV (UTF-8 con BOM) */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/csv": string;
+                };
+            };
+            /** @description VALIDACION */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/csv": components["schemas"]["ErrorDto"];
+                };
+            };
+        };
+    };
+    listarFotos: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FotoDto"][];
+                };
+            };
+        };
+    };
+    agregarFotos: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AgregarFotosDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FotosAgregadasDto"];
+                };
+            };
+        };
+    };
+    subirFoto: {
+        parameters: {
+            query?: never;
+            header: {
+                "x-nombre-archivo": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FotoSubidaDto"];
+                };
+            };
+        };
+    };
+    elegirPortada: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                fotoId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FotoDto"][];
+                };
+            };
+        };
+    };
+    quitarFoto: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                fotoId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FotoDto"][];
+                };
+            };
+        };
+    };
+    verFoto: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                fotoId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "image/jpeg": string;
+                    "image/png": string;
+                    "image/webp": string;
+                };
+            };
+        };
+    };
+    listarPropiedades: {
+        parameters: {
+            query?: {
+                estado?: components["schemas"]["EstadoPropiedad"];
+                texto?: string;
+                canal?: string;
+                abiertas?: boolean;
+                pendiente?: "responder" | "esperando";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ListaPropiedadesDto"];
+                };
+            };
+        };
+    };
+    crearPropiedad: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CrearPropiedadDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PropiedadCreadaDto"];
+                };
+            };
+        };
+    };
+    buscarDuplicadosPropiedad: {
+        parameters: {
+            query?: {
+                url?: string;
+                direccion?: string;
+                comuna?: string;
+                dormitorios?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DuplicadosDto"];
+                };
+            };
+        };
+    };
+    verPropiedad: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PropiedadDetalleDto"];
+                };
+            };
+        };
+    };
+    borrarPropiedad: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    editarPropiedad: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EditarPropiedadDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PropiedadDetalleDto"];
+                };
+            };
+        };
+    };
+    cambiarEstadoPropiedad: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CambiarEstadoPropiedadDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PropiedadDetalleDto"];
+                };
+            };
+        };
+    };
+    agregarPublicacion: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PublicacionEntradaDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PropiedadDetalleDto"];
+                };
+            };
+        };
+    };
+    unirPropiedades: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UnirDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PropiedadDetalleDto"];
+                };
+            };
+        };
+    };
+    registrarContactoPropiedad: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ContactoPropiedadEntradaDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContactoRegistradoDto"];
+                };
+            };
+        };
+    };
+    quitarContactoPropiedad: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                contactoId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PropiedadDetalleDto"];
+                };
+            };
+        };
+    };
+    registrarInteraccionArriendo: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["InteraccionArriendoEntradaDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InteraccionRegistradaDto"];
+                };
+            };
+        };
+    };
+    agendarVisita: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["VisitaEntradaDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PropiedadDetalleDto"];
+                };
+            };
+        };
+    };
+    cambiarVisita: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                visitaId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EstadoVisitaDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PropiedadDetalleDto"];
+                };
+            };
+        };
+    };
+    agregarNotaPropiedad: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TextoDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PropiedadDetalleDto"];
+                };
+            };
+        };
+    };
+    resolverDiscrepanciaPropiedad: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                discrepanciaId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PropiedadDetalleDto"];
+                };
+            };
+        };
+    };
+    aplicarSenalPropiedad: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                senalId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PropiedadDetalleDto"];
+                };
+            };
+        };
+    };
+    fijarUbicacionPropiedad: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UbicacionEntradaDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PropiedadDetalleDto"];
+                };
+            };
+        };
+    };
+    registrarSenalArriendo: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SenalArriendoEntradaDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResultadoSenalArriendoDto"];
+                };
+            };
+        };
+    };
+    listarBandejaArriendos: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SenalArriendoPendienteDto"][];
+                };
+            };
+        };
+    };
+    asociarSenalArriendo: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                senalId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AsociarSenalArriendoDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PropiedadDetalleDto"];
+                };
+            };
+        };
+    };
+    descartarSenalArriendo: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                senalId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    listarCanales: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CanalArriendoDto"][];
+                };
+            };
+        };
+    };
+    registrarCanal: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CanalArriendoEntradaDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CanalArriendoDto"];
+                };
+            };
+        };
+    };
+    editarCanal: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EditarCanalArriendoDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CanalArriendoDto"];
+                };
+            };
+        };
+    };
+    verBusquedaArriendo: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BusquedaDto"];
+                };
+            };
+        };
+    };
+    cambiarBusquedaArriendo: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CambiarBusquedaDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BusquedaDto"];
+                };
+            };
+        };
+    };
+    fijarUf: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UfEntradaDto"];
+            };
+        };
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    fijarGeocodificar: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["GeocodificarDto"];
+            };
+        };
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ubicarPendientes: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UbicarPendientesDto"];
+                };
+            };
+        };
+    };
+    mapaArriendos: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MapaArriendosDto"];
+                };
             };
         };
     };

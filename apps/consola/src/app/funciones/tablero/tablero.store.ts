@@ -25,8 +25,20 @@ export const CERRADOS: EstadoPostulacion[] = ['aceptada', 'rechazado', 'descarta
 export interface Filtros {
   plataformas: string[];
   prioridades: string[];
+  /** Etiquetas que la tarjeta debe tener (todas), ya normalizadas. */
+  etiquetas: string[];
   q: string;
+  /** Solo las que te piden algo (docs/diseno/pasos.md §7.3). */
+  conPasos: boolean;
 }
+
+export const SIN_FILTROS: Filtros = {
+  plataformas: [],
+  prioridades: [],
+  etiquetas: [],
+  q: '',
+  conPasos: false,
+};
 
 export type ResultadoMovimiento =
   { ok: true; detalle: Detalle; discrepanciaNueva: boolean } | { ok: false; error: ErrorDeApi };
@@ -43,9 +55,12 @@ const CAMPOS_RESUMEN: (keyof Resumen)[] = [
   'diasAlCierre',
   'estado',
   'prioridad',
+  'prioridadFijada',
+  'etiquetas',
   'fechaPostulacion',
   'senalesNuevas',
   'discrepanciasAbiertas',
+  'pasosPendientes',
   'transicionesPosibles',
   'version',
   'actualizadaEn',
@@ -76,7 +91,7 @@ export class TableroStore {
   readonly estado = signal<'inicial' | 'cargando' | 'listo' | 'error'>('inicial');
   readonly error = signal<ErrorDeApi | null>(null);
   readonly columnas = signal<ColumnaTablero[]>([]);
-  readonly filtros = signal<Filtros>({ plataformas: [], prioridades: [], q: '' });
+  readonly filtros = signal<Filtros>(SIN_FILTROS);
 
   readonly todas = computed(() => this.columnas().flatMap((c) => c.items));
   readonly total = computed(() => this.todas().length);
@@ -86,14 +101,35 @@ export class TableroStore {
   readonly porRevisar = computed(
     () => this.todas().filter((t) => t.discrepanciasAbiertas > 0).length,
   );
+  /** Pasos pendientes de todas las tarjetas, también las cerradas (J6); uno compartido cuenta una vez. */
+  readonly pasosPendientes = computed(
+    () => new Set(this.todas().flatMap((t) => (t.pasosPendientes ?? []).map((p) => p.id))).size,
+  );
+  /** Cerradas que esconden un pedido: el botón «Cerradas» lo dice para que no se pierda. */
+  readonly cerradasConPasos = computed(
+    () =>
+      this.todas().filter((t) => CERRADOS.includes(t.estado) && t.pasosPendientes?.length).length,
+  );
   readonly porPlataforma = computed(() => {
     const m = new Map<string, number>();
     for (const t of this.todas()) m.set(t.plataforma, (m.get(t.plataforma) ?? 0) + 1);
     return [...m.entries()].sort((a, b) => b[1] - a[1]);
   });
+  /** Etiquetas de las tarjetas, de la más usada a la menos. */
+  readonly etiquetasEnUso = computed(() => {
+    const m = new Map<string, number>();
+    for (const t of this.todas()) for (const e of t.etiquetas) m.set(e, (m.get(e) ?? 0) + 1);
+    return [...m.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])).map(([e]) => e);
+  });
   readonly hayFiltros = computed(() => {
     const f = this.filtros();
-    return f.plataformas.length > 0 || f.prioridades.length > 0 || f.q.trim() !== '';
+    return (
+      f.plataformas.length > 0 ||
+      f.prioridades.length > 0 ||
+      f.etiquetas.length > 0 ||
+      f.q.trim() !== '' ||
+      f.conPasos
+    );
   });
 
   /** Columnas con los filtros aplicados en el cliente (son pocas tarjetas). */
@@ -103,6 +139,8 @@ export class TableroStore {
     const pasa = (t: Resumen) =>
       (!f.plataformas.length || f.plataformas.includes(t.plataforma)) &&
       (!f.prioridades.length || f.prioridades.includes(t.prioridad)) &&
+      f.etiquetas.every((e) => t.etiquetas.includes(e)) &&
+      (!f.conPasos || (t.pasosPendientes?.length ?? 0) > 0) &&
       (!q || `${t.empresa} ${t.titulo}`.toLowerCase().includes(q));
     return this.columnas().map((c) => ({ ...c, items: c.items.filter(pasa) }));
   });
@@ -172,6 +210,30 @@ export class TableroStore {
       if (error.codigo === 'CONFLICTO') await this.cargar(true);
       else this.columnas.set(antes);
       return { ok: false, error };
+    }
+  }
+
+  /**
+   * «Hecho» desde la tarjeta: el paso sale de inmediato y vuelve si la API falla (pasos.md §7.1).
+   * Devuelve el error, o null si salió bien.
+   */
+  async resolverPaso(
+    tarjeta: Resumen,
+    pasoId: string,
+    estado: 'hecho' | 'descartado' | 'pendiente' = 'hecho',
+  ): Promise<ErrorDeApi | null> {
+    const antes = this.columnas();
+    if (estado !== 'pendiente') {
+      const sin = (tarjeta.pasosPendientes ?? []).filter((p) => p.id !== pasoId);
+      this.columnas.set(this.colocar(antes, { ...tarjeta, pasosPendientes: sin }, tarjeta.estado));
+    }
+    try {
+      await firstValueFrom(this.api.resolverPaso(pasoId, estado));
+      if (estado === 'pendiente') await this.cargar(true);
+      return null;
+    } catch (e) {
+      this.columnas.set(antes);
+      return e instanceof ErrorDeApi ? e : new ErrorDeApi('ERROR_INTERNO', String(e), 0);
     }
   }
 

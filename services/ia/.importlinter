@@ -1,0 +1,32 @@
+[importlinter]
+root_package = ia
+include_external_packages = True
+
+[importlinter:contract:capas]
+name = Capas del servicio con IA (como el núcleo, ADR 0003)
+type = layers
+layers =
+    ia.entradas
+    ia.infraestructura
+    ia.aplicacion
+    ia.dominio
+
+[importlinter:contract:dominio-puro]
+name = El dominio no importa frameworks ni clientes externos
+type = forbidden
+source_modules =
+    ia.dominio
+    ia.aplicacion
+forbidden_modules =
+    fastapi
+    sqlalchemy
+    alembic
+    psycopg
+    pgvector
+    openai
+    imapclient
+    keyring
+    httpx
+    pydantic
+    pydantic_settings
+    uvicorn

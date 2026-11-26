@@ -1,6 +1,13 @@
 import type { Contexto } from '../aplicacion/base';
 import { ImportarFichas } from '../aplicacion/importar-fichas';
 import {
+  AsociarSenal,
+  CrearDesdeSenal,
+  DescartarSenal,
+  ListarBandeja,
+  RecibirSenal,
+} from '../aplicacion/casos-de-bandeja';
+import {
   AgendarEntrevista,
   AgregarContacto,
   AgregarNota,
@@ -11,13 +18,16 @@ import {
   RegistrarResultadoEntrevista,
   RegistrarSenal,
   ResolverDiscrepancia,
+  VincularAviso,
 } from '../aplicacion/casos-de-escritura';
+import { EditarPaso, ListarPasos, RegistrarPaso, ResolverPaso } from '../aplicacion/casos-de-pasos';
 import {
   Exportar,
   ListarPostulaciones,
   ResumenDesde,
   VerPostulacion,
   VerTablero,
+  EtiquetasEnUso,
 } from '../aplicacion/casos-de-lectura';
 
 /** Todos los casos de uso armados sobre un mismo contexto. Los usan REST y MCP por igual (ADR 0012). */
@@ -34,10 +44,21 @@ export class CasosDeUso {
   readonly registrarResultadoEntrevista: RegistrarResultadoEntrevista;
   readonly listar: ListarPostulaciones;
   readonly tablero: VerTablero;
+  readonly etiquetas: EtiquetasEnUso;
   readonly ver: VerPostulacion;
   readonly resumen: ResumenDesde;
   readonly exportar: Exportar;
   readonly importar: ImportarFichas;
+  readonly recibirSenal: RecibirSenal;
+  readonly bandeja: ListarBandeja;
+  readonly asociarSenal: AsociarSenal;
+  readonly crearDesdeSenal: CrearDesdeSenal;
+  readonly descartarSenal: DescartarSenal;
+  readonly vincularAviso: VincularAviso;
+  readonly registrarPaso: RegistrarPaso;
+  readonly listarPasos: ListarPasos;
+  readonly resolverPaso: ResolverPaso;
+  readonly editarPaso: EditarPaso;
 
   constructor(c: Contexto) {
     this.crear = new CrearPostulacion(c);
@@ -52,9 +73,20 @@ export class CasosDeUso {
     this.registrarResultadoEntrevista = new RegistrarResultadoEntrevista(c);
     this.listar = new ListarPostulaciones(c);
     this.tablero = new VerTablero(c);
+    this.etiquetas = new EtiquetasEnUso(c);
     this.ver = new VerPostulacion(c);
     this.resumen = new ResumenDesde(c);
     this.exportar = new Exportar(c);
     this.importar = new ImportarFichas(c);
+    this.recibirSenal = new RecibirSenal(c);
+    this.bandeja = new ListarBandeja(c);
+    this.asociarSenal = new AsociarSenal(c);
+    this.crearDesdeSenal = new CrearDesdeSenal(c);
+    this.descartarSenal = new DescartarSenal(c);
+    this.vincularAviso = new VincularAviso(c);
+    this.registrarPaso = new RegistrarPaso(c);
+    this.listarPasos = new ListarPasos(c);
+    this.resolverPaso = new ResolverPaso(c);
+    this.editarPaso = new EditarPaso(c);
   }
 }

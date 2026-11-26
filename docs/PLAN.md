@@ -14,7 +14,7 @@ Escrito el 23-nov-2026 a partir de una revisión de 46 ofertas de empleo backend
 
 - **Qué es:** Brecha es un proyecto personal para aprender, en un sistema real, las herramientas que más piden las ofertas de desarrollo backend en Chile (Angular, React y Next.js, microservicios, RAG, colas y eventos, arquitectura hexagonal), conectadas a un stack conocido (NestJS, Prisma, PostgreSQL).
 - **Qué hace la app:** sigue postulaciones de empleo en varias plataformas, con evidencia del correo y validación por IA (sección 4).
-- **Qué se decidió:** sección 6 (D1 a D29). **Qué falta decidir:** sección 6.3.
+- **Qué se decidió:** sección 6 (D1 a D35). **Qué falta decidir:** sección 6.3.
 
 ## 2. Qué cubre y qué deja fuera
 
@@ -146,9 +146,43 @@ Una pyme registra sus importaciones y las sigue por hitos, con RAG sobre normati
 | D24 | Librería de idioma | **Transloco 8.4** (cambia de idioma en vivo, sin recompilar) | F1-12 la instala con `es` y `en` |
 | D25 | Lector de correo (F2) | **IMAP con contraseña de aplicación**, solo lectura; la contraseña va al llavero de macOS | Sin proyecto en Google Cloud (P-BRECHA-SIN-NUBE). Sirve también para otros proveedores. Confirmar al empezar que Google sigue entregando contraseñas de aplicación para IMAP |
 | D26 | Proveedor de IA en F2 | **Solo OpenAI por ahora**: clasificación y embeddings con la llave del usuario | El adaptador de modelo local (ADR 0016) queda para después; la interfaz se diseña igual para los dos. El gasto de OpenAI es de cada persona |
-| D27 | Aplicar señales seguras (R11) | **Encendido por defecto, umbral 0,9** | Una señal con confianza 0,9 o más y un salto válido cambia el estado sola (origen `senal`); bajo el umbral queda como sugerencia. Cambia el valor por defecto de `PrismaAjustes` (hoy apagado) |
+| D27 | Aplicar señales seguras (R11) | **Encendido por defecto, umbral 0,9** | Una señal de una fuente automática (`correo` o `plataforma`) con confianza 0,9 o más y un salto válido cambia el estado sola (origen `senal`); bajo el umbral, o si la registró la persona o su IA (`manual`, `ia`), queda como sugerencia. Cambia el valor por defecto de `PrismaAjustes` (hoy apagado) |
 | D28 | Trazas del modelo | **Trazas propias** en el esquema `ia` (llamada, modelo, tokens, costo, resultado) y los sets de evaluación con un script; **sin Langfuse** | Nada pesado extra en Docker. Langfuse puede volver como perfil aparte si hace falta |
 | D29 | Frecuencia del vigía | **Cada 15 minutos** | Una consulta IMAP por vuelta; ajustable desde Ajustes en F3. IMAP IDLE queda como mejora posible |
+| D30 | Umbrales de evaluación de F2 | **Laxos:** correos ≥ 80 % estado, ≥ 75 % asociación, máximo 1 falso rechazo; preguntas ≥ 70 % y 100 % de citas válidas | Definen el «hecho» de F2 (`docs/diseno/f2.md` §9) |
+| D31 | trabajando | **Fuera de F2**: solo sus correos | Su API no es pública; el portal lo revisa la IA del usuario por MCP (D14) |
+| D32 | Perfil para brechas y calce | **Desde los datos del CV** (archivo local), editable en Conexiones | Nunca al repo |
+| D33 | Primera sincronización del correo | **Últimos 60 días** | Después, solo lo nuevo |
+| D34 | Modelo para clasificar correos | **`gpt-6-luna`** (USD 0,10 entrada y 0,50 salida por millón de tokens, página oficial del 24-nov-2026), con salida estructurada | Probado con 27 correos reales: USD 0,0045 en total. Se cambia en `OPENAI_MODELO` |
+| D35 | Correos que envía la persona | **Cuentan como señal** (por ejemplo, de `postulado` cuando postula por correo directo) | Pasan el mismo filtro y la misma clasificación que los demás |
+| D36 | PostgreSQL en la app instalada | **Adentro de la app**: PostgreSQL 17.12 de `@embedded-postgres/darwin-arm64` con el pgvector de Homebrew para PostgreSQL 17, en 127.0.0.1:5434 y solo TCP | Se instala sin Docker. Verificado: crea la base, aplica las migraciones y responde consultas de vectores (24-nov-2026) |
+| D37 | Servicio con IA en la app | **Binario con PyInstaller** (`brecha-ia`, 46 MB, onedir) | Funciona sin internet ni Python instalado |
+| D38 | Alcance para cerrar el desarrollo | **F3 sin RabbitMQ más F7**: app de escritorio, Ajustes, notificaciones, validación con IA y hooks leyendo el outbox; instalador y README. F4 queda para después | Para una sola persona, el outbox ya garantiza que no se pierdan eventos |
+| D39 | Firma de la app | **Sin firma de Apple** (firma ad hoc) | Uso personal; macOS pregunta una vez por el acceso al llavero |
+| D40 | Red de LinkedIn | **Contactos, solicitudes y mensajes en el núcleo, ligados a postulaciones**, actualizados por la IA de la persona por MCP (LinkedIn no tiene API) | Pedido de Juan el 23-nov-2026: saber con quién habla en cada postulación y por qué vía |
+| D41 | Importar y exportar por CSV | **Postulaciones y contactos de LinkedIn en CSV** (coma, UTF-8, encabezado), idempotente por URL del aviso y por perfil; exportar en el mismo formato; plantillas. Pedido de Juan el 24-nov-2026 para la Brecha de Tamara | `docs/diseno/csv.md`; REST `/csv/*`, MCP `importar_csv` y `exportar_csv`, `pnpm importar archivo.csv`, página Importar y exportar |
+| D42 | Etiquetas | **Objeto de valor del agregado**, guardadas en minúsculas y sin tildes, con filtro en lista, tablero, API y MCP | Migración `20261126000000_csv_etiquetas` |
+| D43 | Prioridad fijada a mano | Manda **solo en estados abiertos**; las cerradas siguen en baja (R12) | Editable en la ficha y por MCP; columna `prioridad` del CSV |
+| D44 | Estados al importar | **Los 9**; desde `postulado` se exigen fecha y canal; `descartado` no, salvo que traiga uno; columna opcional `motivo` (si falta, «Importado desde CSV») | Se crean directo con origen `importacion`, sin discrepancias |
+| D45 | Stack con calce | El `stack` cuenta **directo como requisitos** sin llamar al modelo; el modelo solo completa con el texto de `requisitos`. **Toda postulación entra al inventario de Avisos** | `TraerAvisosDelNucleo` y `AnalizarSinModelo` en el servicio con IA |
+| D46 | Contactos sin LinkedIn | **Se importan igual**, reconocidos por nombre y empresa, con advertencia; el perfil se completa después | Migración `20261126010000_red_sin_perfil` |
+| D47 | Lector de CSV | **csv-parse 7.0.3 y csv-stringify 6.9.0** | Detrás del puerto `LectorCsv` |
+| D48 | Rojo de las brechas | Token **`brecha` #B42318 sobre #FDECEA** (5,8:1), siempre con ✕ y «falta» | `apps/consola/src/styles.css` |
+| D49 | Pasos pendientes | **Agregado `Paso` propio**, texto libre (sin tipos), ligado a una o más postulaciones **abiertas o cerradas**; pendiente, hecho o descartado, con quién y cuándo lo cerró. No cambia estado ni prioridad. Pedido de Juan del 24-nov-2026 | `docs/diseno/pasos.md` (v2 aprobada el 24-nov); migración `20261127000000_pasos` |
+| D50 | Asociar un correo | **Híbrido**: el código arma candidatas y aplica reglas seguras (número del aviso en la URL, hilo), el modelo elige entre ellas con el contexto de pasos y el código verifica. Un correo puede ir a **varias** postulaciones | La señal es única por postulación, no global |
+| D51 | Tarjeta con paso | **Barra lateral azul** (opción B) y la línea del paso con **Hecho**, también en «Cerradas» | Elegida por Juan entre 3 maquetas |
+| D52 | Cierre por correo | Un correo posterior **cierra solo** un paso con confianza ≥ 0,9; con menos, queda la sugerencia | Como D27, se puede reabrir |
+| D53 | D27 con varias postulaciones | El estado sugerido se aplica solo si el correo toca **una** postulación; con varias queda como sugerencia | |
+| D54 | Enlace del paso | Se guarda, **sacado en local**: el token del enlace nunca va a OpenAI | Fase P2 |
+| D55 | Cerrar una postulación con pasos | **No** los descarta sola: el diálogo de cerrar ofrece descartarlos (`descartarPasos`), marcado por defecto | R17 de `pasos.md` |
+| D56 | De dónde salen los pasos | Correo (vigía), **LinkedIn** (`registrar_interaccion_red` con `paso`) y **portales** que Claude revisa con Chrome (`registrar_paso`, `listar_postulaciones` con `url`) | Un paso nuevo avisa siempre con prioridad alta (`paso.detectado`) |
+| D57 | Windows (D17) | **Sí, para Tamara**: instalador NSIS por usuario (sin administrador), PostgreSQL 17.12 de `@embedded-postgres/windows-x64` con pgvector compilado en el CI, `brecha-ia.exe` con PyInstaller y credenciales en el Administrador de credenciales | Pedido de Juan el 24-nov-2026. Plan y riesgos en `docs/diseno/windows.md` |
+| D58 | Firma del instalador de Windows | **Sin firma** | Azure Artifact Signing no acepta personas ni empresas de Chile; un certificado OV no quita el aviso de SmartScreen para una sola instalación. Smart App Control se revisa en el equipo |
+| D59 | CI de la app de escritorio | **Workflow «App de escritorio»** con jobs de Windows y macOS que arman la app, la instalan y la prueban (prueba de humo); el instalador y el .dmg quedan como artefactos | Corre en PRs que tocan la app, los servicios o la consola, y a mano |
+| D60 | Conectar Gmail | **Guía de 4 pasos en Ajustes** para la contraseña de aplicación; cada persona conecta su propia cuenta | La contraseña se prueba antes de guardarse y nunca vuelve a la pantalla, a archivos ni a registros |
+| D61 | Agendar una reunión | Un correo que pide **elegir un horario** deja el paso y sugiere `en_proceso`; la **invitación de calendario o la confirmación con fecha** sugiere `entrevista` y da por hecho el paso de agendar (confianza 0,95), así que con D27 y D52 la postulación avanza y el paso se cierra solos. Responder la asistencia de una invitación no es un paso | Plan de Juan del 24-nov-2026; probado de punta a punta con OpenAI real (Pumas inventado y la forma real de FullStack) |
+| D62 | Dominio conocido | Un dominio que ya escribió por una postulación es **candidata fuerte, no regla segura**: el modelo la confirma (la misma empresa puede escribir por otro cargo); sin contexto para el modelo, decide el dominio. Portales, ATS y correo personal nunca cuentan | Revisión de la sesión «windows»; casos c15 y c16 del set |
+| D63 | Llavero de macOS al actualizar | **Identidad de firma local fija** («Brecha local», certificado propio de 10 años en el llavero de Juan): el .dmg se arma en su Mac con `BRECHA_IDENTIDAD_MAC` y la entrada del llavero es fija (`brecha-mac`); una actualización migra sola las credenciales de la entrada anterior | Pedido de Juan el 24-nov-2026: no volver a escribir Gmail ni OpenAI al actualizar. El .dmg del CI sigue ad hoc (D39), solo para pruebas |
 
 ### 6.1 D8: lo que pidió Juan después del checkpoint de F0
 
@@ -193,6 +227,14 @@ Se verificaron antes de D3. Quedan como referencia por si algún día se desplie
 | Neon Free | 1 GB por proyecto, 100 CU-h al mes, se suspende tras 5 min sin uso | https://neon.com/docs/introduction/plans |
 | Get on Board | API pública gratis y sin llave: `https://www.getonbrd.com/api/v0/search/jobs`; 20 solicitudes cada 5 s; hay que citar y enlazar cada oferta | https://www.getonbrd.com/api-doc.html |
 | MongoDB local | Imagen `mongodb/mongodb-atlas-local`: Search y Vector Search en local, nodo único, pide 2 GB de RAM y 2 núcleos; healthcheck incluido | https://www.mongodb.com/docs/atlas/cli/current/atlas-cli-deploy-docker/ |
+
+### 6.4 Arriendos (24-nov-2026)
+
+Juan pidió un segundo foco para buscar arriendo, con un selector donde dice «Brecha». Plan, respuestas de Juan y decisiones A-D1 a A-D20 en `docs/diseno/arriendos.md`; decisión de arquitectura en el ADR 0020. Se numeran aparte (A-D) para no chocar con las D de otras ramas en curso.
+
+### 6.5 Perfil de búsqueda (24-nov-2026)
+
+Juan pidió que sus reglas de búsqueda vivan en Brecha y no fuera de la app: un perfil editable en cada foco con reglas duras, blandas con prioridad, etiquetas libres e historial con motivo, que Claude lee por MCP antes de buscar y le pregunta antes de cambiar. Plan, respuestas de Juan y decisiones PB-D1 a PB-D14 en `docs/diseno/perfil.md`; también numeradas aparte.
 
 ## 7. Fases con checkpoints
 
@@ -247,7 +289,7 @@ Cada fase termina con un checkpoint: la revisas, la pruebas y decides si seguimo
 - **Hecho cuando:** usas la consola con tus 46 postulaciones reales, Claude Code puede listar, mover y anotar postulaciones por MCP, el CI está en verde y la PR de F1 está mergeada con tu confirmación.
 
 ### F2: Fuentes y señales + PostgreSQL con pgvector + RAG
-**Estado**: ⬜ Pendiente
+**Estado**: 🔄 En curso · plan aprobado en `docs/diseno/f2.md`
 - Servicio con IA en FastAPI sobre PostgreSQL con pgvector (D10), con dos entradas: el **vigía** liviano y la **API** completa (3.1). Su esquema `ia` es solo suyo.
 - **Correo primero, con lector propio (D11, ADR 0015):** conexión de solo lectura al correo de la persona (IMAP o Gmail con OAuth local; credenciales en el llavero del sistema operativo). La IA clasifica cada correo relevante en una señal (plataforma, empresa, aviso, estado sugerido, confianza) y la asocia a una postulación; si no sabe a cuál, va a la bandeja.
 - **Get on Board:** su API pública para avisos y cambios.
@@ -258,13 +300,41 @@ Cada fase termina con un checkpoint: la revisas, la pruebas y decides si seguimo
 - **Hecho cuando:** un correo real de rechazo o de entrevista aparece como señal en la postulación correcta, y los dos sets pasan en el porcentaje que fijemos al empezar F2.
 
 ### F3: Segundo plano, eventos, validación y notificaciones
-**Estado**: ⬜ Pendiente
+**Estado**: 🔄 En curso (24-nov-2026): app de escritorio, PostgreSQL embebido, IA compilada, notificaciones, Ajustes de credenciales y red de LinkedIn listos; faltan validación con IA y hooks (D38)
 - RabbitMQ y el publicador del outbox; consumidores idempotentes.
 - **Validación de movimientos:** cada cambio manual dispara una revisión contra las señales (y, si hace falta, una búsqueda de la IA en las fuentes). Si no calza, se crea una discrepancia y se avisa.
 - **Notificaciones con prioridad:** alta como aviso del sistema operativo y en la consola; baja solo en la consola y en el resumen diario.
 - **Hooks:** un archivo de configuración que, por tipo de evento, ejecuta un comando local o llama a una URL local.
 - **Segundo plano con Electron (D19):** `apps/escritorio` arranca con el equipo, vive en la barra de menú, mantiene el modo liviano (núcleo, PostgreSQL y vigía como procesos hijos) y levanta el completo al abrir la ventana. Empaquetar PostgreSQL y Python por sistema se resuelve aquí (a verificar qué distribución de binarios usar).
 - **Hecho cuando:** mover una tarjeta contra la evidencia genera un aviso de posible error; un correo de una postulación descartada llega como aviso de prioridad baja; al apagar RabbitMQ un rato no se pierde ningún evento.
+
+### CSV, etiquetas y stack con calce (24-nov-2026, D41 a D48)
+**Estado**: ✅ Implementado en la rama `f2-csv` (PR hacia `f2`); plan y decisiones en `docs/diseno/csv.md`
+- Probado con los CSV reales de Tamara en una base de pruebas: 88 postulaciones y 51 contactos (10 sin LinkedIn, como advertencia), 0 errores; importar dos veces deja lo mismo y exportar e importar da el mismo archivo.
+
+**Problemas encontrados:** csv-parse cuenta dos líneas por cada `\r\n` dentro de una celda; NestJS no registra su parser JSON global si ya hay un middleware llamado `jsonParser` (el límite de 6 MB de la ruta de importar dejó sin cuerpo a las demás).
+**Soluciones aplicadas:** se corrige el número de línea en el lector; el parser de la ruta de importar va envuelto en una función con otro nombre.
+
+### Pasos pendientes (24-nov-2026, D49 a D56)
+**Estado**: ✅ Implementado en la rama `f2-pasos` (PR hacia `f2`); plan en `docs/diseno/pasos.md`. Falta: correr `ia evaluar` y `ia pasos reprocesar` con tu llave, y recompilar la app instalada
+- **P1 · Núcleo ✅:** agregado `Paso` con R15 a R20, tablas `paso` y `paso_postulacion`, señal única por postulación, bandeja con candidatas y paso propuesto, REST `/pasos`, `/senales` y `/bandeja/:id/asociar` con varias postulaciones, `descartarPasos` al cerrar, `?url=` en la lista, MCP `listar_pasos`, `registrar_paso`, `resolver_paso`, `editar_paso` y `registrar_interaccion_red` con `paso`, evento `paso.detectado` y aviso del sistema «Te piden algo».
+- **P2 · Servicio con IA ✅:** candidatas por código (número del aviso, hilo, ATS, empresa en el texto), prompt con el contexto de cada candidata y verificación de lo que elige el modelo; paso pedido y pasos cumplidos; enlaces solo en local (D54); LinkedIn liga cerradas y un mensaje nuevo deja «Leer el mensaje de X»; `ia pasos reprocesar`; Alembic 0006.
+- **P3 · Consola ✅:** barra azul y **Hecho** con **Deshacer** en la tarjeta (también en Cerradas), chip de filtro, sección **Proceso** en la ficha con **+ Paso**, diálogo de cerrar con «Descartar estos pasos», bandeja con «Pide» y asociar a varias. Probado en una Brecha de desarrollo aparte (puertos 4310 y 4210, base de pruebas) y con Playwright y axe.
+- **P4 · Evaluación y cierre ✅:** `ia evaluar` mide pasos (≥ 80 % detectados, máximo 1 inventado) y asociación a varias; 4 correos inventados nuevos en `datos/ejemplo/eval/correos.json`. Falta correrla con tu llave y tu set real.
+
+- **Arreglo del 24-nov (PR #11):** la invitación de Google Calendar de FullStack quedó en el filtro (sin palabras clave y desde un dominio que el filtro no conocía). Ahora pasa un correo de un dominio que ya escribió por una postulación y lo liga a esa postulación (regla segura si es una sola); una invitación de calendario pasa solo si el dominio del remitente o el texto confirman una empresa de tus postulaciones (no todas las reuniones son de postulaciones); `brecha-ia correo releer --dias N` vuelve a leer los filtrados y los clasifica; y el ejecutable deja pasar `pasos` y `correo`.
+
+**Archivos modificados (P1):**
+| Archivo | Cambio |
+|---|---|
+| `services/nucleo/src/postulaciones/dominio/paso.ts`, `id-de-aviso.ts` | Agregado `Paso` y número del aviso desde la URL |
+| `services/nucleo/src/postulaciones/aplicacion/casos-de-pasos.ts`, `casos-de-bandeja.ts`, `casos-de-escritura.ts` | Registrar, listar, resolver y editar pasos; señales a varias postulaciones; R17 |
+| `services/nucleo/prisma/schema.prisma`, `migrations/20261127000000_pasos` | Tablas nuevas y unicidad de la señal por postulación |
+| `services/nucleo/src/postulaciones/infraestructura/http/pasos.controller.ts`, `mcp/servidor-mcp.ts` | REST y MCP |
+| `apps/escritorio/src/notificaciones.ts` | Aviso del sistema para `paso.detectado` |
+| `packages/contratos` | Contrato regenerado |
+
+**Problemas encontrados:** `descartado` no es terminal en el dominio (se puede reabrir), pero vive en «Cerradas»; un `default` en un DTO opcional volvía obligatorio el campo en los tipos de la consola; el lanzador del panel de vista previa no puede leer la carpeta Documents. **Soluciones aplicadas:** `estaCerrada()` en `estado.ts` para R17; el valor por defecto va en la descripción; la Brecha de prueba se levantó desde la terminal.
 
 ### F4: Panorama en Next.js (local)
 **Estado**: ⬜ Pendiente
@@ -284,6 +354,29 @@ Cada fase termina con un checkpoint: la revisas, la pruebas y decides si seguimo
 - Instalador de la app Electron para macOS (y Windows si F3 mostró que es viable, D17); al abrir por primera vez, conectar el correo y el proveedor de IA. Guía de privacidad: qué sale de su máquina y hacia dónde.
 - README final con diagrama, decisiones, cómo correrlo, capturas con datos de ejemplo y un GIF corto.
 - **Hecho cuando:** otra persona instala su Brecha siguiendo solo el README, y el repo se entiende en 2 minutos.
+
+### FA: Arriendos (segundo foco)
+**Estado**: 🔄 Implementado en la rama `arriendos` (24-nov-2026); falta que Juan lo pruebe en macOS y Windows y elija el color del foco · detalle en `docs/diseno/arriendos.md` §13
+
+| Fase | Qué | Pruebas |
+|---|---|---|
+| A1 | Selector de foco, color por foco, rutas, ⌘1/⌘2 y paleta | Vitest del foco, 3 e2e con axe |
+| A2 | Núcleo: propiedades, estados, canales, reglas con historial, calce, duplicados, Bandeja, REST, 19 herramientas MCP | 100 transiciones y reglas sin base, REST y MCP contra la base de pruebas |
+| A3 | Consola: tablero, lista, ficha, agregar, Bandeja, Canales, Tu búsqueda | 3 e2e con axe |
+| A4-A5 | Correos de arriendo, importar texto o WhatsApp, Preguntar | pytest con correos de ejemplo, chats de iPhone y Android, teléfonos enmascarados; e2e de importar |
+| A6 | Mapa en los dos focos | Vitest de comunas, e2e de los dos mapas, Nominatim con respuestas grabadas |
+| A7 | Notificaciones y barra de menú por foco, documentación | pruebas del escritorio |
+
+### FP: Perfil de búsqueda (los dos focos)
+**Estado**: 🔄 Implementado en la rama `perfil` (24-nov-2026), P1 a P5 con checkpoints de Juan; PR hacia `windows` · detalle en `docs/diseno/perfil.md`
+
+| Fase | Qué | Pruebas |
+|---|---|---|
+| P1 | Regla común (`compartido/dominio/perfil.ts`) y Arriendos encima | Dominio, conversión de reglas viejas, API |
+| P2 | Perfil de Empleo en el núcleo, chequeos y choques en cada postulación | Casos reales de Juan (Santiago, Viña, trabajando.cl, frontend, sueldo), API |
+| P3 | `ver_perfil` y `editar_perfil` por MCP, instrucciones del servidor | MCP contra la base de pruebas |
+| P4 | Página Perfil en los dos focos, choque en tarjeta y ficha | Vitest, Playwright y axe |
+| P5 | Semilla privada, `pnpm --filter nucleo perfil cargar`, docs | Carga dos veces deja lo mismo |
 
 ## 8. Cómo se presenta el proyecto
 
@@ -492,7 +585,7 @@ Transporte **Streamable HTTP en `/mcp` dentro del núcleo** (ADR 0018, reemplaza
 | `registrar_senal` | `POST …/senales` |
 | `listar_discrepancias` · `resolver_discrepancia` | discrepancias |
 | `editar_postulacion` | `PATCH /postulaciones/:id` |
-| `agregar_contacto` · `agendar_entrevista` | `POST …/contactos` · `POST …/entrevistas` |
+| `agregar_contacto` · `agendar_entrevista` · `registrar_resultado_entrevista` | `POST …/contactos` · `POST …/entrevistas` · `PATCH …/entrevistas/:entrevistaId` |
 | `resumen` | Qué cambió desde una fecha, ordenado por prioridad |
 | `exportar` | Todo el estado en JSON (postulaciones, señales, discrepancias, conteos por estado y prioridad), para que la IA arme o actualice un artifact (D12) |
 

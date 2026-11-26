@@ -9,6 +9,9 @@ export class RelojFijo implements Reloj {
   hoy(): Fecha {
     return this.actual.toISOString().slice(0, 10);
   }
+  fechaDe(instante: Date): Fecha {
+    return instante.toISOString().slice(0, 10);
+  }
   avanzarDias(dias: number): void {
     this.actual = new Date(this.actual.getTime() + dias * 86_400_000);
   }

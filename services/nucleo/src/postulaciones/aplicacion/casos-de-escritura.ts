@@ -1,5 +1,6 @@
+import type { Prioridad } from '../../compartido/dominio/evento-de-dominio';
 import type { Fecha } from '../../compartido/dominio/puertos';
-import { DatoInvalido } from '../dominio/errores';
+import { DatoInvalido, SenalDuplicada } from '../dominio/errores';
 import type { EstadoPostulacion } from '../dominio/estado';
 import {
   crearAvisoResumen,
@@ -11,6 +12,8 @@ import {
 import type { FuenteDeSenal, ResultadoDeEntrevista, Senal, TipoDeEntrevista } from '../dominio/partes';
 import { Postulacion } from '../dominio/postulacion';
 import { deps, detalleOFalla, modificar, type Contexto } from './base';
+import { cerradorDe, descartarPasosDeCerrada } from './casos-de-pasos';
+import { estaCerrada } from '../dominio/estado';
 import type { VistaDetalle } from './vistas';
 
 export interface EntradaCanal {
@@ -37,8 +40,13 @@ export class CrearPostulacion {
       modalidad?: string;
       ubicacion?: string;
       cierre?: string | null;
+      stack?: readonly string[];
+      requisitos?: string;
+      sueldoPublicado?: string;
     };
     estado?: EstadoPostulacion;
+    etiquetas?: string[];
+    prioridad?: Prioridad;
     sueldoPretendido?: EntradaDinero;
     fechaPostulacion?: Fecha;
     canal?: EntradaCanal;
@@ -53,6 +61,8 @@ export class CrearPostulacion {
         ...(e.fechaPostulacion ? { fechaPostulacion: e.fechaPostulacion } : {}),
         ...(e.canal ? { canal: crearCanal(e.canal) } : {}),
         ...(e.motivo ? { motivo: e.motivo } : {}),
+        ...(e.etiquetas ? { etiquetas: e.etiquetas } : {}),
+        ...(e.prioridad ? { prioridadFijada: e.prioridad } : {}),
         origen: e.origen,
       },
       deps(this.c),
@@ -72,6 +82,8 @@ export class CambiarEstado {
     canal?: EntradaCanal;
     origen: Origen;
     version?: number;
+    /** R17: al cerrarla, descartar sus pasos pendientes (el diálogo de cerrar lo trae marcado). */
+    descartarPasos?: boolean;
   }): Promise<VistaDetalle> {
     if (e.version === undefined && e.origen !== 'senal' && e.origen !== 'ia') {
       throw new DatoInvalido('version', 'Falta la versión de la postulación');
@@ -89,6 +101,9 @@ export class CambiarEstado {
         deps(this.c),
       ),
     );
+    if (e.descartarPasos && estaCerrada(e.a)) {
+      await descartarPasosDeCerrada(this.c.pasos, e.id, cerradorDe(e.origen), this.c.reloj);
+    }
     return detalleOFalla(this.c, e.id);
   }
 }
@@ -101,8 +116,18 @@ export class EditarPostulacion {
     canal?: EntradaCanal;
     sueldoPretendido?: EntradaDinero | null;
     cierre?: Fecha | null;
+    etiquetas?: string[];
+    prioridad?: Prioridad | null;
+    stack?: string[];
+    requisitos?: string | null;
+    sueldoPublicado?: string | null;
   }): Promise<VistaDetalle> {
     const cambios = {
+      ...(e.etiquetas !== undefined ? { etiquetas: e.etiquetas } : {}),
+      ...(e.prioridad !== undefined ? { prioridad: e.prioridad } : {}),
+      ...(e.stack !== undefined ? { stack: e.stack } : {}),
+      ...(e.requisitos !== undefined ? { requisitos: e.requisitos } : {}),
+      ...(e.sueldoPublicado !== undefined ? { sueldoPublicado: e.sueldoPublicado } : {}),
       ...(e.canal ? { canal: crearCanal(e.canal) } : {}),
       ...(e.sueldoPretendido === null
         ? { sueldoPretendido: null }
@@ -127,12 +152,22 @@ export class RegistrarSenal {
     confianza: number;
     recibidaEn?: Date;
     referenciaExterna?: string;
+    remitente?: string;
+    asunto?: string;
+    /** D27 con varias postulaciones (pasos.md P4): con más de una, la señal queda como sugerencia. */
+    sinAplicar?: boolean;
   }): Promise<{ senal: Senal; postulacion: VistaDetalle }> {
-    const [aplicarSeguras, umbral] = await Promise.all([
+    const [seguras, umbral] = await Promise.all([
       this.c.ajustes.aplicarSenalesSeguras(),
       this.c.ajustes.umbralConfianza(),
     ]);
-    const { id, ...datos } = e;
+    const { id, sinAplicar, ...datos } = e;
+    const aplicarSeguras = seguras && !sinAplicar;
+    // Una referencia que está en la bandeja se lleva a la postulación con «asociar», no por aquí (ADR 0015).
+    // En las postulaciones es única por postulación: un mismo correo puede tocar varias (pasos.md §4.2).
+    if (datos.referenciaExterna && (await this.c.bandeja.referenciaEnBandeja(datos.referenciaExterna))) {
+      throw new SenalDuplicada(datos.referenciaExterna);
+    }
     const senal = await modificar(this.c, id, undefined, (p) =>
       p.registrarSenal(datos, { ...deps(this.c), aplicarSeguras, umbral }),
     );
@@ -232,6 +267,22 @@ export class RegistrarResultadoEntrevista {
   }): Promise<VistaDetalle> {
     await modificar(this.c, e.id, undefined, (p) =>
       p.registrarResultadoEntrevista(e.entrevistaId, e.resultado, this.c.reloj),
+    );
+    return detalleOFalla(this.c, e.id);
+  }
+}
+
+export class VincularAviso {
+  constructor(private readonly c: Contexto) {}
+  async ejecutar(e: { id: string; avisoId?: string; calce?: number }): Promise<VistaDetalle> {
+    await modificar(this.c, e.id, undefined, (p) =>
+      p.vincularAviso(
+        {
+          ...(e.avisoId ? { avisoId: e.avisoId } : {}),
+          ...(e.calce !== undefined ? { calce: e.calce } : {}),
+        },
+        this.c.reloj,
+      ),
     );
     return detalleOFalla(this.c, e.id);
   }

@@ -55,6 +55,28 @@
         ]
       }
     },
+    "/api/v1/acceso/verificar": {
+      "get": {
+        "operationId": "verificarToken",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VerificacionDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Tipo del token del pedido; 401 si no es válido",
+        "tags": [
+          "acceso"
+        ]
+      }
+    },
     "/api/v1/postulaciones": {
       "get": {
         "operationId": "listarPostulaciones",
@@ -97,10 +119,31 @@
             }
           },
           {
+            "name": "etiqueta",
+            "required": false,
+            "in": "query",
+            "description": "Etiquetas que debe tener (todas); varias separadas por coma",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          {
             "name": "q",
             "required": false,
             "in": "query",
             "description": "Texto en título o empresa",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "url",
+            "required": false,
+            "in": "query",
+            "description": "URL del aviso o solo su número (por ejemplo 3916453)",
             "schema": {
               "type": "string"
             }
@@ -248,7 +291,20 @@
     "/api/v1/postulaciones/tablero": {
       "get": {
         "operationId": "verTablero",
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "etiqueta",
+            "required": false,
+            "in": "query",
+            "description": "Etiquetas que debe tener (todas); varias separadas por coma",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "",
@@ -256,6 +312,16 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/TableroDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "VALIDACION",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDto"
                 }
               }
             }
@@ -277,6 +343,46 @@
           }
         ],
         "summary": "Tarjetas por estado, ordenadas por prioridad, cierre y actualización",
+        "tags": [
+          "postulaciones"
+        ]
+      }
+    },
+    "/api/v1/postulaciones/etiquetas": {
+      "get": {
+        "operationId": "etiquetasEnUso",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/EtiquetaEnUsoDto"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "NO_AUTENTICADO",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Etiquetas en uso, de la más usada a la menos",
         "tags": [
           "postulaciones"
         ]
@@ -1262,6 +1368,713 @@
         ]
       }
     },
+    "/api/v1/senales": {
+      "post": {
+        "operationId": "recibirSenal",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SenalRecibidaEntradaDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultadoRecepcionDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "VALIDACION",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "NO_ENCONTRADO",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "YA_EXISTE",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Registra una señal en su postulación o, sin postulación, en la bandeja",
+        "tags": [
+          "bandeja"
+        ]
+      }
+    },
+    "/api/v1/bandeja": {
+      "get": {
+        "operationId": "listarBandeja",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SenalPendienteDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Señales que esperan postulación, de la más nueva a la más antigua",
+        "tags": [
+          "bandeja"
+        ]
+      }
+    },
+    "/api/v1/bandeja/{senalId}/asociar": {
+      "post": {
+        "operationId": "asociarSenal",
+        "parameters": [
+          {
+            "name": "senalId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AsociarDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DetallePostulacionDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "VALIDACION",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "NO_ENCONTRADO",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "YA_EXISTE o CONFLICTO",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "bandeja"
+        ]
+      }
+    },
+    "/api/v1/bandeja/{senalId}/crear": {
+      "post": {
+        "operationId": "crearDesdeSenal",
+        "parameters": [
+          {
+            "name": "senalId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CrearDesdeSenalDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DetallePostulacionDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "VALIDACION",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "NO_ENCONTRADO",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "YA_EXISTE",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Crea la postulación con los datos del aviso y le asocia la señal",
+        "tags": [
+          "bandeja"
+        ]
+      }
+    },
+    "/api/v1/bandeja/{senalId}/descartar": {
+      "post": {
+        "operationId": "descartarSenal",
+        "parameters": [
+          {
+            "name": "senalId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SenalPendienteDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "VALIDACION",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "NO_ENCONTRADO",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "bandeja"
+        ]
+      }
+    },
+    "/api/v1/postulaciones/{id}/aviso": {
+      "patch": {
+        "operationId": "vincularAviso",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VincularAvisoDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DetallePostulacionDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "VALIDACION",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "NO_ENCONTRADO",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "El servicio con IA liga el aviso analizado y su calce",
+        "tags": [
+          "bandeja"
+        ]
+      }
+    },
+    "/api/v1/pasos": {
+      "get": {
+        "operationId": "listarPasos",
+        "parameters": [
+          {
+            "name": "estado",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "$ref": "#/components/schemas/EstadoDePaso"
+            }
+          },
+          {
+            "name": "postulacionId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PasoDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Pendientes primero (por plazo) y después los cerrados, del más nuevo al más antiguo",
+        "tags": [
+          "pasos"
+        ]
+      },
+      "post": {
+        "operationId": "registrarPaso",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegistrarPasoDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PasoRegistradoDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "VALIDACION",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "NO_ENCONTRADO",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Anota un paso pendiente o ya hecho",
+        "tags": [
+          "pasos"
+        ]
+      }
+    },
+    "/api/v1/pasos/{id}": {
+      "patch": {
+        "operationId": "editarPaso",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EditarPasoDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PasoDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "VALIDACION",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "NO_ENCONTRADO",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "CONFLICTO",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "pasos"
+        ]
+      }
+    },
+    "/api/v1/pasos/{id}/resolver": {
+      "post": {
+        "operationId": "resolverPaso",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResolverPasoDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PasoDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "VALIDACION",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "NO_ENCONTRADO",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "CONFLICTO",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Hecho, descartado o reabrir (pendiente)",
+        "tags": [
+          "pasos"
+        ]
+      }
+    },
+    "/api/v1/perfil": {
+      "get": {
+        "operationId": "verPerfilEmpleo",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PerfilEmpleoDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Tus reglas de búsqueda de empleo, datos e historial",
+        "tags": [
+          "perfil"
+        ]
+      },
+      "put": {
+        "operationId": "cambiarPerfilEmpleo",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CambiarPerfilDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PerfilEmpleoDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Una regla con ese id no existe",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Cambia reglas (de a una o todas) o tus datos, con motivo",
+        "tags": [
+          "perfil"
+        ]
+      }
+    },
     "/api/v1/eventos/stream": {
       "get": {
         "operationId": "flujoDeEventos",
@@ -1301,6 +2114,1980 @@
         "summary": "",
         "tags": [
           "sistema"
+        ]
+      }
+    },
+    "/api/v1/red": {
+      "get": {
+        "operationId": "listarRed",
+        "parameters": [
+          {
+            "name": "filtro",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "enum": [
+                "todos",
+                "responder",
+                "esperando",
+                "solicitudes",
+                "seguimiento"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "texto",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "postulacionId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListaDeRedDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "VALIDACION",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Contactos con lo que está pendiente primero",
+        "tags": [
+          "red"
+        ]
+      },
+      "post": {
+        "operationId": "registrarContactoRed",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ContactoRedEntradaDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContactoRedRegistradoDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "VALIDACION",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "NO_ENCONTRADO",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Crea el contacto o actualiza el del mismo perfil",
+        "tags": [
+          "red"
+        ]
+      }
+    },
+    "/api/v1/red/{id}": {
+      "get": {
+        "operationId": "verContactoRed",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContactoRedDetalleDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "NO_ENCONTRADO",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "red"
+        ]
+      },
+      "patch": {
+        "operationId": "editarContactoRed",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EditarContactoRedDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContactoRedDetalleDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "VALIDACION",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "NO_ENCONTRADO",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Datos, notas, seguimiento y postulaciones ligadas",
+        "tags": [
+          "red"
+        ]
+      }
+    },
+    "/api/v1/red/{id}/interacciones": {
+      "post": {
+        "operationId": "registrarInteraccionRed",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InteraccionEntradaDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContactoRedRegistradoDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "VALIDACION",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "NO_ENCONTRADO",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Solicitud, mensaje o nota (no se repite)",
+        "tags": [
+          "red"
+        ]
+      }
+    },
+    "/api/v1/csv/importar": {
+      "post": {
+        "operationId": "importarCsv",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ImportarCsvDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultadoCsvDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "VALIDACION (archivo ilegible o encabezado sin las columnas obligatorias)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Importa postulaciones o contactos; idempotente; informa cada fila sin cortar",
+        "tags": [
+          "csv"
+        ]
+      }
+    },
+    "/api/v1/csv/exportar/{tipo}": {
+      "get": {
+        "operationId": "exportarCsv",
+        "parameters": [
+          {
+            "name": "tipo",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "enum": [
+                "postulaciones",
+                "contactos"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Archivo CSV (UTF-8 con BOM)",
+            "content": {
+              "text/csv": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "VALIDACION",
+            "content": {
+              "text/csv": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Todas las postulaciones o contactos, en el formato de importar",
+        "tags": [
+          "csv"
+        ]
+      }
+    },
+    "/api/v1/csv/plantillas/{tipo}": {
+      "get": {
+        "operationId": "plantillaCsv",
+        "parameters": [
+          {
+            "name": "tipo",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "enum": [
+                "postulaciones",
+                "contactos"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Archivo CSV (UTF-8 con BOM)",
+            "content": {
+              "text/csv": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "VALIDACION",
+            "content": {
+              "text/csv": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Encabezado y dos filas de ejemplo inventadas",
+        "tags": [
+          "csv"
+        ]
+      }
+    },
+    "/api/v1/arriendos/propiedades/{id}/fotos": {
+      "get": {
+        "operationId": "listarFotos",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/FotoDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "De la portada a la última",
+        "tags": [
+          "arriendos"
+        ]
+      },
+      "post": {
+        "operationId": "agregarFotos",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AgregarFotosDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FotosAgregadasDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Agrega por URL (Brecha la descarga) o ruta de este equipo; cada una por separado",
+        "tags": [
+          "arriendos"
+        ]
+      }
+    },
+    "/api/v1/arriendos/propiedades/{id}/fotos/archivo": {
+      "post": {
+        "operationId": "subirFoto",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-nombre-archivo",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FotoSubidaDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Sube un archivo jpg, png o webp (hasta 10 MB) en el cuerpo, tal cual",
+        "tags": [
+          "arriendos"
+        ]
+      }
+    },
+    "/api/v1/arriendos/propiedades/{id}/fotos/{fotoId}/portada": {
+      "post": {
+        "operationId": "elegirPortada",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "fotoId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/FotoDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "La pasa al frente; las demás quedan en su orden",
+        "tags": [
+          "arriendos"
+        ]
+      }
+    },
+    "/api/v1/arriendos/propiedades/{id}/fotos/{fotoId}": {
+      "delete": {
+        "operationId": "quitarFoto",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "fotoId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/FotoDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Borra la foto y su archivo; devuelve las que quedan",
+        "tags": [
+          "arriendos"
+        ]
+      }
+    },
+    "/api/v1/arriendos/fotos/{fotoId}": {
+      "get": {
+        "operationId": "verFoto",
+        "parameters": [
+          {
+            "name": "fotoId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "image/jpeg": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              },
+              "image/png": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              },
+              "image/webp": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "La imagen guardada",
+        "tags": [
+          "arriendos"
+        ]
+      }
+    },
+    "/api/v1/arriendos/propiedades": {
+      "get": {
+        "operationId": "listarPropiedades",
+        "parameters": [
+          {
+            "name": "estado",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "$ref": "#/components/schemas/EstadoPropiedad"
+            }
+          },
+          {
+            "name": "texto",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "canal",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "abiertas",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "pendiente",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "enum": [
+                "responder",
+                "esperando"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListaPropiedadesDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Propiedades con su calce; lo que te toca responder primero",
+        "tags": [
+          "arriendos"
+        ]
+      },
+      "post": {
+        "operationId": "crearPropiedad",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CrearPropiedadDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PropiedadCreadaDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Crea una propiedad (o une la publicación a otra con unirA). La misma URL devuelve YA_EXISTE",
+        "tags": [
+          "arriendos"
+        ]
+      }
+    },
+    "/api/v1/arriendos/propiedades/duplicados": {
+      "get": {
+        "operationId": "buscarDuplicadosPropiedad",
+        "parameters": [
+          {
+            "name": "url",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "direccion",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "comuna",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "dormitorios",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DuplicadosDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Antes de crear: ¿ya la sigues?",
+        "tags": [
+          "arriendos"
+        ]
+      }
+    },
+    "/api/v1/arriendos/propiedades/{id}": {
+      "get": {
+        "operationId": "verPropiedad",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PropiedadDetalleDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "arriendos"
+        ]
+      },
+      "patch": {
+        "operationId": "editarPropiedad",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EditarPropiedadDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PropiedadDetalleDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Cambia solo lo que mandas; null borra un dato",
+        "tags": [
+          "arriendos"
+        ]
+      },
+      "delete": {
+        "operationId": "borrarPropiedad",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "arriendos"
+        ]
+      }
+    },
+    "/api/v1/arriendos/propiedades/{id}/estado": {
+      "post": {
+        "operationId": "cambiarEstadoPropiedad",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CambiarEstadoPropiedadDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PropiedadDetalleDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "arriendos"
+        ]
+      }
+    },
+    "/api/v1/arriendos/propiedades/{id}/publicaciones": {
+      "post": {
+        "operationId": "agregarPublicacion",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PublicacionEntradaDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PropiedadDetalleDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "arriendos"
+        ]
+      }
+    },
+    "/api/v1/arriendos/propiedades/{id}/unir": {
+      "post": {
+        "operationId": "unirPropiedades",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UnirDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PropiedadDetalleDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Suma un duplicado a esta propiedad y lo borra",
+        "tags": [
+          "arriendos"
+        ]
+      }
+    },
+    "/api/v1/arriendos/propiedades/{id}/contactos": {
+      "post": {
+        "operationId": "registrarContactoPropiedad",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ContactoPropiedadEntradaDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContactoRegistradoDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Agrega o completa un contacto",
+        "tags": [
+          "arriendos"
+        ]
+      }
+    },
+    "/api/v1/arriendos/propiedades/{id}/contactos/{contactoId}": {
+      "delete": {
+        "operationId": "quitarContactoPropiedad",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "contactoId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PropiedadDetalleDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "arriendos"
+        ]
+      }
+    },
+    "/api/v1/arriendos/propiedades/{id}/interacciones": {
+      "post": {
+        "operationId": "registrarInteraccionArriendo",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InteraccionArriendoEntradaDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InteraccionRegistradaDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Mensaje, llamada o nota con un contacto",
+        "tags": [
+          "arriendos"
+        ]
+      }
+    },
+    "/api/v1/arriendos/propiedades/{id}/visitas": {
+      "post": {
+        "operationId": "agendarVisita",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VisitaEntradaDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PropiedadDetalleDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "arriendos"
+        ]
+      }
+    },
+    "/api/v1/arriendos/propiedades/{id}/visitas/{visitaId}": {
+      "patch": {
+        "operationId": "cambiarVisita",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "visitaId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EstadoVisitaDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PropiedadDetalleDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "arriendos"
+        ]
+      }
+    },
+    "/api/v1/arriendos/propiedades/{id}/notas": {
+      "post": {
+        "operationId": "agregarNotaPropiedad",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TextoDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PropiedadDetalleDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "arriendos"
+        ]
+      }
+    },
+    "/api/v1/arriendos/propiedades/{id}/discrepancias/{discrepanciaId}/resolver": {
+      "post": {
+        "operationId": "resolverDiscrepanciaPropiedad",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "discrepanciaId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PropiedadDetalleDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "arriendos"
+        ]
+      }
+    },
+    "/api/v1/arriendos/propiedades/{id}/senales/{senalId}/aplicar": {
+      "post": {
+        "operationId": "aplicarSenalPropiedad",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "senalId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PropiedadDetalleDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "arriendos"
+        ]
+      }
+    },
+    "/api/v1/arriendos/propiedades/{id}/ubicacion": {
+      "put": {
+        "operationId": "fijarUbicacionPropiedad",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UbicacionEntradaDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PropiedadDetalleDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Mueve el pin a mano; queda fijo",
+        "tags": [
+          "arriendos"
+        ]
+      }
+    },
+    "/api/v1/arriendos/senales": {
+      "post": {
+        "operationId": "registrarSenalArriendo",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SenalArriendoEntradaDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultadoSenalArriendoDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Evidencia de un arriendo: va a la propiedad (por id o URL) o a la Bandeja de Arriendos",
+        "tags": [
+          "arriendos"
+        ]
+      }
+    },
+    "/api/v1/arriendos/bandeja": {
+      "get": {
+        "operationId": "listarBandejaArriendos",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SenalArriendoPendienteDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "arriendos"
+        ]
+      }
+    },
+    "/api/v1/arriendos/bandeja/{senalId}/asociar": {
+      "post": {
+        "operationId": "asociarSenalArriendo",
+        "parameters": [
+          {
+            "name": "senalId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AsociarSenalArriendoDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PropiedadDetalleDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "arriendos"
+        ]
+      }
+    },
+    "/api/v1/arriendos/bandeja/{senalId}/descartar": {
+      "post": {
+        "operationId": "descartarSenalArriendo",
+        "parameters": [
+          {
+            "name": "senalId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "arriendos"
+        ]
+      }
+    },
+    "/api/v1/arriendos/canales": {
+      "get": {
+        "operationId": "listarCanales",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/CanalArriendoDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "arriendos"
+        ]
+      },
+      "post": {
+        "operationId": "registrarCanal",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CanalArriendoEntradaDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CanalArriendoDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Crea un canal o actualiza el que tiene ese id",
+        "tags": [
+          "arriendos"
+        ]
+      }
+    },
+    "/api/v1/arriendos/canales/{id}": {
+      "patch": {
+        "operationId": "editarCanal",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EditarCanalArriendoDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CanalArriendoDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "arriendos"
+        ]
+      }
+    },
+    "/api/v1/arriendos/busqueda": {
+      "get": {
+        "operationId": "verBusquedaArriendo",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusquedaDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Tus reglas duras y blandas y su historial",
+        "tags": [
+          "arriendos"
+        ]
+      },
+      "put": {
+        "operationId": "cambiarBusquedaArriendo",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CambiarBusquedaDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusquedaDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Cambia reglas o tus datos, con motivo",
+        "tags": [
+          "arriendos"
+        ]
+      }
+    },
+    "/api/v1/arriendos/uf": {
+      "put": {
+        "operationId": "fijarUf",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UfEntradaDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Valor de la UF para comparar precios en UF",
+        "tags": [
+          "arriendos"
+        ]
+      }
+    },
+    "/api/v1/arriendos/geocodificar": {
+      "put": {
+        "operationId": "fijarGeocodificar",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GeocodificarDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Prende o apaga la ubicación de direcciones con Nominatim (OpenStreetMap)",
+        "tags": [
+          "arriendos"
+        ]
+      }
+    },
+    "/api/v1/arriendos/mapa/ubicar": {
+      "post": {
+        "operationId": "ubicarPendientes",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UbicarPendientesDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Ubica las propiedades sin punto, de a una por segundo",
+        "tags": [
+          "arriendos"
+        ]
+      }
+    },
+    "/api/v1/arriendos/mapa": {
+      "get": {
+        "operationId": "mapaArriendos",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MapaArriendosDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Propiedades abiertas con y sin ubicación",
+        "tags": [
+          "arriendos"
         ]
       }
     }
@@ -1366,6 +4153,22 @@
           "expiraEn"
         ]
       },
+      "VerificacionDto": {
+        "type": "object",
+        "properties": {
+          "tipo": {
+            "type": "string",
+            "enum": [
+              "sesion",
+              "mcp",
+              "servicio"
+            ]
+          }
+        },
+        "required": [
+          "tipo"
+        ]
+      },
       "Plataforma": {
         "type": "string",
         "enum": [
@@ -1408,6 +4211,108 @@
           "alta",
           "media",
           "baja"
+        ]
+      },
+      "PasoCortoDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "descripcion": {
+            "type": "string"
+          },
+          "plazo": {
+            "type": "string",
+            "format": "date",
+            "nullable": true
+          },
+          "diasAlPlazo": {
+            "type": "number",
+            "nullable": true,
+            "description": "Días hasta el plazo (negativo si venció)"
+          }
+        },
+        "required": [
+          "id",
+          "descripcion",
+          "plazo",
+          "diasAlPlazo"
+        ]
+      },
+      "ChoqueConPerfilDto": {
+        "type": "object",
+        "properties": {
+          "reglaId": {
+            "type": "string"
+          },
+          "dura": {
+            "type": "boolean"
+          },
+          "prioridad": {
+            "type": "number",
+            "description": "Solo blandas"
+          },
+          "regla": {
+            "type": "string",
+            "description": "El texto de la regla"
+          },
+          "texto": {
+            "type": "string",
+            "description": "Por qué choca"
+          }
+        },
+        "required": [
+          "reglaId",
+          "dura",
+          "regla",
+          "texto"
+        ]
+      },
+      "SinDatoDePerfilDto": {
+        "type": "object",
+        "properties": {
+          "reglaId": {
+            "type": "string"
+          },
+          "regla": {
+            "type": "string"
+          },
+          "texto": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "reglaId",
+          "regla",
+          "texto"
+        ]
+      },
+      "RevisionDePerfilDto": {
+        "type": "object",
+        "properties": {
+          "cumpleDuras": {
+            "type": "boolean",
+            "description": "Falso si choca con una regla dura; nunca cambia el estado"
+          },
+          "choques": {
+            "description": "Duras primero",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ChoqueConPerfilDto"
+            }
+          },
+          "sinDato": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SinDatoDePerfilDto"
+            }
+          }
+        },
+        "required": [
+          "cumpleDuras",
+          "choques",
+          "sinDato"
         ]
       },
       "ResumenPostulacionDto": {
@@ -1466,6 +4371,21 @@
               }
             ]
           },
+          "prioridadFijada": {
+            "nullable": true,
+            "description": "La que fijó la persona; null si la calcula el núcleo",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Prioridad"
+              }
+            ]
+          },
+          "etiquetas": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
           "fechaPostulacion": {
             "type": "string",
             "format": "date",
@@ -1478,11 +4398,28 @@
           "discrepanciasAbiertas": {
             "type": "number"
           },
+          "pasosPendientes": {
+            "description": "Lo que te piden hacer, el de plazo más cercano primero",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PasoCortoDto"
+            }
+          },
           "transicionesPosibles": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/EstadoPostulacion"
             }
+          },
+          "perfil": {
+            "nullable": true,
+            "description": "Choques con tu perfil de búsqueda; null si el perfil no tiene reglas con chequeo",
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/RevisionDePerfilDto"
+              }
+            ]
           },
           "version": {
             "type": "number"
@@ -1504,10 +4441,14 @@
           "diasAlCierre",
           "estado",
           "prioridad",
+          "prioridadFijada",
+          "etiquetas",
           "fechaPostulacion",
           "senalesNuevas",
           "discrepanciasAbiertas",
+          "pasosPendientes",
           "transicionesPosibles",
+          "perfil",
           "version",
           "actualizadaEn"
         ]
@@ -1620,6 +4561,21 @@
           "columnas"
         ]
       },
+      "EtiquetaEnUsoDto": {
+        "type": "object",
+        "properties": {
+          "etiqueta": {
+            "type": "string"
+          },
+          "total": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "etiqueta",
+          "total"
+        ]
+      },
       "ElementoResumenDto": {
         "type": "object",
         "properties": {
@@ -1638,7 +4594,8 @@
               "cambio",
               "senal",
               "discrepancia",
-              "nota"
+              "nota",
+              "paso"
             ]
           },
           "descripcion": {
@@ -1703,6 +4660,24 @@
             "type": "string",
             "format": "date",
             "nullable": true
+          },
+          "stack": {
+            "maxItems": 40,
+            "description": "Herramientas que pide el aviso",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "requisitos": {
+            "type": "string",
+            "maxLength": 5000,
+            "description": "Requisitos en texto libre"
+          },
+          "sueldoPublicado": {
+            "type": "string",
+            "maxLength": 200,
+            "description": "Sueldo tal como lo publica el aviso"
           }
         },
         "required": [
@@ -1822,6 +4797,23 @@
           },
           "canal": {
             "$ref": "#/components/schemas/CanalEntradaDto"
+          },
+          "etiquetas": {
+            "maxItems": 20,
+            "description": "Se guardan en minúsculas y sin tildes",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "prioridad": {
+            "type": "string",
+            "enum": [
+              "alta",
+              "media",
+              "baja"
+            ],
+            "description": "Sin ella, la calcula el núcleo (R12)"
           }
         },
         "required": [
@@ -1866,6 +4858,18 @@
           },
           "calce": {
             "type": "number"
+          },
+          "stack": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "requisitos": {
+            "type": "string"
+          },
+          "sueldoPublicado": {
+            "type": "string"
           }
         },
         "required": [
@@ -2133,6 +5137,14 @@
           "referenciaExterna": {
             "type": "string"
           },
+          "remitente": {
+            "type": "string",
+            "description": "Quién la mandó (correos)"
+          },
+          "asunto": {
+            "type": "string",
+            "description": "Asunto del correo"
+          },
           "aplicada": {
             "type": "boolean"
           }
@@ -2221,6 +5233,244 @@
           "resueltaEn"
         ]
       },
+      "PostulacionDelPasoDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "empresa": {
+            "type": "string"
+          },
+          "titulo": {
+            "type": "string"
+          },
+          "estado": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/EstadoPostulacion"
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "empresa",
+          "titulo",
+          "estado"
+        ]
+      },
+      "EstadoDePaso": {
+        "type": "string",
+        "enum": [
+          "pendiente",
+          "hecho",
+          "descartado"
+        ]
+      },
+      "FuenteDePaso": {
+        "type": "string",
+        "enum": [
+          "correo",
+          "linkedin",
+          "portal",
+          "persona"
+        ]
+      },
+      "RegistradorDePaso": {
+        "type": "string",
+        "enum": [
+          "vigia",
+          "ia",
+          "persona"
+        ]
+      },
+      "CerradorDePaso": {
+        "type": "string",
+        "enum": [
+          "persona",
+          "ia",
+          "correo",
+          "sistema"
+        ]
+      },
+      "CierreDePasoDto": {
+        "type": "object",
+        "properties": {
+          "por": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CerradorDePaso"
+              }
+            ]
+          },
+          "en": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "nota": {
+            "type": "string",
+            "nullable": true
+          },
+          "referenciaExterna": {
+            "type": "string",
+            "nullable": true,
+            "description": "El correo que lo dio por hecho"
+          }
+        },
+        "required": [
+          "por",
+          "en",
+          "nota",
+          "referenciaExterna"
+        ]
+      },
+      "SugerenciaDeCierreDto": {
+        "type": "object",
+        "properties": {
+          "referenciaExterna": {
+            "type": "string",
+            "nullable": true
+          },
+          "confianza": {
+            "type": "number"
+          },
+          "en": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "referenciaExterna",
+          "confianza",
+          "en"
+        ]
+      },
+      "PasoDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "descripcion": {
+            "type": "string"
+          },
+          "plazo": {
+            "type": "string",
+            "format": "date",
+            "nullable": true
+          },
+          "diasAlPlazo": {
+            "type": "number",
+            "nullable": true,
+            "description": "Días hasta el plazo (negativo si venció)"
+          },
+          "postulacionIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "postulaciones": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PostulacionDelPasoDto"
+            }
+          },
+          "detalle": {
+            "type": "string",
+            "nullable": true
+          },
+          "enlace": {
+            "type": "string",
+            "nullable": true
+          },
+          "estado": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/EstadoDePaso"
+              }
+            ]
+          },
+          "fuente": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/FuenteDePaso"
+              }
+            ]
+          },
+          "registradoPor": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/RegistradorDePaso"
+              }
+            ]
+          },
+          "contactoRedId": {
+            "type": "string",
+            "nullable": true
+          },
+          "referenciaExterna": {
+            "type": "string",
+            "nullable": true
+          },
+          "cierre": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CierreDePasoDto"
+              }
+            ]
+          },
+          "sugerenciaCierre": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/SugerenciaDeCierreDto"
+              }
+            ]
+          },
+          "pedidoEn": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Cuándo te lo pidieron"
+          },
+          "creadoEn": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "actualizadoEn": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "version": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "id",
+          "descripcion",
+          "plazo",
+          "diasAlPlazo",
+          "postulacionIds",
+          "postulaciones",
+          "detalle",
+          "enlace",
+          "estado",
+          "fuente",
+          "registradoPor",
+          "contactoRedId",
+          "referenciaExterna",
+          "cierre",
+          "sugerenciaCierre",
+          "pedidoEn",
+          "creadoEn",
+          "actualizadoEn",
+          "version"
+        ]
+      },
       "DetallePostulacionDto": {
         "type": "object",
         "properties": {
@@ -2277,6 +5527,21 @@
               }
             ]
           },
+          "prioridadFijada": {
+            "nullable": true,
+            "description": "La que fijó la persona; null si la calcula el núcleo",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Prioridad"
+              }
+            ]
+          },
+          "etiquetas": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
           "fechaPostulacion": {
             "type": "string",
             "format": "date",
@@ -2289,11 +5554,28 @@
           "discrepanciasAbiertas": {
             "type": "number"
           },
+          "pasosPendientes": {
+            "description": "Lo que te piden hacer, el de plazo más cercano primero",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PasoCortoDto"
+            }
+          },
           "transicionesPosibles": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/EstadoPostulacion"
             }
+          },
+          "perfil": {
+            "nullable": true,
+            "description": "Choques con tu perfil de búsqueda; null si el perfil no tiene reglas con chequeo",
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/RevisionDePerfilDto"
+              }
+            ]
           },
           "version": {
             "type": "number"
@@ -2362,6 +5644,13 @@
               "$ref": "#/components/schemas/DiscrepanciaDto"
             }
           },
+          "pasos": {
+            "description": "El proceso: todos los pasos, en el orden en que te los pidieron",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PasoDto"
+            }
+          },
           "creadaEn": {
             "type": "string",
             "format": "date-time"
@@ -2379,10 +5668,14 @@
           "diasAlCierre",
           "estado",
           "prioridad",
+          "prioridadFijada",
+          "etiquetas",
           "fechaPostulacion",
           "senalesNuevas",
           "discrepanciasAbiertas",
+          "pasosPendientes",
           "transicionesPosibles",
+          "perfil",
           "version",
           "actualizadaEn",
           "aviso",
@@ -2394,6 +5687,7 @@
           "historial",
           "senales",
           "discrepancias",
+          "pasos",
           "creadaEn"
         ]
       },
@@ -2493,6 +5787,44 @@
             "format": "date",
             "nullable": true,
             "description": "Cierre del aviso; null lo borra"
+          },
+          "etiquetas": {
+            "maxItems": 20,
+            "description": "Se guardan en minúsculas y sin tildes",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "prioridad": {
+            "type": "string",
+            "enum": [
+              "alta",
+              "media",
+              "baja"
+            ],
+            "nullable": true,
+            "description": "Fija la prioridad mientras la postulación esté abierta; null vuelve a la calculada"
+          },
+          "stack": {
+            "maxItems": 40,
+            "description": "Reemplaza el stack del aviso",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "requisitos": {
+            "type": "string",
+            "maxLength": 5000,
+            "nullable": true,
+            "description": "null lo borra"
+          },
+          "sueldoPublicado": {
+            "type": "string",
+            "maxLength": 200,
+            "nullable": true,
+            "description": "null lo borra"
           }
         },
         "required": [
@@ -2531,6 +5863,10 @@
           "version": {
             "type": "number",
             "description": "Versión que tenías (bloqueo optimista)"
+          },
+          "descartarPasos": {
+            "type": "boolean",
+            "description": "Al cerrarla, descartar sus pasos pendientes que solo tocan postulaciones cerradas (R17)"
           }
         },
         "required": [
@@ -2723,6 +6059,963 @@
           "decision"
         ]
       },
+      "PasoPedidoDto": {
+        "type": "object",
+        "properties": {
+          "descripcion": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 120
+          },
+          "detalle": {
+            "type": "string",
+            "maxLength": 2000
+          },
+          "plazo": {
+            "type": "string",
+            "format": "date"
+          },
+          "enlace": {
+            "type": "string",
+            "maxLength": 2000
+          },
+          "mismoQue": {
+            "type": "string",
+            "description": "Id de un paso pendiente que este correo solo recuerda (R19)"
+          }
+        },
+        "required": [
+          "descripcion"
+        ]
+      },
+      "PasoCumplidoDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "confianza": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          }
+        },
+        "required": [
+          "id",
+          "confianza"
+        ]
+      },
+      "SenalRecibidaEntradaDto": {
+        "type": "object",
+        "properties": {
+          "postulacionId": {
+            "type": "string",
+            "description": "Sin postulación, la señal va a la bandeja"
+          },
+          "postulacionIds": {
+            "description": "Varias postulaciones: una señal en cada una",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "candidatas": {
+            "description": "Sin postulación: las propuestas sin certeza",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "paso": {
+            "description": "Lo que el correo pide hacer",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PasoPedidoDto"
+              }
+            ]
+          },
+          "pasosCumplidos": {
+            "description": "Pasos pendientes que este correo da por hechos",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PasoCumplidoDto"
+            }
+          },
+          "fuente": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/FuenteDeSenal"
+              }
+            ]
+          },
+          "plataforma": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Plataforma"
+              }
+            ]
+          },
+          "resumen": {
+            "type": "string",
+            "maxLength": 1000
+          },
+          "estadoSugerido": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/EstadoPostulacion"
+              }
+            ]
+          },
+          "confianza": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "recibidaEn": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "referenciaExterna": {
+            "type": "string",
+            "maxLength": 500,
+            "description": "Message-ID u otra id de la fuente: no se duplica"
+          },
+          "remitente": {
+            "type": "string",
+            "maxLength": 320
+          },
+          "asunto": {
+            "type": "string",
+            "maxLength": 500
+          },
+          "empresaDetectada": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "cargoDetectado": {
+            "type": "string",
+            "maxLength": 300
+          }
+        },
+        "required": [
+          "fuente",
+          "resumen",
+          "confianza"
+        ]
+      },
+      "SenalEnPostulacionDto": {
+        "type": "object",
+        "properties": {
+          "postulacionId": {
+            "type": "string"
+          },
+          "senalId": {
+            "type": "string",
+            "nullable": true
+          },
+          "aplicada": {
+            "type": "boolean"
+          },
+          "repetida": {
+            "type": "boolean",
+            "description": "Ya estaba registrada en esa postulación"
+          }
+        },
+        "required": [
+          "postulacionId",
+          "senalId",
+          "aplicada",
+          "repetida"
+        ]
+      },
+      "EstadoDePendiente": {
+        "type": "string",
+        "enum": [
+          "pendiente",
+          "asociada",
+          "descartada"
+        ]
+      },
+      "SenalPendienteDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "fuente": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/FuenteDeSenal"
+              }
+            ]
+          },
+          "plataforma": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Plataforma"
+              }
+            ]
+          },
+          "resumen": {
+            "type": "string"
+          },
+          "estadoSugerido": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/EstadoPostulacion"
+              }
+            ]
+          },
+          "confianza": {
+            "type": "number"
+          },
+          "recibidaEn": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "referenciaExterna": {
+            "type": "string"
+          },
+          "remitente": {
+            "type": "string"
+          },
+          "asunto": {
+            "type": "string"
+          },
+          "empresaDetectada": {
+            "type": "string"
+          },
+          "cargoDetectado": {
+            "type": "string"
+          },
+          "candidatas": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "pasoPropuesto": {
+            "$ref": "#/components/schemas/PasoPedidoDto"
+          },
+          "estado": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/EstadoDePendiente"
+              }
+            ]
+          },
+          "postulacionId": {
+            "type": "string"
+          },
+          "resueltaEn": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "creadaEn": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "fuente",
+          "plataforma",
+          "resumen",
+          "confianza",
+          "recibidaEn",
+          "candidatas",
+          "estado",
+          "resueltaEn",
+          "creadaEn"
+        ]
+      },
+      "ResultadoRecepcionDto": {
+        "type": "object",
+        "properties": {
+          "destino": {
+            "type": "string",
+            "enum": [
+              "postulacion",
+              "bandeja"
+            ]
+          },
+          "senal": {
+            "description": "La primera señal nueva",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/SenalDto"
+              }
+            ]
+          },
+          "postulacion": {
+            "$ref": "#/components/schemas/DetallePostulacionDto"
+          },
+          "senales": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SenalEnPostulacionDto"
+            }
+          },
+          "paso": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PasoDto"
+              }
+            ]
+          },
+          "accion": {
+            "type": "string",
+            "enum": [
+              "creado",
+              "recordado",
+              "ya_estaba"
+            ],
+            "nullable": true
+          },
+          "cerrados": {
+            "description": "Pasos que este correo cerró",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "sugeridos": {
+            "description": "Pasos que quedaron con la sugerencia de cierre",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "pendiente": {
+            "$ref": "#/components/schemas/SenalPendienteDto"
+          }
+        },
+        "required": [
+          "destino"
+        ]
+      },
+      "AsociarDto": {
+        "type": "object",
+        "properties": {
+          "postulacionId": {
+            "type": "string"
+          },
+          "postulacionIds": {
+            "description": "A varias postulaciones a la vez",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "CrearDesdeSenalDto": {
+        "type": "object",
+        "properties": {
+          "aviso": {
+            "$ref": "#/components/schemas/AvisoEntradaDto"
+          }
+        },
+        "required": [
+          "aviso"
+        ]
+      },
+      "VincularAvisoDto": {
+        "type": "object",
+        "properties": {
+          "avisoId": {
+            "type": "string",
+            "maxLength": 100
+          },
+          "calce": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          }
+        }
+      },
+      "RegistrarPasoDto": {
+        "type": "object",
+        "properties": {
+          "postulacionIds": {
+            "description": "Una o más postulaciones, abiertas o cerradas",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "descripcion": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 120,
+            "description": "Texto libre corto: lo que se ve en la tarjeta"
+          },
+          "detalle": {
+            "type": "string",
+            "maxLength": 2000,
+            "description": "Qué piden exactamente y cómo"
+          },
+          "plazo": {
+            "type": "string",
+            "format": "date"
+          },
+          "enlace": {
+            "type": "string",
+            "maxLength": 2000
+          },
+          "estado": {
+            "type": "string",
+            "enum": [
+              "pendiente",
+              "hecho"
+            ],
+            "description": "hecho: para anotar algo que ya hiciste"
+          },
+          "fuente": {
+            "description": "Por defecto persona",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/FuenteDePaso"
+              }
+            ]
+          },
+          "contactoRedId": {
+            "type": "string",
+            "description": "La persona de tu red que lo pidió"
+          },
+          "referenciaExterna": {
+            "type": "string",
+            "maxLength": 500,
+            "description": "Correo o mensaje que lo pidió: no se duplica"
+          },
+          "pedidoEn": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Cuándo te lo pidieron"
+          },
+          "nota": {
+            "type": "string",
+            "maxLength": 1000
+          }
+        },
+        "required": [
+          "postulacionIds",
+          "descripcion"
+        ]
+      },
+      "PasoRegistradoDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "descripcion": {
+            "type": "string"
+          },
+          "plazo": {
+            "type": "string",
+            "format": "date",
+            "nullable": true
+          },
+          "diasAlPlazo": {
+            "type": "number",
+            "nullable": true,
+            "description": "Días hasta el plazo (negativo si venció)"
+          },
+          "postulacionIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "postulaciones": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PostulacionDelPasoDto"
+            }
+          },
+          "detalle": {
+            "type": "string",
+            "nullable": true
+          },
+          "enlace": {
+            "type": "string",
+            "nullable": true
+          },
+          "estado": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/EstadoDePaso"
+              }
+            ]
+          },
+          "fuente": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/FuenteDePaso"
+              }
+            ]
+          },
+          "registradoPor": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/RegistradorDePaso"
+              }
+            ]
+          },
+          "contactoRedId": {
+            "type": "string",
+            "nullable": true
+          },
+          "referenciaExterna": {
+            "type": "string",
+            "nullable": true
+          },
+          "cierre": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CierreDePasoDto"
+              }
+            ]
+          },
+          "sugerenciaCierre": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/SugerenciaDeCierreDto"
+              }
+            ]
+          },
+          "pedidoEn": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Cuándo te lo pidieron"
+          },
+          "creadoEn": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "actualizadoEn": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "version": {
+            "type": "number"
+          },
+          "yaEstaba": {
+            "type": "boolean",
+            "description": "Ese correo o mensaje ya había creado este paso"
+          }
+        },
+        "required": [
+          "id",
+          "descripcion",
+          "plazo",
+          "diasAlPlazo",
+          "postulacionIds",
+          "postulaciones",
+          "detalle",
+          "enlace",
+          "estado",
+          "fuente",
+          "registradoPor",
+          "contactoRedId",
+          "referenciaExterna",
+          "cierre",
+          "sugerenciaCierre",
+          "pedidoEn",
+          "creadoEn",
+          "actualizadoEn",
+          "version",
+          "yaEstaba"
+        ]
+      },
+      "EditarPasoDto": {
+        "type": "object",
+        "properties": {
+          "version": {
+            "type": "number"
+          },
+          "descripcion": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 120
+          },
+          "detalle": {
+            "type": "string",
+            "nullable": true,
+            "maxLength": 2000,
+            "description": "null lo borra"
+          },
+          "plazo": {
+            "type": "string",
+            "format": "date",
+            "nullable": true
+          },
+          "enlace": {
+            "type": "string",
+            "nullable": true,
+            "maxLength": 2000
+          },
+          "postulacionIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "version"
+        ]
+      },
+      "ResolverPasoDto": {
+        "type": "object",
+        "properties": {
+          "estado": {
+            "description": "pendiente lo reabre",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/EstadoDePaso"
+              }
+            ]
+          },
+          "nota": {
+            "type": "string",
+            "maxLength": 1000
+          },
+          "version": {
+            "type": "number",
+            "description": "Versión que tenías; si cambió, CONFLICTO"
+          }
+        },
+        "required": [
+          "estado"
+        ]
+      },
+      "CriterioDeEmpleo": {
+        "type": "string",
+        "enum": [
+          "titulo",
+          "modalidad_por_region",
+          "sueldo_publicado"
+        ]
+      },
+      "ReglaDePerfilDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "texto": {
+            "type": "string",
+            "description": "La regla en tus palabras"
+          },
+          "criterio": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CriterioDeEmpleo"
+              }
+            ]
+          },
+          "valor": {
+            "type": "object",
+            "description": "Según el criterio. titulo: { incluir: string[], excluir: string[] }. modalidad_por_region: { valparaiso, santiago, otra: (\"remoto\" | \"hibrido\" | \"presencial\")[], noIndicaEsPresencialEn: Plataforma[] }. sueldo_publicado: { minimo?: number } (sin mínimo, tu renta pretendida)",
+            "additionalProperties": true
+          },
+          "dura": {
+            "type": "boolean"
+          },
+          "prioridad": {
+            "type": "number"
+          },
+          "etiquetas": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "descripcion": {
+            "type": "string",
+            "description": "«Dura · Santiago solo híbrido o remoto #ubicacion»"
+          },
+          "porCodigo": {
+            "type": "boolean",
+            "description": "El código la revisa en cada postulación"
+          }
+        },
+        "required": [
+          "id",
+          "texto",
+          "dura",
+          "etiquetas",
+          "descripcion",
+          "porCodigo"
+        ]
+      },
+      "DatosDePerfilSalidaDto": {
+        "type": "object",
+        "properties": {
+          "rentaPretendida": {
+            "type": "number"
+          },
+          "disponibleDesde": {
+            "type": "string",
+            "format": "date"
+          },
+          "notas": {
+            "type": "string"
+          }
+        }
+      },
+      "CambioDePerfilDto": {
+        "type": "object",
+        "properties": {
+          "ocurridoEn": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "origen": {
+            "type": "string"
+          },
+          "motivo": {
+            "type": "string"
+          },
+          "resumen": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "ocurridoEn",
+          "origen",
+          "motivo",
+          "resumen"
+        ]
+      },
+      "EtiquetaDePerfilDto": {
+        "type": "object",
+        "properties": {
+          "etiqueta": {
+            "type": "string"
+          },
+          "total": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "etiqueta",
+          "total"
+        ]
+      },
+      "PerfilEmpleoDto": {
+        "type": "object",
+        "properties": {
+          "reglas": {
+            "description": "Duras primero; después las blandas por prioridad",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ReglaDePerfilDto"
+            }
+          },
+          "datos": {
+            "$ref": "#/components/schemas/DatosDePerfilSalidaDto"
+          },
+          "historial": {
+            "description": "Del más nuevo al más antiguo (30)",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CambioDePerfilDto"
+            }
+          },
+          "criterios": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CriterioDeEmpleo"
+            }
+          },
+          "etiquetas": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EtiquetaDePerfilDto"
+            }
+          },
+          "actualizadaEn": {
+            "type": "string",
+            "nullable": true,
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "reglas",
+          "datos",
+          "historial",
+          "criterios",
+          "etiquetas",
+          "actualizadaEn"
+        ]
+      },
+      "ReglaDePerfilEntradaDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Solo al reemplazar la lista: conserva la regla con ese id"
+          },
+          "texto": {
+            "type": "string",
+            "description": "La regla en tus palabras; con criterio y sin texto, se describe sola"
+          },
+          "criterio": {
+            "description": "Lo que el código revisa en cada postulación; sin él, la regla la aplica tu IA",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CriterioDeEmpleo"
+              }
+            ]
+          },
+          "valor": {
+            "type": "object",
+            "description": "Según el criterio. titulo: { incluir: string[], excluir: string[] }. modalidad_por_region: { valparaiso, santiago, otra: (\"remoto\" | \"hibrido\" | \"presencial\")[], noIndicaEsPresencialEn: Plataforma[] }. sueldo_publicado: { minimo?: number } (sin mínimo, tu renta pretendida)",
+            "additionalProperties": true
+          },
+          "dura": {
+            "type": "boolean",
+            "description": "true = dura (por defecto)"
+          },
+          "prioridad": {
+            "type": "number",
+            "description": "Solo blandas: 1 es la más importante"
+          },
+          "etiquetas": {
+            "description": "Etiquetas libres (minúsculas y sin tildes)",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "CambioDeReglaDePerfilDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "La regla que cambia; solo cambia lo que mandas"
+          },
+          "texto": {
+            "type": "string",
+            "description": "La regla en tus palabras; con criterio y sin texto, se describe sola"
+          },
+          "criterio": {
+            "description": "Lo que el código revisa en cada postulación; sin él, la regla la aplica tu IA",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CriterioDeEmpleo"
+              }
+            ]
+          },
+          "valor": {
+            "type": "object",
+            "description": "Según el criterio. titulo: { incluir: string[], excluir: string[] }. modalidad_por_region: { valparaiso, santiago, otra: (\"remoto\" | \"hibrido\" | \"presencial\")[], noIndicaEsPresencialEn: Plataforma[] }. sueldo_publicado: { minimo?: number } (sin mínimo, tu renta pretendida)",
+            "additionalProperties": true
+          },
+          "dura": {
+            "type": "boolean",
+            "description": "true = dura (por defecto)"
+          },
+          "prioridad": {
+            "type": "number",
+            "description": "Solo blandas: 1 es la más importante"
+          },
+          "etiquetas": {
+            "description": "Etiquetas libres (minúsculas y sin tildes)",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "id"
+        ]
+      },
+      "DatosDePerfilDto": {
+        "type": "object",
+        "properties": {
+          "rentaPretendida": {
+            "type": "number",
+            "nullable": true,
+            "description": "Pesos líquidos"
+          },
+          "disponibleDesde": {
+            "type": "string",
+            "nullable": true,
+            "format": "date"
+          },
+          "notas": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "CambiarPerfilDto": {
+        "type": "object",
+        "properties": {
+          "reglas": {
+            "description": "Reemplaza todas las reglas",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ReglaDePerfilEntradaDto"
+            }
+          },
+          "agregar": {
+            "description": "Reglas nuevas",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ReglaDePerfilEntradaDto"
+            }
+          },
+          "cambiar": {
+            "description": "Cambios a reglas existentes, por id",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CambioDeReglaDePerfilDto"
+            }
+          },
+          "quitar": {
+            "description": "Id de las reglas que se quitan",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "ordenar": {
+            "description": "Id de las blandas en el orden nuevo (P1 primero)",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "datos": {
+            "$ref": "#/components/schemas/DatosDePerfilDto"
+          },
+          "motivo": {
+            "type": "string",
+            "description": "Por qué cambia (queda en el historial)"
+          }
+        },
+        "required": [
+          "motivo"
+        ]
+      },
       "EventoDto": {
         "type": "object",
         "properties": {
@@ -2765,6 +7058,2991 @@
           "prioridad",
           "correlacionId",
           "datos"
+        ]
+      },
+      "EstadoDeConexion": {
+        "type": "string",
+        "enum": [
+          "ninguna",
+          "solicitud_enviada",
+          "solicitud_recibida",
+          "conectados",
+          "rechazada",
+          "retirada"
+        ]
+      },
+      "PendienteDeRed": {
+        "type": "string",
+        "enum": [
+          "responder",
+          "esperando"
+        ],
+        "description": "responder: te toca a ti; esperando: le toca a la otra persona"
+      },
+      "TipoDeInteraccion": {
+        "type": "string",
+        "enum": [
+          "solicitud_enviada",
+          "solicitud_recibida",
+          "solicitud_aceptada",
+          "solicitud_rechazada",
+          "solicitud_retirada",
+          "mensaje_enviado",
+          "mensaje_recibido",
+          "conversacion_cerrada",
+          "nota"
+        ]
+      },
+      "OrigenDeRed": {
+        "type": "string",
+        "enum": [
+          "consola",
+          "ia",
+          "correo"
+        ]
+      },
+      "InteraccionDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "tipo": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/TipoDeInteraccion"
+              }
+            ]
+          },
+          "resumen": {
+            "type": "string"
+          },
+          "ocurridaEn": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "origen": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/OrigenDeRed"
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "tipo",
+          "resumen",
+          "ocurridaEn",
+          "origen"
+        ]
+      },
+      "ContactoRedDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "nombre": {
+            "type": "string"
+          },
+          "perfilUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "titular": {
+            "type": "string",
+            "nullable": true
+          },
+          "empresa": {
+            "type": "string",
+            "nullable": true
+          },
+          "conexion": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/EstadoDeConexion"
+              }
+            ]
+          },
+          "pendiente": {
+            "nullable": true,
+            "description": "responder: te toca a ti; esperando: le toca a la otra persona",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PendienteDeRed"
+              }
+            ]
+          },
+          "ultimaInteraccion": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/InteraccionDto"
+              }
+            ]
+          },
+          "diasDesdeUltima": {
+            "type": "number",
+            "nullable": true
+          },
+          "seguimiento": {
+            "type": "string",
+            "nullable": true
+          },
+          "seguimientoVencido": {
+            "type": "boolean"
+          },
+          "postulacionIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "notas": {
+            "type": "string",
+            "nullable": true
+          },
+          "actualizadoEn": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "nombre",
+          "perfilUrl",
+          "titular",
+          "empresa",
+          "conexion",
+          "pendiente",
+          "ultimaInteraccion",
+          "diasDesdeUltima",
+          "seguimiento",
+          "seguimientoVencido",
+          "postulacionIds",
+          "notas",
+          "actualizadoEn"
+        ]
+      },
+      "ResumenDeRedDto": {
+        "type": "object",
+        "properties": {
+          "total": {
+            "type": "number"
+          },
+          "conectados": {
+            "type": "number"
+          },
+          "porResponder": {
+            "type": "number"
+          },
+          "esperando": {
+            "type": "number"
+          },
+          "solicitudesEnviadas": {
+            "type": "number"
+          },
+          "seguimientosVencidos": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "total",
+          "conectados",
+          "porResponder",
+          "esperando",
+          "solicitudesEnviadas",
+          "seguimientosVencidos"
+        ]
+      },
+      "ListaDeRedDto": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ContactoRedDto"
+            }
+          },
+          "resumen": {
+            "$ref": "#/components/schemas/ResumenDeRedDto"
+          }
+        },
+        "required": [
+          "items",
+          "resumen"
+        ]
+      },
+      "ContactoRedEntradaDto": {
+        "type": "object",
+        "properties": {
+          "nombre": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "perfilUrl": {
+            "type": "string",
+            "maxLength": 500,
+            "description": "linkedin.com/in/…; sin perfil, el contacto se reconoce por nombre y empresa"
+          },
+          "titular": {
+            "type": "string",
+            "maxLength": 300
+          },
+          "empresa": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "postulacionId": {
+            "type": "string",
+            "description": "Liga el contacto a esta postulación"
+          }
+        },
+        "required": [
+          "nombre"
+        ]
+      },
+      "ContactoRedRegistradoDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "nombre": {
+            "type": "string"
+          },
+          "perfilUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "titular": {
+            "type": "string",
+            "nullable": true
+          },
+          "empresa": {
+            "type": "string",
+            "nullable": true
+          },
+          "conexion": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/EstadoDeConexion"
+              }
+            ]
+          },
+          "pendiente": {
+            "nullable": true,
+            "description": "responder: te toca a ti; esperando: le toca a la otra persona",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PendienteDeRed"
+              }
+            ]
+          },
+          "ultimaInteraccion": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/InteraccionDto"
+              }
+            ]
+          },
+          "diasDesdeUltima": {
+            "type": "number",
+            "nullable": true
+          },
+          "seguimiento": {
+            "type": "string",
+            "nullable": true
+          },
+          "seguimientoVencido": {
+            "type": "boolean"
+          },
+          "postulacionIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "notas": {
+            "type": "string",
+            "nullable": true
+          },
+          "actualizadoEn": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "interacciones": {
+            "description": "De la más nueva a la más antigua",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/InteraccionDto"
+            }
+          },
+          "nuevo": {
+            "type": "boolean"
+          },
+          "cambiado": {
+            "type": "boolean",
+            "description": "false si ya estaba igual"
+          },
+          "agregada": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "nombre",
+          "perfilUrl",
+          "titular",
+          "empresa",
+          "conexion",
+          "pendiente",
+          "ultimaInteraccion",
+          "diasDesdeUltima",
+          "seguimiento",
+          "seguimientoVencido",
+          "postulacionIds",
+          "notas",
+          "actualizadoEn",
+          "interacciones"
+        ]
+      },
+      "ContactoRedDetalleDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "nombre": {
+            "type": "string"
+          },
+          "perfilUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "titular": {
+            "type": "string",
+            "nullable": true
+          },
+          "empresa": {
+            "type": "string",
+            "nullable": true
+          },
+          "conexion": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/EstadoDeConexion"
+              }
+            ]
+          },
+          "pendiente": {
+            "nullable": true,
+            "description": "responder: te toca a ti; esperando: le toca a la otra persona",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PendienteDeRed"
+              }
+            ]
+          },
+          "ultimaInteraccion": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/InteraccionDto"
+              }
+            ]
+          },
+          "diasDesdeUltima": {
+            "type": "number",
+            "nullable": true
+          },
+          "seguimiento": {
+            "type": "string",
+            "nullable": true
+          },
+          "seguimientoVencido": {
+            "type": "boolean"
+          },
+          "postulacionIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "notas": {
+            "type": "string",
+            "nullable": true
+          },
+          "actualizadoEn": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "interacciones": {
+            "description": "De la más nueva a la más antigua",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/InteraccionDto"
+            }
+          }
+        },
+        "required": [
+          "id",
+          "nombre",
+          "perfilUrl",
+          "titular",
+          "empresa",
+          "conexion",
+          "pendiente",
+          "ultimaInteraccion",
+          "diasDesdeUltima",
+          "seguimiento",
+          "seguimientoVencido",
+          "postulacionIds",
+          "notas",
+          "actualizadoEn",
+          "interacciones"
+        ]
+      },
+      "EditarContactoRedDto": {
+        "type": "object",
+        "properties": {
+          "nombre": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "perfilUrl": {
+            "type": "string",
+            "maxLength": 500,
+            "description": "Completa el perfil de LinkedIn de un contacto que no lo tenía"
+          },
+          "titular": {
+            "type": "string",
+            "maxLength": 300,
+            "nullable": true
+          },
+          "empresa": {
+            "type": "string",
+            "maxLength": 200,
+            "nullable": true
+          },
+          "notas": {
+            "type": "string",
+            "maxLength": 5000,
+            "nullable": true
+          },
+          "seguimiento": {
+            "type": "string",
+            "description": "AAAA-MM-DD, o null para quitarlo",
+            "nullable": true
+          },
+          "vincular": {
+            "type": "string",
+            "description": "Id de una postulación para ligar"
+          },
+          "desvincular": {
+            "type": "string",
+            "description": "Id de una postulación para desligar"
+          }
+        }
+      },
+      "InteraccionEntradaDto": {
+        "type": "object",
+        "properties": {
+          "tipo": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/TipoDeInteraccion"
+              }
+            ]
+          },
+          "resumen": {
+            "type": "string",
+            "maxLength": 1000
+          },
+          "ocurridaEn": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "referenciaExterna": {
+            "type": "string",
+            "maxLength": 500
+          }
+        },
+        "required": [
+          "tipo",
+          "resumen"
+        ]
+      },
+      "ImportarCsvDto": {
+        "type": "object",
+        "properties": {
+          "csv": {
+            "type": "string",
+            "description": "El contenido del archivo CSV (UTF-8, coma, con encabezado)",
+            "maxLength": 5242880
+          },
+          "tipo": {
+            "type": "string",
+            "enum": [
+              "postulaciones",
+              "contactos"
+            ],
+            "description": "Si no viene, se reconoce por el encabezado"
+          }
+        },
+        "required": [
+          "csv"
+        ]
+      },
+      "TipoCsv": {
+        "type": "string",
+        "enum": [
+          "postulaciones",
+          "contactos"
+        ]
+      },
+      "ResultadoDeFila": {
+        "type": "string",
+        "enum": [
+          "creada",
+          "ya_estaba",
+          "actualizada",
+          "error"
+        ]
+      },
+      "FilaImportadaDto": {
+        "type": "object",
+        "properties": {
+          "fila": {
+            "type": "number",
+            "description": "Línea del archivo (el encabezado es la 1)"
+          },
+          "resultado": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ResultadoDeFila"
+              }
+            ]
+          },
+          "clave": {
+            "type": "string",
+            "description": "URL del aviso o nombre del contacto"
+          },
+          "id": {
+            "type": "string"
+          },
+          "advertencias": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "codigo": {
+            "type": "string"
+          },
+          "campo": {
+            "type": "string",
+            "description": "Columna del CSV"
+          },
+          "mensaje": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "fila",
+          "resultado",
+          "clave",
+          "advertencias"
+        ]
+      },
+      "ResultadoCsvDto": {
+        "type": "object",
+        "properties": {
+          "tipo": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/TipoCsv"
+              }
+            ]
+          },
+          "creadas": {
+            "type": "number"
+          },
+          "yaEstaban": {
+            "type": "number"
+          },
+          "actualizadas": {
+            "type": "number"
+          },
+          "errores": {
+            "type": "number"
+          },
+          "conAdvertencias": {
+            "type": "number"
+          },
+          "advertencias": {
+            "description": "Del archivo entero",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "filas": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FilaImportadaDto"
+            }
+          }
+        },
+        "required": [
+          "tipo",
+          "creadas",
+          "yaEstaban",
+          "actualizadas",
+          "errores",
+          "conAdvertencias",
+          "advertencias",
+          "filas"
+        ]
+      },
+      "FotoDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "orden": {
+            "type": "number",
+            "description": "0 = portada"
+          },
+          "portada": {
+            "type": "boolean"
+          },
+          "tipo": {
+            "type": "string",
+            "enum": [
+              "image/jpeg",
+              "image/png",
+              "image/webp"
+            ]
+          },
+          "bytes": {
+            "type": "number"
+          },
+          "origen": {
+            "type": "string",
+            "enum": [
+              "url",
+              "archivo"
+            ]
+          },
+          "urlOrigen": {
+            "type": "string",
+            "nullable": true
+          },
+          "nombreOrigen": {
+            "type": "string",
+            "nullable": true
+          },
+          "creadaEn": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "orden",
+          "portada",
+          "tipo",
+          "bytes",
+          "origen",
+          "urlOrigen",
+          "nombreOrigen",
+          "creadaEn"
+        ]
+      },
+      "AgregarFotosDto": {
+        "type": "object",
+        "properties": {
+          "fuentes": {
+            "description": "URL http(s) o rutas de este equipo (/Users/…, C:\\Users\\…, ~/…, file://…). Hasta 20",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "portada": {
+            "type": "number",
+            "description": "Posición en fuentes (desde 0) de la que va de portada"
+          }
+        },
+        "required": [
+          "fuentes"
+        ]
+      },
+      "ResultadoDeFotoDto": {
+        "type": "object",
+        "properties": {
+          "fuente": {
+            "type": "string"
+          },
+          "estado": {
+            "type": "string",
+            "enum": [
+              "agregada",
+              "ya_estaba",
+              "error"
+            ]
+          },
+          "foto": {
+            "$ref": "#/components/schemas/FotoDto"
+          },
+          "codigo": {
+            "type": "string"
+          },
+          "mensaje": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "fuente",
+          "estado"
+        ]
+      },
+      "FotosAgregadasDto": {
+        "type": "object",
+        "properties": {
+          "resultados": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ResultadoDeFotoDto"
+            }
+          },
+          "fotos": {
+            "description": "Todas, de la portada a la última",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FotoDto"
+            }
+          }
+        },
+        "required": [
+          "resultados",
+          "fotos"
+        ]
+      },
+      "FotoSubidaDto": {
+        "type": "object",
+        "properties": {
+          "foto": {
+            "$ref": "#/components/schemas/FotoDto"
+          },
+          "yaEstaba": {
+            "type": "boolean",
+            "description": "true si ya estaba (mismo contenido)"
+          }
+        },
+        "required": [
+          "foto",
+          "yaEstaba"
+        ]
+      },
+      "EstadoPropiedad": {
+        "type": "string",
+        "enum": [
+          "vista",
+          "contactada",
+          "visita_agendada",
+          "visitada",
+          "en_evaluacion",
+          "aprobada",
+          "arrendada",
+          "rechazada",
+          "descartada",
+          "no_disponible"
+        ]
+      },
+      "TipoDePropiedad": {
+        "type": "string",
+        "enum": [
+          "departamento",
+          "casa",
+          "pieza",
+          "otro"
+        ]
+      },
+      "UbicacionDto": {
+        "type": "object",
+        "properties": {
+          "lat": {
+            "type": "number"
+          },
+          "lon": {
+            "type": "number"
+          },
+          "origen": {
+            "type": "string",
+            "enum": [
+              "geocodificada",
+              "manual",
+              "comuna"
+            ]
+          }
+        },
+        "required": [
+          "lat",
+          "lon",
+          "origen"
+        ]
+      },
+      "MonedaArriendo": {
+        "type": "string",
+        "enum": [
+          "CLP",
+          "UF"
+        ]
+      },
+      "PrecioSalidaDto": {
+        "type": "object",
+        "properties": {
+          "monto": {
+            "type": "number"
+          },
+          "moneda": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/MonedaArriendo"
+              }
+            ]
+          }
+        },
+        "required": [
+          "monto",
+          "moneda"
+        ]
+      },
+      "CriterioDeBusqueda": {
+        "type": "string",
+        "enum": [
+          "presupuesto_total",
+          "gastos_comunes",
+          "comuna",
+          "tipo",
+          "dormitorios",
+          "banos",
+          "m2",
+          "mascota",
+          "estacionamiento",
+          "amoblado",
+          "renta_exigida",
+          "aval",
+          "disponible_desde"
+        ]
+      },
+      "BrechaDto": {
+        "type": "object",
+        "properties": {
+          "reglaId": {
+            "type": "string"
+          },
+          "criterio": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CriterioDeBusqueda"
+              }
+            ]
+          },
+          "dura": {
+            "type": "boolean"
+          },
+          "prioridad": {
+            "type": "number"
+          },
+          "texto": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "reglaId",
+          "criterio",
+          "dura",
+          "texto"
+        ]
+      },
+      "SinDatoDto": {
+        "type": "object",
+        "properties": {
+          "reglaId": {
+            "type": "string"
+          },
+          "criterio": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CriterioDeBusqueda"
+              }
+            ]
+          },
+          "texto": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "reglaId",
+          "criterio",
+          "texto"
+        ]
+      },
+      "CalceDto": {
+        "type": "object",
+        "properties": {
+          "puntaje": {
+            "type": "number",
+            "nullable": true,
+            "description": "0 a 100"
+          },
+          "cumpleDuras": {
+            "type": "boolean"
+          },
+          "brechas": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BrechaDto"
+            }
+          },
+          "sinDato": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SinDatoDto"
+            }
+          }
+        },
+        "required": [
+          "puntaje",
+          "cumpleDuras",
+          "brechas",
+          "sinDato"
+        ]
+      },
+      "PropiedadDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "titulo": {
+            "type": "string"
+          },
+          "tipo": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/TipoDePropiedad"
+              }
+            ]
+          },
+          "estado": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/EstadoPropiedad"
+              }
+            ]
+          },
+          "transicionesPosibles": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EstadoPropiedad"
+            }
+          },
+          "comuna": {
+            "type": "string",
+            "nullable": true
+          },
+          "direccion": {
+            "type": "string",
+            "nullable": true
+          },
+          "ubicacion": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/UbicacionDto"
+              }
+            ]
+          },
+          "precio": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PrecioSalidaDto"
+              }
+            ]
+          },
+          "precioPesos": {
+            "type": "number",
+            "nullable": true
+          },
+          "gastosComunes": {
+            "type": "number",
+            "nullable": true
+          },
+          "dormitorios": {
+            "type": "number",
+            "nullable": true
+          },
+          "banos": {
+            "type": "number",
+            "nullable": true
+          },
+          "m2": {
+            "type": "number",
+            "nullable": true
+          },
+          "calce": {
+            "$ref": "#/components/schemas/CalceDto"
+          },
+          "pendiente": {
+            "type": "string",
+            "nullable": true,
+            "enum": [
+              "responder",
+              "esperando"
+            ]
+          },
+          "canales": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "cantidadContactos": {
+            "type": "number"
+          },
+          "proximaVisita": {
+            "type": "string",
+            "nullable": true,
+            "format": "date-time"
+          },
+          "discrepanciasAbiertas": {
+            "type": "number"
+          },
+          "senalesSinAplicar": {
+            "type": "number"
+          },
+          "motivoCierre": {
+            "type": "string",
+            "nullable": true
+          },
+          "portada": {
+            "type": "string",
+            "nullable": true,
+            "description": "Id de la foto de portada (la primera); null sin fotos"
+          },
+          "cantidadFotos": {
+            "type": "number"
+          },
+          "version": {
+            "type": "number"
+          },
+          "actualizadaEn": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "titulo",
+          "tipo",
+          "estado",
+          "transicionesPosibles",
+          "comuna",
+          "direccion",
+          "ubicacion",
+          "precio",
+          "precioPesos",
+          "gastosComunes",
+          "dormitorios",
+          "banos",
+          "m2",
+          "calce",
+          "pendiente",
+          "canales",
+          "cantidadContactos",
+          "proximaVisita",
+          "discrepanciasAbiertas",
+          "senalesSinAplicar",
+          "motivoCierre",
+          "portada",
+          "cantidadFotos",
+          "version",
+          "actualizadaEn"
+        ]
+      },
+      "ResumenArriendosDto": {
+        "type": "object",
+        "properties": {
+          "total": {
+            "type": "number"
+          },
+          "abiertas": {
+            "type": "number"
+          },
+          "porEstado": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "number"
+            }
+          },
+          "porResponder": {
+            "type": "number"
+          },
+          "bandeja": {
+            "type": "number"
+          },
+          "discrepancias": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "total",
+          "abiertas",
+          "porEstado",
+          "porResponder",
+          "bandeja",
+          "discrepancias"
+        ]
+      },
+      "ListaPropiedadesDto": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PropiedadDto"
+            }
+          },
+          "resumen": {
+            "$ref": "#/components/schemas/ResumenArriendosDto"
+          }
+        },
+        "required": [
+          "items",
+          "resumen"
+        ]
+      },
+      "PrecioDto": {
+        "type": "object",
+        "properties": {
+          "monto": {
+            "type": "number"
+          },
+          "moneda": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/MonedaArriendo"
+              }
+            ]
+          }
+        },
+        "required": [
+          "monto",
+          "moneda"
+        ]
+      },
+      "RequisitosDto": {
+        "type": "object",
+        "properties": {
+          "rentaVeces": {
+            "type": "number",
+            "nullable": true,
+            "description": "Renta líquida mínima en veces el arriendo"
+          },
+          "aval": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "mesesGarantia": {
+            "type": "number",
+            "nullable": true
+          },
+          "comisionMeses": {
+            "type": "number",
+            "nullable": true,
+            "description": "Comisión de corretaje en meses"
+          },
+          "documentos": {
+            "nullable": true,
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "PublicacionEntradaDto": {
+        "type": "object",
+        "properties": {
+          "canalId": {
+            "type": "string",
+            "description": "Id del canal; sin él se reconoce por la URL"
+          },
+          "url": {
+            "type": "string"
+          },
+          "precio": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PrecioDto"
+              }
+            ]
+          }
+        }
+      },
+      "RolDeContacto": {
+        "type": "string",
+        "enum": [
+          "corredor",
+          "dueno",
+          "conserje",
+          "administracion",
+          "otro"
+        ]
+      },
+      "ContactoPropiedadEntradaDto": {
+        "type": "object",
+        "properties": {
+          "nombre": {
+            "type": "string"
+          },
+          "rol": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/RolDeContacto"
+              }
+            ]
+          },
+          "telefono": {
+            "type": "string"
+          },
+          "correo": {
+            "type": "string"
+          },
+          "whatsapp": {
+            "type": "string"
+          },
+          "enlace": {
+            "type": "string",
+            "description": "Formulario o link donde postulaste"
+          },
+          "linkedin": {
+            "type": "string"
+          },
+          "canalId": {
+            "type": "string",
+            "description": "Por dónde hablan (id de un canal)"
+          }
+        },
+        "required": [
+          "nombre"
+        ]
+      },
+      "CrearPropiedadDto": {
+        "type": "object",
+        "properties": {
+          "tipo": {
+            "nullable": true,
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/TipoDePropiedad"
+              }
+            ]
+          },
+          "titulo": {
+            "type": "string",
+            "nullable": true
+          },
+          "direccion": {
+            "type": "string",
+            "nullable": true
+          },
+          "comuna": {
+            "type": "string",
+            "nullable": true
+          },
+          "precio": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PrecioDto"
+              }
+            ]
+          },
+          "gastosComunes": {
+            "type": "number",
+            "nullable": true
+          },
+          "m2Utiles": {
+            "type": "number",
+            "nullable": true
+          },
+          "m2Totales": {
+            "type": "number",
+            "nullable": true
+          },
+          "dormitorios": {
+            "type": "number",
+            "nullable": true
+          },
+          "banos": {
+            "type": "number",
+            "nullable": true
+          },
+          "estacionamientos": {
+            "type": "number",
+            "nullable": true
+          },
+          "bodega": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "amoblado": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "mascotas": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "disponibleDesde": {
+            "type": "string",
+            "nullable": true,
+            "description": "AAAA-MM-DD"
+          },
+          "descripcion": {
+            "type": "string",
+            "nullable": true
+          },
+          "requisitos": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/RequisitosDto"
+              }
+            ]
+          },
+          "estado": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/EstadoPropiedad"
+              }
+            ]
+          },
+          "publicacion": {
+            "$ref": "#/components/schemas/PublicacionEntradaDto"
+          },
+          "contactos": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ContactoPropiedadEntradaDto"
+            }
+          },
+          "nota": {
+            "type": "string"
+          },
+          "unirA": {
+            "type": "string",
+            "description": "Une la publicación a esta propiedad en vez de crear otra"
+          }
+        }
+      },
+      "RequisitosSalidaDto": {
+        "type": "object",
+        "properties": {
+          "rentaVeces": {
+            "type": "number"
+          },
+          "aval": {
+            "type": "boolean"
+          },
+          "mesesGarantia": {
+            "type": "number"
+          },
+          "comisionMeses": {
+            "type": "number"
+          },
+          "documentos": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "PublicacionDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "canalId": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          },
+          "precio": {
+            "$ref": "#/components/schemas/PrecioSalidaDto"
+          },
+          "vistaEn": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "canalId",
+          "vistaEn"
+        ]
+      },
+      "TipoDeInteraccionArriendo": {
+        "type": "string",
+        "enum": [
+          "mensaje_enviado",
+          "mensaje_recibido",
+          "llamada",
+          "nota"
+        ]
+      },
+      "InteraccionArriendoDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "tipo": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/TipoDeInteraccionArriendo"
+              }
+            ]
+          },
+          "resumen": {
+            "type": "string"
+          },
+          "ocurridaEn": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "canalId": {
+            "type": "string"
+          },
+          "origen": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "tipo",
+          "resumen",
+          "ocurridaEn",
+          "origen"
+        ]
+      },
+      "ContactoPropiedadDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "nombre": {
+            "type": "string"
+          },
+          "rol": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/RolDeContacto"
+              }
+            ]
+          },
+          "telefono": {
+            "type": "string"
+          },
+          "correo": {
+            "type": "string"
+          },
+          "whatsapp": {
+            "type": "string"
+          },
+          "enlace": {
+            "type": "string"
+          },
+          "linkedin": {
+            "type": "string"
+          },
+          "canalId": {
+            "type": "string"
+          },
+          "interacciones": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/InteraccionArriendoDto"
+            }
+          }
+        },
+        "required": [
+          "id",
+          "nombre",
+          "rol",
+          "interacciones"
+        ]
+      },
+      "VisitaDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "fecha": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "estado": {
+            "type": "string",
+            "enum": [
+              "agendada",
+              "hecha",
+              "cancelada"
+            ]
+          },
+          "notas": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "fecha",
+          "estado"
+        ]
+      },
+      "NotaArriendoDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "texto": {
+            "type": "string"
+          },
+          "creadaEn": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "texto",
+          "creadaEn"
+        ]
+      },
+      "CambioPropiedadDto": {
+        "type": "object",
+        "properties": {
+          "de": {
+            "type": "string",
+            "nullable": true
+          },
+          "a": {
+            "type": "string"
+          },
+          "motivo": {
+            "type": "string"
+          },
+          "origen": {
+            "type": "string"
+          },
+          "ocurridoEn": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "de",
+          "a",
+          "origen",
+          "ocurridoEn"
+        ]
+      },
+      "FuenteDeSenalArriendo": {
+        "type": "string",
+        "enum": [
+          "correo",
+          "portal",
+          "mensajeria",
+          "manual",
+          "ia"
+        ]
+      },
+      "SenalDePropiedadDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "fuente": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/FuenteDeSenalArriendo"
+              }
+            ]
+          },
+          "canalId": {
+            "type": "string"
+          },
+          "resumen": {
+            "type": "string"
+          },
+          "estadoSugerido": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/EstadoPropiedad"
+              }
+            ]
+          },
+          "confianza": {
+            "type": "number"
+          },
+          "remitente": {
+            "type": "string"
+          },
+          "asunto": {
+            "type": "string"
+          },
+          "recibidaEn": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "aplicada": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "fuente",
+          "resumen",
+          "confianza",
+          "recibidaEn",
+          "aplicada"
+        ]
+      },
+      "DiscrepanciaArriendoDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "regla": {
+            "type": "string",
+            "enum": [
+              "contra_senal",
+              "visita_sin_registro"
+            ]
+          },
+          "detalle": {
+            "type": "string"
+          },
+          "estado": {
+            "type": "string",
+            "enum": [
+              "abierta",
+              "resuelta"
+            ]
+          },
+          "detectadaEn": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "regla",
+          "detalle",
+          "estado",
+          "detectadaEn"
+        ]
+      },
+      "PropiedadDetalleDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "titulo": {
+            "type": "string"
+          },
+          "tipo": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/TipoDePropiedad"
+              }
+            ]
+          },
+          "estado": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/EstadoPropiedad"
+              }
+            ]
+          },
+          "transicionesPosibles": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EstadoPropiedad"
+            }
+          },
+          "comuna": {
+            "type": "string",
+            "nullable": true
+          },
+          "direccion": {
+            "type": "string",
+            "nullable": true
+          },
+          "ubicacion": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/UbicacionDto"
+              }
+            ]
+          },
+          "precio": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PrecioSalidaDto"
+              }
+            ]
+          },
+          "precioPesos": {
+            "type": "number",
+            "nullable": true
+          },
+          "gastosComunes": {
+            "type": "number",
+            "nullable": true
+          },
+          "dormitorios": {
+            "type": "number",
+            "nullable": true
+          },
+          "banos": {
+            "type": "number",
+            "nullable": true
+          },
+          "m2": {
+            "type": "number",
+            "nullable": true
+          },
+          "calce": {
+            "$ref": "#/components/schemas/CalceDto"
+          },
+          "pendiente": {
+            "type": "string",
+            "nullable": true,
+            "enum": [
+              "responder",
+              "esperando"
+            ]
+          },
+          "canales": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "cantidadContactos": {
+            "type": "number"
+          },
+          "proximaVisita": {
+            "type": "string",
+            "nullable": true,
+            "format": "date-time"
+          },
+          "discrepanciasAbiertas": {
+            "type": "number"
+          },
+          "senalesSinAplicar": {
+            "type": "number"
+          },
+          "motivoCierre": {
+            "type": "string",
+            "nullable": true
+          },
+          "portada": {
+            "type": "string",
+            "nullable": true,
+            "description": "Id de la foto de portada (la primera); null sin fotos"
+          },
+          "cantidadFotos": {
+            "type": "number"
+          },
+          "version": {
+            "type": "number"
+          },
+          "actualizadaEn": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "m2Utiles": {
+            "type": "number"
+          },
+          "m2Totales": {
+            "type": "number"
+          },
+          "estacionamientos": {
+            "type": "number"
+          },
+          "bodega": {
+            "type": "boolean"
+          },
+          "amoblado": {
+            "type": "boolean"
+          },
+          "mascotas": {
+            "type": "boolean"
+          },
+          "disponibleDesde": {
+            "type": "string"
+          },
+          "descripcion": {
+            "type": "string"
+          },
+          "requisitos": {
+            "$ref": "#/components/schemas/RequisitosSalidaDto"
+          },
+          "publicaciones": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PublicacionDto"
+            }
+          },
+          "contactos": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ContactoPropiedadDto"
+            }
+          },
+          "visitas": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/VisitaDto"
+            }
+          },
+          "documentosEnviados": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "notas": {
+            "description": "De la más nueva a la más antigua",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/NotaArriendoDto"
+            }
+          },
+          "cambios": {
+            "description": "Del más nuevo al más antiguo",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CambioPropiedadDto"
+            }
+          },
+          "senales": {
+            "description": "De la más nueva a la más antigua",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SenalDePropiedadDto"
+            }
+          },
+          "discrepancias": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DiscrepanciaArriendoDto"
+            }
+          },
+          "fotos": {
+            "description": "De la portada a la última",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FotoDto"
+            }
+          },
+          "creadaEn": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "titulo",
+          "tipo",
+          "estado",
+          "transicionesPosibles",
+          "comuna",
+          "direccion",
+          "ubicacion",
+          "precio",
+          "precioPesos",
+          "gastosComunes",
+          "dormitorios",
+          "banos",
+          "m2",
+          "calce",
+          "pendiente",
+          "canales",
+          "cantidadContactos",
+          "proximaVisita",
+          "discrepanciasAbiertas",
+          "senalesSinAplicar",
+          "motivoCierre",
+          "portada",
+          "cantidadFotos",
+          "version",
+          "actualizadaEn",
+          "requisitos",
+          "publicaciones",
+          "contactos",
+          "visitas",
+          "documentosEnviados",
+          "notas",
+          "cambios",
+          "senales",
+          "discrepancias",
+          "fotos",
+          "creadaEn"
+        ]
+      },
+      "PropiedadCreadaDto": {
+        "type": "object",
+        "properties": {
+          "propiedad": {
+            "$ref": "#/components/schemas/PropiedadDetalleDto"
+          },
+          "posiblesDuplicados": {
+            "description": "Mismas dirección o pin cercano: ¿es la misma?",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PropiedadDto"
+            }
+          },
+          "unida": {
+            "type": "boolean",
+            "description": "true si se unió a una existente (unirA)"
+          }
+        },
+        "required": [
+          "propiedad",
+          "posiblesDuplicados",
+          "unida"
+        ]
+      },
+      "DuplicadosDto": {
+        "type": "object",
+        "properties": {
+          "seguro": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PropiedadDto"
+              }
+            ]
+          },
+          "candidatos": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PropiedadDto"
+            }
+          }
+        },
+        "required": [
+          "seguro",
+          "candidatos"
+        ]
+      },
+      "EditarPropiedadDto": {
+        "type": "object",
+        "properties": {
+          "tipo": {
+            "nullable": true,
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/TipoDePropiedad"
+              }
+            ]
+          },
+          "titulo": {
+            "type": "string",
+            "nullable": true
+          },
+          "direccion": {
+            "type": "string",
+            "nullable": true
+          },
+          "comuna": {
+            "type": "string",
+            "nullable": true
+          },
+          "precio": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PrecioDto"
+              }
+            ]
+          },
+          "gastosComunes": {
+            "type": "number",
+            "nullable": true
+          },
+          "m2Utiles": {
+            "type": "number",
+            "nullable": true
+          },
+          "m2Totales": {
+            "type": "number",
+            "nullable": true
+          },
+          "dormitorios": {
+            "type": "number",
+            "nullable": true
+          },
+          "banos": {
+            "type": "number",
+            "nullable": true
+          },
+          "estacionamientos": {
+            "type": "number",
+            "nullable": true
+          },
+          "bodega": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "amoblado": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "mascotas": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "disponibleDesde": {
+            "type": "string",
+            "nullable": true,
+            "description": "AAAA-MM-DD"
+          },
+          "descripcion": {
+            "type": "string",
+            "nullable": true
+          },
+          "requisitos": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/RequisitosDto"
+              }
+            ]
+          },
+          "version": {
+            "type": "number",
+            "description": "Versión leída (control optimista)"
+          }
+        }
+      },
+      "CambiarEstadoPropiedadDto": {
+        "type": "object",
+        "properties": {
+          "a": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/EstadoPropiedad"
+              }
+            ]
+          },
+          "motivo": {
+            "type": "string"
+          },
+          "fechaVisita": {
+            "type": "string",
+            "description": "Fecha y hora ISO de la visita (para visita_agendada)"
+          },
+          "documentos": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "version": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "a"
+        ]
+      },
+      "UnirDto": {
+        "type": "object",
+        "properties": {
+          "origenId": {
+            "type": "string",
+            "description": "La propiedad duplicada que se suma a esta y desaparece"
+          }
+        },
+        "required": [
+          "origenId"
+        ]
+      },
+      "ContactoRegistradoDto": {
+        "type": "object",
+        "properties": {
+          "contactoId": {
+            "type": "string"
+          },
+          "propiedad": {
+            "$ref": "#/components/schemas/PropiedadDetalleDto"
+          }
+        },
+        "required": [
+          "contactoId",
+          "propiedad"
+        ]
+      },
+      "InteraccionArriendoEntradaDto": {
+        "type": "object",
+        "properties": {
+          "contactoId": {
+            "type": "string"
+          },
+          "contacto": {
+            "$ref": "#/components/schemas/ContactoPropiedadEntradaDto"
+          },
+          "tipo": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/TipoDeInteraccionArriendo"
+              }
+            ]
+          },
+          "resumen": {
+            "type": "string"
+          },
+          "ocurridaEn": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "canalId": {
+            "type": "string"
+          },
+          "referenciaExterna": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "tipo",
+          "resumen"
+        ]
+      },
+      "InteraccionRegistradaDto": {
+        "type": "object",
+        "properties": {
+          "registrada": {
+            "type": "boolean"
+          },
+          "propiedad": {
+            "$ref": "#/components/schemas/PropiedadDetalleDto"
+          }
+        },
+        "required": [
+          "registrada",
+          "propiedad"
+        ]
+      },
+      "VisitaEntradaDto": {
+        "type": "object",
+        "properties": {
+          "fecha": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "notas": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "fecha"
+        ]
+      },
+      "EstadoVisitaDto": {
+        "type": "object",
+        "properties": {
+          "estado": {
+            "type": "string",
+            "enum": [
+              "agendada",
+              "hecha",
+              "cancelada"
+            ]
+          }
+        },
+        "required": [
+          "estado"
+        ]
+      },
+      "TextoDto": {
+        "type": "object",
+        "properties": {
+          "texto": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "texto"
+        ]
+      },
+      "UbicacionEntradaDto": {
+        "type": "object",
+        "properties": {
+          "lat": {
+            "type": "number"
+          },
+          "lon": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "lat",
+          "lon"
+        ]
+      },
+      "SenalArriendoEntradaDto": {
+        "type": "object",
+        "properties": {
+          "propiedadId": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string",
+            "description": "URL de la publicación: ubica la propiedad si ya la sigues"
+          },
+          "fuente": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/FuenteDeSenalArriendo"
+              }
+            ]
+          },
+          "resumen": {
+            "type": "string"
+          },
+          "estadoSugerido": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/EstadoPropiedad"
+              }
+            ]
+          },
+          "confianza": {
+            "type": "number"
+          },
+          "canalId": {
+            "type": "string"
+          },
+          "referenciaExterna": {
+            "type": "string"
+          },
+          "remitente": {
+            "type": "string"
+          },
+          "asunto": {
+            "type": "string"
+          },
+          "recibidaEn": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "direccion": {
+            "type": "string"
+          },
+          "comuna": {
+            "type": "string"
+          },
+          "contacto": {
+            "$ref": "#/components/schemas/ContactoPropiedadEntradaDto"
+          }
+        },
+        "required": [
+          "fuente",
+          "resumen"
+        ]
+      },
+      "ResultadoSenalArriendoDto": {
+        "type": "object",
+        "properties": {
+          "destino": {
+            "type": "string",
+            "enum": [
+              "propiedad",
+              "bandeja",
+              "repetida"
+            ]
+          },
+          "propiedadId": {
+            "type": "string"
+          },
+          "aplicada": {
+            "type": "boolean"
+          },
+          "senalId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "destino"
+        ]
+      },
+      "ContactoDetectadoDto": {
+        "type": "object",
+        "properties": {
+          "nombre": {
+            "type": "string"
+          },
+          "telefono": {
+            "type": "string"
+          },
+          "correo": {
+            "type": "string"
+          }
+        }
+      },
+      "SenalArriendoPendienteDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "estado": {
+            "type": "string",
+            "enum": [
+              "pendiente",
+              "asociada",
+              "descartada"
+            ]
+          },
+          "fuente": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/FuenteDeSenalArriendo"
+              }
+            ]
+          },
+          "canalId": {
+            "type": "string"
+          },
+          "resumen": {
+            "type": "string"
+          },
+          "estadoSugerido": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/EstadoPropiedad"
+              }
+            ]
+          },
+          "confianza": {
+            "type": "number"
+          },
+          "remitente": {
+            "type": "string"
+          },
+          "asunto": {
+            "type": "string"
+          },
+          "recibidaEn": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "urlDetectada": {
+            "type": "string"
+          },
+          "direccionDetectada": {
+            "type": "string"
+          },
+          "comunaDetectada": {
+            "type": "string"
+          },
+          "contactoDetectado": {
+            "$ref": "#/components/schemas/ContactoDetectadoDto"
+          },
+          "creadaEn": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "estado",
+          "fuente",
+          "resumen",
+          "confianza",
+          "recibidaEn",
+          "creadaEn"
+        ]
+      },
+      "AsociarSenalArriendoDto": {
+        "type": "object",
+        "properties": {
+          "propiedadId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "propiedadId"
+        ]
+      },
+      "TipoDeCanalArriendo": {
+        "type": "string",
+        "enum": [
+          "portal",
+          "mensajeria",
+          "correo",
+          "telefono",
+          "corredora",
+          "otro"
+        ]
+      },
+      "CanalArriendoDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "nombre": {
+            "type": "string"
+          },
+          "tipo": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/TipoDeCanalArriendo"
+              }
+            ]
+          },
+          "dominios": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "activo": {
+            "type": "boolean"
+          },
+          "predefinido": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "nombre",
+          "tipo",
+          "dominios",
+          "activo",
+          "predefinido"
+        ]
+      },
+      "CanalArriendoEntradaDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "minúsculas y guiones; si falta sale del nombre"
+          },
+          "nombre": {
+            "type": "string"
+          },
+          "tipo": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/TipoDeCanalArriendo"
+              }
+            ]
+          },
+          "dominios": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "nombre"
+        ]
+      },
+      "EditarCanalArriendoDto": {
+        "type": "object",
+        "properties": {
+          "nombre": {
+            "type": "string"
+          },
+          "tipo": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/TipoDeCanalArriendo"
+              }
+            ]
+          },
+          "dominios": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "activo": {
+            "type": "boolean"
+          }
+        }
+      },
+      "ReglaDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "texto": {
+            "type": "string",
+            "description": "La regla en tus palabras"
+          },
+          "criterio": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CriterioDeBusqueda"
+              }
+            ]
+          },
+          "valor": {
+            "oneOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "string"
+              },
+              {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            ]
+          },
+          "dura": {
+            "type": "boolean"
+          },
+          "prioridad": {
+            "type": "number"
+          },
+          "etiquetas": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "descripcion": {
+            "type": "string",
+            "description": "«Dura · Arriendo más gastos comunes hasta $650.000 #plata»"
+          }
+        },
+        "required": [
+          "id",
+          "texto",
+          "dura",
+          "etiquetas",
+          "descripcion"
+        ]
+      },
+      "PersonaSalidaDto": {
+        "type": "object",
+        "properties": {
+          "rentaLiquida": {
+            "type": "number"
+          },
+          "tieneAval": {
+            "type": "boolean"
+          },
+          "tieneMascota": {
+            "type": "boolean"
+          }
+        }
+      },
+      "CambioDeBusquedaDto": {
+        "type": "object",
+        "properties": {
+          "ocurridoEn": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "origen": {
+            "type": "string"
+          },
+          "motivo": {
+            "type": "string"
+          },
+          "resumen": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "ocurridoEn",
+          "origen",
+          "motivo",
+          "resumen"
+        ]
+      },
+      "UfDto": {
+        "type": "object",
+        "properties": {
+          "valor": {
+            "type": "number"
+          },
+          "fecha": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "valor",
+          "fecha"
+        ]
+      },
+      "BusquedaDto": {
+        "type": "object",
+        "properties": {
+          "reglas": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ReglaDto"
+            }
+          },
+          "persona": {
+            "$ref": "#/components/schemas/PersonaSalidaDto"
+          },
+          "historial": {
+            "description": "Del más nuevo al más antiguo (30)",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CambioDeBusquedaDto"
+            }
+          },
+          "criteriosSugeridos": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CriterioDeBusqueda"
+            }
+          },
+          "criterios": {
+            "type": "array",
+            "description": "Todos los criterios",
+            "items": {
+              "$ref": "#/components/schemas/CriterioDeBusqueda"
+            }
+          },
+          "uf": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/UfDto"
+              }
+            ]
+          },
+          "geocodificar": {
+            "type": "boolean",
+            "description": "Ubicar direcciones con Nominatim (OpenStreetMap)"
+          },
+          "actualizadaEn": {
+            "type": "string",
+            "nullable": true,
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "reglas",
+          "persona",
+          "historial",
+          "criteriosSugeridos",
+          "criterios",
+          "uf",
+          "geocodificar",
+          "actualizadaEn"
+        ]
+      },
+      "ReglaEntradaDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Solo al reemplazar la lista: conserva la regla con ese id"
+          },
+          "texto": {
+            "type": "string",
+            "description": "La regla en tus palabras; con criterio y sin texto, se describe sola"
+          },
+          "criterio": {
+            "description": "Lo que el código revisa en el calce; sin él, la regla la aplica tu IA",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CriterioDeBusqueda"
+              }
+            ]
+          },
+          "valor": {
+            "description": "Monto máximo, mínimo, lista de opciones, sí/no o fecha; nada en renta_exigida y aval",
+            "oneOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "string"
+              },
+              {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            ]
+          },
+          "dura": {
+            "type": "boolean",
+            "description": "true = dura (por defecto)"
+          },
+          "prioridad": {
+            "type": "number",
+            "description": "Solo blandas: 1 es la más importante"
+          },
+          "etiquetas": {
+            "description": "Etiquetas libres (minúsculas y sin tildes)",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "CambioDeReglaDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "La regla que cambia; solo cambia lo que mandas"
+          },
+          "texto": {
+            "type": "string",
+            "description": "La regla en tus palabras; con criterio y sin texto, se describe sola"
+          },
+          "criterio": {
+            "description": "Lo que el código revisa en el calce; sin él, la regla la aplica tu IA",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CriterioDeBusqueda"
+              }
+            ]
+          },
+          "valor": {
+            "description": "Monto máximo, mínimo, lista de opciones, sí/no o fecha; nada en renta_exigida y aval",
+            "oneOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "string"
+              },
+              {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            ]
+          },
+          "dura": {
+            "type": "boolean",
+            "description": "true = dura (por defecto)"
+          },
+          "prioridad": {
+            "type": "number",
+            "description": "Solo blandas: 1 es la más importante"
+          },
+          "etiquetas": {
+            "description": "Etiquetas libres (minúsculas y sin tildes)",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "id"
+        ]
+      },
+      "PersonaDto": {
+        "type": "object",
+        "properties": {
+          "rentaLiquida": {
+            "type": "number",
+            "nullable": true
+          },
+          "tieneAval": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "tieneMascota": {
+            "type": "boolean",
+            "nullable": true
+          }
+        }
+      },
+      "CambiarBusquedaDto": {
+        "type": "object",
+        "properties": {
+          "reglas": {
+            "description": "Reemplaza todas las reglas",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ReglaEntradaDto"
+            }
+          },
+          "agregar": {
+            "description": "Reglas nuevas",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ReglaEntradaDto"
+            }
+          },
+          "cambiar": {
+            "description": "Cambios a reglas existentes, por id",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CambioDeReglaDto"
+            }
+          },
+          "quitar": {
+            "description": "Id de las reglas que se quitan",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "ordenar": {
+            "description": "Id de las blandas en el orden nuevo (P1 primero)",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "persona": {
+            "$ref": "#/components/schemas/PersonaDto"
+          },
+          "motivo": {
+            "type": "string",
+            "description": "Por qué cambia (queda en el historial)"
+          }
+        },
+        "required": [
+          "motivo"
+        ]
+      },
+      "UfEntradaDto": {
+        "type": "object",
+        "properties": {
+          "valor": {
+            "type": "number"
+          },
+          "fecha": {
+            "type": "string",
+            "description": "AAAA-MM-DD"
+          }
+        },
+        "required": [
+          "valor",
+          "fecha"
+        ]
+      },
+      "GeocodificarDto": {
+        "type": "object",
+        "properties": {
+          "activo": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "activo"
+        ]
+      },
+      "UbicarPendientesDto": {
+        "type": "object",
+        "properties": {
+          "pendientes": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "pendientes"
+        ]
+      },
+      "MapaArriendosDto": {
+        "type": "object",
+        "properties": {
+          "ubicadas": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PropiedadDto"
+            }
+          },
+          "sinUbicar": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PropiedadDto"
+            }
+          }
+        },
+        "required": [
+          "ubicadas",
+          "sinUbicar"
         ]
       }
     }

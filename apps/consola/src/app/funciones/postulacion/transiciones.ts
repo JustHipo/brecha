@@ -12,6 +12,8 @@ export interface Sujeto {
   estado: EstadoPostulacion;
   fechaPostulacion: string | null;
   transicionesPosibles: EstadoPostulacion[];
+  /** Lo que te piden: al cerrarla se ofrece descartarlo (pasos.md R17). */
+  pasosPendientes?: { descripcion: string }[];
 }
 
 export type DatosExtra = Omit<Transicion, 'a' | 'version' | 'origen'>;
@@ -32,7 +34,11 @@ export class Transiciones {
       return r ?? null;
     }
     if (a === 'rechazado' || a === 'descartado') {
-      const r = await this.dialogos.abrir<{ motivo: string }, object>(DialogoCerrar, { ...ctx, a });
+      const pasos = (p.pasosPendientes ?? []).map((x) => x.descripcion);
+      const r = await this.dialogos.abrir<{ motivo: string; descartarPasos?: boolean }, object>(
+        DialogoCerrar,
+        { ...ctx, a, pasos },
+      );
       return r ?? null;
     }
     return {};

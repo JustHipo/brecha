@@ -140,6 +140,9 @@ Todos validan en el cliente lo que el dominio exige (para no hacer viajes de má
 - Toast para el resultado de cada acción y para los errores de la API (mensaje por `codigo`, traducido).
 - Errores de red: banda persistente arriba con reintento, no un toast que se pierde.
 
+### 4.8 Recorrido guiado
+Ocho popups que salen la primera vez que se abre la consola, cada uno anclado a un elemento real con `data-tutorial="<ancla>"`: bienvenida (`marca`), tablero (`tablero`: la primera columna o el tablero vacío), nueva postulación (`nueva`), ficha (`ficha`: la primera tarjeta; sin tarjetas, el tablero), Bandeja (`bandeja`), red (`red`), Ajustes (`ajustes`) e importar (`importar`). Los pasos viven en `funciones/recorrido/pasos.ts`; si un ancla no aparece, el paso sale al centro. Se recuerda en `localStorage` (`brecha.recorrido`, con versión: subirla lo vuelve a mostrar una vez) y se vuelve a ver desde Ajustes o desde la búsqueda («recorrido»). Modal accesible: foco atrapado, Escape cierra, flechas para avanzar y retroceder, cada paso anunciado a los lectores de pantalla y sin animaciones con «reducir movimiento».
+
 ## 5. Pantallas de F2 y F3 (qué muestran)
 
 | Pantalla | Qué muestra | Acciones |
@@ -152,6 +155,13 @@ Todos validan en el cliente lo que el dominio exige (para no hacer viajes de má
 | Ajustes (F3) | Clave local, aplicar señales seguras y umbral, frecuencia del vigía, hooks, resumen diario, idioma, tokens de MCP y del vigía (regenerar) | Guardar |
 
 Indicador de estado del sistema en la barra superior desde F2: «IA lista», «IA no disponible: 12 correos en cola» o «Modelo local: se clasifica con la app abierta».
+
+### 5.1 Pasos pendientes (24-nov-2026, D51)
+- **Tarjeta:** barra azul de 4 px a la izquierda (opción B) y un bloque en `acento-suave` con el paso de plazo más cercano, el plazo (naranja si vence hoy o mañana), «+N» si hay más y **Hecho** (toast con **Deshacer**). También en las tarjetas del panel «Cerradas».
+- **Tablero:** chip «N pasos pendientes» que filtra las tarjetas con pasos; el botón «Cerradas» dice cuántas cerradas esconden uno.
+- **Ficha:** sección **Proceso** (componente `b-proceso`) con los pasos pedidos y hechos en orden, mezclados con los cambios de estado; **Hecho**, **Descartar**, **Editar**, **Reabrir**, **Abrir ↗** y **+ Paso** (pendiente o ya hecho).
+- **Cerrar:** el diálogo de rechazado o descartado lista los pasos pendientes con «Descartar estos pasos» marcado.
+- **Bandeja:** «Pide: …» y asociar a varias postulaciones, con las sugeridas por la IA marcadas.
 
 ## 6. Idioma
 

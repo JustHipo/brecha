@@ -3,19 +3,38 @@ import { ApiExcludeController } from '@nestjs/swagger';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import type { Request, Response } from 'express';
 import { SoloTokens } from '../../../acceso/decoradores';
+import { CasosDeRedInyectables } from '../../../red/infraestructura/casos-de-red.provider';
+import { CasosCsvInyectables } from '../../../csv/infraestructura/casos-csv.provider';
 import { CasosDeUso } from '../casos';
 import { crearServidorMcp } from './servidor-mcp';
+import { CasosDeArriendos } from '../../../arriendos/aplicacion/casos';
+import { CasosDePerfil } from '../../aplicacion/casos-de-perfil';
+import { CasosDeFotos } from '../../../arriendos/aplicacion/fotos';
 
 /** MCP por HTTP dentro del núcleo (ADR 0018), en modo sin sesión: un servidor por pedido. */
 @ApiExcludeController()
 @Controller('mcp')
 @SoloTokens('mcp')
 export class McpController {
-  constructor(@Inject(CasosDeUso) private readonly casos: CasosDeUso) {}
+  constructor(
+    @Inject(CasosDeUso) private readonly casos: CasosDeUso,
+    @Inject(CasosDeRedInyectables) private readonly red: CasosDeRedInyectables,
+    @Inject(CasosCsvInyectables) private readonly csv: CasosCsvInyectables,
+    @Inject(CasosDeArriendos) private readonly arriendos: CasosDeArriendos,
+    @Inject(CasosDePerfil) private readonly perfil: CasosDePerfil,
+    @Inject(CasosDeFotos) private readonly fotos: CasosDeFotos,
+  ) {}
 
   @Post()
   async pedido(@Req() req: Request, @Res() res: Response): Promise<void> {
-    const servidor = crearServidorMcp(this.casos);
+    const servidor = crearServidorMcp(
+      this.casos,
+      this.red.red,
+      this.csv.csv,
+      this.arriendos,
+      this.perfil,
+      this.fotos,
+    );
     const transporte = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined });
     res.on('close', () => {
       void transporte.close();

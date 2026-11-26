@@ -17,6 +17,8 @@ jobs:
     env:
       DATABASE_URL: postgresql://nucleo:nucleo_local@127.0.0.1:5433/brecha?schema=nucleo
       DATABASE_URL_PRUEBAS: postgresql://nucleo:nucleo_local@127.0.0.1:5433/brecha_pruebas?schema=nucleo
+      IA_DATABASE_URL: postgresql+psycopg://ia:ia_local@127.0.0.1:5433/brecha
+      IA_DATABASE_URL_PRUEBAS: postgresql+psycopg://ia:ia_local@127.0.0.1:5433/brecha_pruebas
     steps:
       - uses: actions/checkout@v5
 
@@ -30,11 +32,26 @@ jobs:
       - name: Instalar dependencias
         run: pnpm install --frozen-lockfile
 
+      - uses: astral-sh/setup-uv@v10.4.0
+        with:
+          enable-cache: true
+          cache-dependency-glob: services/ia/uv.lock
+
+      - name: Dependencias del servicio con IA (Python con uv)
+        working-directory: services/ia
+        run: uv sync --frozen
+
       - name: Levantar PostgreSQL (mismo compose que en local)
         run: docker compose --profile liviano up -d --wait
 
       - name: Generar clientes (prisma generate)
         run: pnpm turbo run generar
+
+      - name: Migrar el esquema ia (Alembic) en las dos bases
+        working-directory: services/ia
+        run: |
+          uv run alembic upgrade head
+          IA_DATABASE_URL_MIGRAR="$IA_DATABASE_URL_PRUEBAS" uv run alembic upgrade head
 
       - name: Formato
         run: pnpm format:check

@@ -17,8 +17,8 @@ import { Api } from '../../nucleo/api/api.service';
 import { Avisos } from '../../nucleo/avisos';
 import { Formato } from '../../nucleo/idioma/idioma';
 import { Transiciones } from '../postulacion/transiciones';
-import { Tarjeta } from './tarjeta';
-import { ABIERTOS, CERRADOS, TableroStore } from './tablero.store';
+import { Tarjeta, type PasoHecho } from './tarjeta';
+import { ABIERTOS, CERRADOS, SIN_FILTROS, TableroStore } from './tablero.store';
 
 /** Tablero (ui.md §4.2, F1-13): columnas por estado, arrastrar con validación y «Mover a…» con teclado. */
 @Component({
@@ -92,12 +92,50 @@ import { ABIERTOS, CERRADOS, TableroStore } from './tablero.store';
             </button>
           }
         </div>
+        @if (store.pasosPendientes() || store.filtros().conPasos) {
+          <button
+            type="button"
+            data-filtro-pasos
+            class="flex h-[34px] items-center gap-1.5 rounded-full border px-3 text-[12.5px] font-semibold"
+            [class.border-acento]="store.filtros().conPasos"
+            [class.bg-acento-suave]="store.filtros().conPasos"
+            [class.text-acento]="store.filtros().conPasos"
+            [class.border-linea]="!store.filtros().conPasos"
+            [class.text-tinta]="!store.filtros().conPasos"
+            [attr.aria-pressed]="store.filtros().conPasos"
+            (click)="alternarPasos()"
+          >
+            <span aria-hidden="true" class="h-3.5 w-1 rounded-full bg-acento"></span>
+            {{ 'pasos.filtro' | transloco: { n: store.pasosPendientes() } }}
+          </button>
+        }
+        @if (store.etiquetasEnUso().length) {
+          <label class="flex items-center gap-1.5 text-[12.5px] text-tinta-suave">
+            <span>{{ 'etiquetas.filtro' | transloco }}</span>
+            <select
+              data-filtro-etiqueta
+              class="h-8 rounded-full border border-linea bg-superficie px-2.5 text-tinta"
+              (change)="filtrarEtiqueta($any($event.target).value)"
+            >
+              <option value="" [selected]="!store.filtros().etiquetas.length">
+                {{ 'etiquetas.todas' | transloco }}
+              </option>
+              @for (e of store.etiquetasEnUso(); track e) {
+                <option [value]="e" [selected]="store.filtros().etiquetas.includes(e)">
+                  #{{ e }}
+                </option>
+              }
+            </select>
+          </label>
+        }
         @if (store.hayFiltros()) {
           <button hlmBtn variant="ghost" size="sm" type="button" (click)="limpiar()">
             {{ 'tablero.limpiarFiltros' | transloco }}
           </button>
         }
-        <a hlmBtn routerLink="/postulaciones/nueva">+ {{ 'nav.nueva' | transloco }}</a>
+        <a hlmBtn routerLink="/postulaciones/nueva" data-tutorial="nueva"
+          >+ {{ 'nav.nueva' | transloco }}</a
+        >
       </div>
     </div>
 
@@ -144,11 +182,12 @@ import { ABIERTOS, CERRADOS, TableroStore } from './tablero.store';
           <div class="grid flex-1 place-items-center">
             <div
               class="flex max-w-md flex-col items-center gap-3 rounded-2xl border border-dashed border-linea bg-superficie p-10 text-center"
+              data-tutorial="tablero"
             >
               <h2 class="m-0 text-xl font-extrabold">{{ 'tablero.vacioTitulo' | transloco }}</h2>
               <p class="m-0 text-tinta-suave">{{ 'tablero.vacioTexto' | transloco }}</p>
               <div class="flex gap-2">
-                <label hlmBtn variant="outline" class="cursor-pointer">
+                <label hlmBtn variant="outline" class="cursor-pointer" data-tutorial="importar">
                   {{ 'tablero.importar' | transloco }}
                   <input
                     type="file"
@@ -157,6 +196,9 @@ import { ABIERTOS, CERRADOS, TableroStore } from './tablero.store';
                     (change)="importar($event)"
                   />
                 </label>
+                <a hlmBtn variant="outline" routerLink="/importar">{{
+                  'csv.importarCsv' | transloco
+                }}</a>
                 <a hlmBtn routerLink="/postulaciones/nueva">{{ 'nav.nueva' | transloco }}</a>
               </div>
             </div>
@@ -172,9 +214,10 @@ import { ABIERTOS, CERRADOS, TableroStore } from './tablero.store';
           class="grid min-w-[1500px] grid-cols-[repeat(6,minmax(220px,1fr))_96px] items-start gap-3.5"
           [attr.aria-busy]="store.estado() === 'cargando'"
         >
-          @for (estado of abiertos; track estado) {
+          @for (estado of abiertos; track estado; let primera = $first) {
             @let col = store.columna(estado);
             <section
+              [attr.data-tutorial]="primera ? 'tablero' : null"
               [attr.aria-label]="'estados.' + estado | transloco"
               class="flex min-h-40 flex-col gap-2.5 rounded-[12px] transition-opacity"
               [class.opacity-40]="arrastrando() && !acepta(estado)"
@@ -200,6 +243,7 @@ import { ABIERTOS, CERRADOS, TableroStore } from './tablero.store';
               } @else {
                 @for (t of col?.items ?? []; track t.id) {
                   <b-tarjeta
+                    data-tutorial="ficha"
                     cdkDrag
                     [cdkDragData]="t"
                     (cdkDragStarted)="arrastrando.set(t)"
@@ -207,6 +251,7 @@ import { ABIERTOS, CERRADOS, TableroStore } from './tablero.store';
                     [tarjeta]="t"
                     [fechaCorta]="fechaCorta"
                     (mover)="moverConTeclado($event)"
+                    (hecho)="marcarHecho($event)"
                   >
                     <div
                       *cdkDragPlaceholder
@@ -243,6 +288,13 @@ import { ABIERTOS, CERRADOS, TableroStore } from './tablero.store';
                   >{{ 'estados.' + c | transloco }} {{ store.columna(c)?.total ?? 0 }}</span
                 >
               }
+              @if (store.cerradasConPasos()) {
+                <span
+                  class="rounded-full bg-acento-suave px-2 py-0.5 text-center text-[11px] font-semibold text-acento"
+                  data-cerradas-con-pasos
+                  >{{ 'pasos.enCerradas' | transloco: { n: store.cerradasConPasos() } }}</span
+                >
+              }
               <span aria-hidden="true">▸</span>
             </button>
             <hlm-sheet-content *hlmSheetPortal="let ctx" class="w-[420px] overflow-y-auto">
@@ -260,6 +312,7 @@ import { ABIERTOS, CERRADOS, TableroStore } from './tablero.store';
                         [tarjeta]="t"
                         [fechaCorta]="fechaCorta"
                         (mover)="moverConTeclado($event)"
+                        (hecho)="marcarHecho($event)"
                       />
                     }
                   </section>
@@ -356,6 +409,10 @@ export class TableroPagina {
     this.store.filtros.update((f) => ({ ...f, q }));
   }
 
+  protected filtrarEtiqueta(e: string): void {
+    this.store.filtros.update((f) => ({ ...f, etiquetas: e ? [e] : [] }));
+  }
+
   protected alternarPrioridad(p: string): void {
     this.store.filtros.update((f) => ({
       ...f,
@@ -365,8 +422,32 @@ export class TableroPagina {
     }));
   }
 
+  protected alternarPasos(): void {
+    this.store.filtros.update((f) => ({ ...f, conPasos: !f.conPasos }));
+  }
+
+  /** «Hecho» en la tarjeta: sale el paso y el toast ofrece deshacer (pasos.md §7.1). */
+  protected async marcarHecho(e: PasoHecho): Promise<void> {
+    const error = await this.store.resolverPaso(e.tarjeta, e.pasoId, 'hecho');
+    if (error) {
+      this.avisos.error(error);
+      return;
+    }
+    this.avisos.exito(
+      'pasos.marcado',
+      { paso: e.descripcion },
+      {
+        clave: 'pasos.deshacer',
+        hacer: () =>
+          void this.store.resolverPaso(e.tarjeta, e.pasoId, 'pendiente').then((x) => {
+            if (x) this.avisos.error(x);
+          }),
+      },
+    );
+  }
+
   protected limpiar(): void {
-    this.store.filtros.set({ plataformas: [], prioridades: [], q: '' });
+    this.store.filtros.set(SIN_FILTROS);
   }
 
   protected async importar(e: Event): Promise<void> {

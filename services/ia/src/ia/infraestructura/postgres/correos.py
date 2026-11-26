@@ -1,0 +1,462 @@
+"""Repositorio de correos del esquema `ia`.
+
+Sin el cuerpo completo: solo el fragmento de lo que pasó el filtro.
+"""
+
+from dataclasses import asdict
+from datetime import UTC, datetime
+from typing import Any
+
+from sqlalchemy import ColumnElement, Engine, func, null, or_, select, update
+from sqlalchemy.dialects.postgresql import insert
+
+from ia.aplicacion.puertos import (
+    AvisoRedPorEnviar,
+    ClasificadoPorEnviar,
+    CorreoDeArriendo,
+    CorreoGuardado,
+    CorreoPorClasificar,
+    DecisionGuardada,
+    EstadoDelServicio,
+    PasoParaNucleo,
+    PuntoDeLectura,
+    Traza,
+)
+from ia.dominio.arriendo import PLATAFORMA_ARRIENDO
+from ia.dominio.asociacion import normalizar_empresa
+from ia.dominio.clasificacion import Clasificacion
+from ia.dominio.correo import EstadoDeCorreo
+from ia.dominio.linkedin import AvisoDeLinkedin
+from ia.dominio.reglas import dominio_compartido
+from ia.infraestructura.postgres.tablas import aviso, aviso_red, clasificacion, correo, estado_vigia, traza
+
+
+def decision_desde_dict(d: Any) -> DecisionGuardada | None:
+    if not isinstance(d, dict):
+        return None
+    paso = d.get("paso")
+    return DecisionGuardada(
+        postulacion_ids=tuple(d.get("postulacion_ids") or ()),
+        candidatas=tuple(d.get("candidatas") or ()),
+        motivo=str(d.get("motivo") or ""),
+        paso=PasoParaNucleo(**paso) if isinstance(paso, dict) else None,
+        pasos_cumplidos=tuple((str(i), float(c)) for i, c in d.get("pasos_cumplidos") or ()),
+    )
+
+
+class RepositorioPostgresDeCorreos:
+    def __init__(self, motor: Engine) -> None:
+        self.motor = motor
+
+    def punto_de_lectura(self) -> PuntoDeLectura:
+        with self.motor.connect() as c:
+            fila = c.execute(select(estado_vigia).where(estado_vigia.c.id == 1)).first()
+        return PuntoDeLectura(fila.uidvalidity, fila.ultimo_uid) if fila else PuntoDeLectura(None, None)
+
+    def existe(self, message_id: str) -> bool:
+        with self.motor.connect() as c:
+            return (
+                c.execute(select(correo.c.message_id).where(correo.c.message_id == message_id)).first()
+                is not None
+            )
+
+    def guardar(self, g: CorreoGuardado) -> None:
+        with self.motor.begin() as c:
+            c.execute(
+                insert(correo)
+                .values(
+                    message_id=g.message_id,
+                    uid=g.uid,
+                    remitente=g.remitente[:320],
+                    recibido_en=g.recibido_en,
+                    estado=g.estado.value,
+                    plataforma=g.plataforma,
+                    motivo=g.motivo[:200],
+                    asunto=g.asunto,
+                    fragmento=g.fragmento,
+                    creado_en=datetime.now(UTC),
+                    en_respuesta_a=g.en_respuesta_a[:998] if g.en_respuesta_a else None,
+                    referencias=list(g.referencias)[-20:] if g.referencias else null(),
+                    enlaces=list(g.enlaces) if g.enlaces else null(),
+                )
+                .on_conflict_do_nothing(index_elements=["message_id"])
+            )
+
+    def registrar_revision(self, punto: PuntoDeLectura, cuando: datetime, error: str | None) -> None:
+        valores = {
+            "uidvalidity": punto.uidvalidity,
+            "ultimo_uid": punto.ultimo_uid,
+            "ultima_revision": cuando,
+            "ultimo_error": error,
+        }
+        with self.motor.begin() as c:
+            c.execute(
+                insert(estado_vigia)
+                .values(id=1, **valores)
+                .on_conflict_do_update(index_elements=["id"], set_=valores)
+            )
+
+    def en_cola(self) -> int:
+        with self.motor.connect() as c:
+            n = c.execute(
+                select(func.count())
+                .select_from(correo)
+                .where(correo.c.estado == EstadoDeCorreo.PENDIENTE.value)
+            ).scalar_one()
+        return int(n)
+
+    # ── Cola de clasificación (F2-06) ───────────────────────────────────────────
+
+    def pendientes(self, limite: int) -> list[CorreoPorClasificar]:
+        with self.motor.connect() as c:
+            filas = c.execute(
+                select(correo)
+                .where(correo.c.estado == EstadoDeCorreo.PENDIENTE.value)
+                # Los de arriendo los procesa su propio caso de uso (docs/diseno/arriendos.md §7).
+                .where(or_(correo.c.plataforma.is_(None), correo.c.plataforma != PLATAFORMA_ARRIENDO))
+                .order_by(correo.c.recibido_en)
+                .limit(limite)
+            ).all()
+        return [
+            CorreoPorClasificar(
+                f.message_id,
+                f.remitente,
+                f.asunto or "",
+                f.fragmento or "",
+                f.plataforma,
+                f.intentos,
+                f.en_respuesta_a,
+                tuple(f.referencias or ()),
+                tuple(f.enlaces or ()),
+            )
+            for f in filas
+        ]
+
+    def clasificados_desde(self, desde: datetime) -> list[CorreoPorClasificar]:
+        """Correos de postulaciones ya clasificados desde `desde`, del más antiguo al más nuevo."""
+        with self.motor.connect() as c:
+            filas = c.execute(
+                select(correo)
+                .join(clasificacion, clasificacion.c.message_id == correo.c.message_id)
+                .where(correo.c.recibido_en >= desde)
+                .where(clasificacion.c.resultado["es_postulacion"].astext == "true")
+                .order_by(correo.c.recibido_en)
+            ).all()
+        return [
+            CorreoPorClasificar(
+                f.message_id,
+                f.remitente,
+                f.asunto or "",
+                f.fragmento or "",
+                f.plataforma,
+                f.intentos,
+                f.en_respuesta_a,
+                tuple(f.referencias or ()),
+                tuple(f.enlaces or ()),
+                f.recibido_en,
+            )
+            for f in filas
+        ]
+
+    # ── Remitentes conocidos: el filtro y las candidatas por dominio ─────────────
+
+    def _dominio(self) -> ColumnElement[str]:
+        return func.lower(func.split_part(correo.c.remitente, "@", 2))
+
+    def dominios_conocidos(self) -> frozenset[str]:
+        """Dominios que ya mandaron un correo de una postulación (no los compartidos: correo personal,
+        portales ni sistemas de selección, que escriben por muchas empresas)."""
+        with self.motor.connect() as c:
+            filas = c.execute(
+                select(self._dominio().label("d"))
+                .join(clasificacion, clasificacion.c.message_id == correo.c.message_id)
+                .where(clasificacion.c.resultado["es_postulacion"].astext == "true")
+                .distinct()
+            ).all()
+        return frozenset(f.d for f in filas if f.d and not dominio_compartido(f.d))
+
+    def empresas_conocidas(self) -> frozenset[str]:
+        """Las empresas de tus postulaciones (todas entran al inventario de avisos, D45), normalizadas."""
+        with self.motor.connect() as c:
+            filas = c.execute(
+                select(aviso.c.empresa).where(aviso.c.postulacion_id.is_not(None)).distinct()
+            ).all()
+        return frozenset(e for f in filas if (e := normalizar_empresa(f.empresa)))
+
+    def postulaciones_del_dominio(self, dominio: str) -> tuple[str, ...]:
+        """Las postulaciones a las que ya fueron correos de ese dominio (no de los compartidos: un correo de
+        LinkedIn o de Greenhouse no dice de qué empresa es)."""
+        d = dominio.lower()
+        if dominio_compartido(d):
+            return ()
+        with self.motor.connect() as c:
+            filas = c.execute(
+                select(clasificacion.c.postulacion_ids, clasificacion.c.postulacion_id)
+                .join(correo, clasificacion.c.message_id == correo.c.message_id)
+                .where(self._dominio() == d)
+            ).all()
+        ids = [
+            i for f in filas for i in (f.postulacion_ids or ([f.postulacion_id] if f.postulacion_id else []))
+        ]
+        return tuple(dict.fromkeys(ids))
+
+    def estado_de(self, message_id: str) -> str | None:
+        with self.motor.connect() as c:
+            fila = c.execute(select(correo.c.estado).where(correo.c.message_id == message_id)).first()
+        return fila.estado if fila else None
+
+    def reabrir(self, g: CorreoGuardado) -> bool:
+        """Un correo filtrado que ahora pasa vuelve a la cola, con su asunto y su fragmento."""
+        with self.motor.begin() as c:
+            r = c.execute(
+                update(correo)
+                .where(correo.c.message_id == g.message_id, correo.c.estado == EstadoDeCorreo.FILTRADO.value)
+                .values(
+                    estado=EstadoDeCorreo.PENDIENTE.value,
+                    plataforma=g.plataforma,
+                    motivo=g.motivo[:200],
+                    asunto=g.asunto,
+                    fragmento=g.fragmento,
+                    intentos=0,
+                    en_respuesta_a=g.en_respuesta_a[:998] if g.en_respuesta_a else None,
+                    referencias=list(g.referencias)[-20:] if g.referencias else null(),
+                    enlaces=list(g.enlaces) if g.enlaces else null(),
+                )
+            )
+        return r.rowcount == 1
+
+    def del_hilo(self, message_ids: tuple[str, ...]) -> tuple[str, ...]:
+        """Las postulaciones de los correos de este hilo que ya se asociaron (regla segura, pasos.md §5.1)."""
+        if not message_ids:
+            return ()
+        with self.motor.connect() as c:
+            filas = c.execute(
+                select(clasificacion.c.postulacion_ids).where(clasificacion.c.message_id.in_(message_ids))
+            ).all()
+        return tuple(dict.fromkeys(i for f in filas for i in (f.postulacion_ids or ())))
+
+    def marcar_clasificado(
+        self,
+        message_id: str,
+        clasif: Clasificacion,
+        modelo: str,
+        decision: DecisionGuardada | None = None,
+    ) -> None:
+        resultado: dict[str, Any] = asdict(clasif)
+        if decision is not None:
+            resultado["decision"] = asdict(decision)
+        with self.motor.begin() as c:
+            c.execute(
+                insert(clasificacion)
+                .values(
+                    message_id=message_id,
+                    resultado=resultado,
+                    modelo=modelo,
+                    confianza=clasif.confianza,
+                    creada_en=datetime.now(UTC),
+                )
+                .on_conflict_do_nothing(index_elements=["message_id"])
+            )
+            c.execute(
+                update(correo)
+                .where(correo.c.message_id == message_id)
+                .values(estado=EstadoDeCorreo.CLASIFICADO.value)
+            )
+
+    # ── Arriendos (docs/diseno/arriendos.md §7) ─────────────────────────────────
+
+    def pendientes_de_arriendo(self, limite: int) -> list[CorreoDeArriendo]:
+        with self.motor.connect() as c:
+            filas = c.execute(
+                select(correo)
+                .where(
+                    correo.c.estado == EstadoDeCorreo.PENDIENTE.value,
+                    correo.c.plataforma == PLATAFORMA_ARRIENDO,
+                )
+                .order_by(correo.c.recibido_en)
+                .limit(limite)
+            ).all()
+        return [
+            CorreoDeArriendo(
+                f.message_id, f.remitente, f.asunto or "", f.fragmento or "", f.recibido_en, f.intentos
+            )
+            for f in filas
+        ]
+
+    def marcar_arriendo(
+        self, message_id: str, resultado: dict[str, object], modelo: str, confianza: float
+    ) -> None:
+        """Clasificado y ya enviado al núcleo: no lo vuelve a tomar ni la cola de empleo ni la de envío."""
+        with self.motor.begin() as c:
+            c.execute(
+                insert(clasificacion)
+                .values(
+                    message_id=message_id,
+                    resultado=resultado,
+                    modelo=modelo,
+                    confianza=confianza,
+                    enviada_al_nucleo=True,
+                    creada_en=datetime.now(UTC),
+                )
+                .on_conflict_do_nothing(index_elements=["message_id"])
+            )
+            c.execute(
+                update(correo)
+                .where(correo.c.message_id == message_id)
+                .values(estado=EstadoDeCorreo.CLASIFICADO.value)
+            )
+
+    def marcar_intento_fallido(self, message_id: str, maximo: int) -> None:
+        with self.motor.begin() as c:
+            c.execute(
+                update(correo).where(correo.c.message_id == message_id).values(intentos=correo.c.intentos + 1)
+            )
+            c.execute(
+                update(correo)
+                .where(correo.c.message_id == message_id, correo.c.intentos >= maximo)
+                .values(estado=EstadoDeCorreo.ERROR.value)
+            )
+
+    def registrar_error_ia(self, error: str | None) -> None:
+        with self.motor.begin() as c:
+            c.execute(
+                insert(estado_vigia)
+                .values(id=1, ultimo_error_ia=error)
+                .on_conflict_do_update(index_elements=["id"], set_={"ultimo_error_ia": error})
+            )
+
+    # ── Cola de envío al núcleo (F2-07) ─────────────────────────────────────────
+
+    def por_enviar(self, limite: int) -> list[ClasificadoPorEnviar]:
+        with self.motor.connect() as c:
+            filas = c.execute(
+                select(
+                    clasificacion.c.message_id,
+                    clasificacion.c.resultado,
+                    correo.c.remitente,
+                    correo.c.asunto,
+                    correo.c.recibido_en,
+                )
+                .join(correo, correo.c.message_id == clasificacion.c.message_id)
+                .where(clasificacion.c.enviada_al_nucleo.is_(False))
+                .where(clasificacion.c.resultado["es_postulacion"].astext == "true")
+                .order_by(correo.c.recibido_en)
+                .limit(limite)
+            ).all()
+        return [
+            ClasificadoPorEnviar(
+                f.message_id,
+                Clasificacion.desde_dict(f.resultado),
+                f.remitente,
+                f.asunto or "",
+                f.recibido_en,
+                decision_desde_dict(f.resultado.get("decision")),
+            )
+            for f in filas
+        ]
+
+    def marcar_enviado(self, message_id: str, postulacion_ids: tuple[str, ...]) -> None:
+        with self.motor.begin() as c:
+            c.execute(
+                update(clasificacion)
+                .where(clasificacion.c.message_id == message_id)
+                .values(
+                    enviada_al_nucleo=True,
+                    postulacion_id=postulacion_ids[0] if postulacion_ids else None,
+                    postulacion_ids=list(postulacion_ids),
+                )
+            )
+
+    # ── Estado para Conexiones (F2-08) ───────────────────────────────────────────
+
+    def estado(self, desde_mes: datetime) -> EstadoDelServicio:
+        with self.motor.connect() as c:
+            v = c.execute(select(estado_vigia).where(estado_vigia.c.id == 1)).first()
+            cola = c.execute(
+                select(func.count())
+                .select_from(correo)
+                .where(correo.c.estado == EstadoDeCorreo.PENDIENTE.value)
+            ).scalar_one()
+            clasificados = c.execute(select(func.count()).select_from(clasificacion)).scalar_one()
+            gasto, llamadas = c.execute(
+                select(func.coalesce(func.sum(traza.c.costo_usd), 0), func.count()).where(
+                    traza.c.creada_en >= desde_mes
+                )
+            ).one()
+        return EstadoDelServicio(
+            ultima_revision=v.ultima_revision if v else None,
+            ultimo_error_correo=v.ultimo_error if v else None,
+            ultimo_error_ia=v.ultimo_error_ia if v else None,
+            en_cola=int(cola),
+            clasificados=int(clasificados),
+            gasto_mes_usd=float(gasto),
+            llamadas_mes=int(llamadas),
+        )
+
+    # ── Avisos de LinkedIn para tu red (D40) ───────────────────────────────────
+
+    def guardar_avisos_red(
+        self, message_id: str, recibido_en: datetime, avisos: list[AvisoDeLinkedin]
+    ) -> int:
+        ahora = datetime.now(UTC)
+        filas = [
+            {
+                "message_id": message_id,
+                "indice": i,
+                "tipo": a.tipo,
+                "nombre": a.nombre[:200],
+                "perfil_url": a.perfil_url[:500],
+                "titular": a.titular[:300] if a.titular else None,
+                "empresa": a.empresa[:200] if a.empresa else None,
+                "recibido_en": recibido_en,
+                "creado_en": ahora,
+            }
+            for i, a in enumerate(avisos)
+        ]
+        if not filas:
+            return 0
+        with self.motor.begin() as c:
+            # rowcount no es confiable con varias filas: se cuentan las que de verdad entraron.
+            r = c.execute(
+                insert(aviso_red).values(filas).on_conflict_do_nothing().returning(aviso_red.c.indice)
+            )
+            return len(r.all())
+
+    def avisos_red_por_enviar(self, limite: int) -> list[AvisoRedPorEnviar]:
+        q = (
+            select(aviso_red)
+            .where(aviso_red.c.enviado.is_(False))
+            .order_by(aviso_red.c.recibido_en, aviso_red.c.indice)
+            .limit(limite)
+        )
+        with self.motor.connect() as c:
+            return [
+                AvisoRedPorEnviar(
+                    f.message_id,
+                    f.indice,
+                    f.recibido_en,
+                    AvisoDeLinkedin(f.tipo, f.nombre, f.perfil_url, f.titular, f.empresa),
+                )
+                for f in c.execute(q)
+            ]
+
+    def marcar_aviso_red_enviado(
+        self, message_id: str, indice: int, contacto_id: str, postulacion_id: str | None
+    ) -> None:
+        with self.motor.begin() as c:
+            c.execute(
+                update(aviso_red)
+                .where(aviso_red.c.message_id == message_id, aviso_red.c.indice == indice)
+                .values(enviado=True, contacto_id=contacto_id, postulacion_id=postulacion_id)
+            )
+
+
+class TrazasPostgres:
+    """D28: cada llamada al modelo queda con modelo, tokens, costo y resultado; nunca el texto del correo."""
+
+    def __init__(self, motor: Engine) -> None:
+        self.motor = motor
+
+    def registrar(self, t: Traza) -> None:
+        with self.motor.begin() as c:
+            c.execute(insert(traza).values(**asdict(t)))
