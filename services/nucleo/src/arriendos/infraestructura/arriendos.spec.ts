@@ -323,4 +323,94 @@ describe('arriendos por MCP', () => {
     expect(canal).toMatch(/arriendos-sur/);
     await c.close();
   });
+  it('lo que faltaba por MCP: discrepancias, señales, visitas, contactos, mapa, canales, UF, bandeja y borrar', async () => {
+    const c = await cliente();
+    const ver = async (id: string) =>
+      (await auth(http.get(`/api/v1/arriendos/propiedades/${id}`)).expect(200)).body;
+    const p = (await auth(http.post('/api/v1/arriendos/propiedades')).send(depto).expect(201)).body.propiedad;
+
+    await c.callTool({
+      name: 'registrar_senal_arriendo',
+      arguments: {
+        propiedadId: p.id,
+        resumen: 'La corredora dice que ya la arrendaron',
+        estadoSugerido: 'no_disponible',
+      },
+    });
+    await c.callTool({ name: 'cambiar_estado_propiedad', arguments: { id: p.id, a: 'contactada' } });
+    let v = await ver(p.id);
+    expect(v.discrepancias).toHaveLength(1);
+    const resuelta = await c.callTool({
+      name: 'resolver_discrepancia_propiedad',
+      arguments: { id: p.id, discrepanciaId: v.discrepancias[0].id },
+    });
+    expect(resuelta.isError).toBeFalsy();
+    v = await ver(p.id);
+    expect(v.discrepancias[0].estado).not.toBe('abierta');
+
+    const aplicada = await c.callTool({
+      name: 'aplicar_senal_arriendo',
+      arguments: { id: p.id, senalId: v.senales[0].id },
+    });
+    expect(texto(aplicada)).toMatch(/no_disponible/);
+    v = await ver(p.id);
+    expect(v.cambios[0]).toMatchObject({ a: 'no_disponible', origen: 'ia' });
+
+    const q = (
+      await auth(http.post('/api/v1/arriendos/propiedades'))
+        .send({ ...depto, direccion: 'Av. Grecia 100', publicacion: { url: 'https://www.yapo.cl/x/2' } })
+        .expect(201)
+    ).body.propiedad;
+    await c.callTool({ name: 'agendar_visita', arguments: { id: q.id, fecha: '2026-12-01T11:00:00-03:00' } });
+    v = await ver(q.id);
+    await c.callTool({
+      name: 'cambiar_visita',
+      arguments: { id: q.id, visitaId: v.visitas[0].id, estado: 'hecha' },
+    });
+    await c.callTool({
+      name: 'registrar_contacto_propiedad',
+      arguments: { id: q.id, contacto: { nombre: 'Pedro', telefono: '+56933334444' } },
+    });
+    v = await ver(q.id);
+    expect(v.visitas[0].estado).toBe('hecha');
+    expect(v.contactos).toHaveLength(1);
+    await c.callTool({
+      name: 'quitar_contacto_propiedad',
+      arguments: { id: q.id, contactoId: v.contactos[0].id },
+    });
+    await c.callTool({
+      name: 'fijar_ubicacion_propiedad',
+      arguments: { id: q.id, lat: -33.0398, lon: -71.5908 },
+    });
+    v = await ver(q.id);
+    expect(v.contactos).toHaveLength(0);
+    expect(v.ubicacion).toMatchObject({ lat: -33.0398, lon: -71.5908, origen: 'manual' });
+
+    expect(
+      (await c.callTool({ name: 'fijar_uf', arguments: { valor: 39500.5, fecha: '2026-11-26' } })).isError,
+    ).toBeFalsy();
+    const mala = await c.callTool({ name: 'fijar_uf', arguments: { valor: 39500, fecha: 'ayer' } });
+    expect(mala.isError).toBe(true);
+
+    expect(
+      texto(await c.callTool({ name: 'editar_canal', arguments: { id: 'icasas', activo: false } })),
+    ).toMatch(/inactivo/);
+
+    await c.callTool({
+      name: 'registrar_senal_arriendo',
+      arguments: { resumen: 'Un correo de una corredora sin dirección', referenciaExterna: 'sin-propiedad' },
+    });
+    const bandeja = JSON.parse(
+      texto(await c.callTool({ name: 'listar_bandeja_arriendos', arguments: {} })).split('\n\n')[1]!,
+    );
+    expect(bandeja).toHaveLength(1);
+    await c.callTool({ name: 'descartar_senal_arriendo', arguments: { senalId: bandeja[0].id } });
+    expect((await auth(http.get('/api/v1/arriendos/bandeja')).expect(200)).body).toHaveLength(0);
+
+    expect(texto(await c.callTool({ name: 'borrar_propiedad', arguments: { id: q.id } }))).toMatch(
+      /^Borrada/,
+    );
+    await auth(http.get(`/api/v1/arriendos/propiedades/${q.id}`)).expect(404);
+    await c.close();
+  });
 });

@@ -123,8 +123,12 @@ jobs:
       - name: Instalar dependencias
         run: pnpm install --frozen-lockfile
 
-      - name: pgvector de Homebrew para PostgreSQL 17
-        run: brew install pgvector
+      - name: pgvector para PostgreSQL 17 (compilado; la fórmula de Homebrew ya no trae la 17)
+        run: |
+          brew install postgresql@17
+          bash apps/escritorio/scripts/compilar-pgvector-macos.sh "$RUNNER_TEMP/pgvector"
+          # Para todos los pasos que siguen: preparar-postgres.mjs corre aquí y de nuevo al armar el .dmg.
+          echo "PGVECTOR_DIR=$RUNNER_TEMP/pgvector" >> "$GITHUB_ENV"
 
       - uses: astral-sh/setup-uv@v10.4.0
         with:

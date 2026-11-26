@@ -422,6 +422,44 @@ export function crearServidorMcp(
   );
 
   s.registerTool(
+    'crear_desde_senal',
+    {
+      title: 'Crear postulación desde la bandeja',
+      description:
+        'Cuando una señal de la bandeja es de una postulación que no sigues: la crea con los datos del aviso y le asocia la señal. ' +
+        'Si ya la sigues, usa asociar_senal. YA_EXISTE si ese aviso ya está.',
+      inputSchema: {
+        senalId: z.string(),
+        titulo: z.string(),
+        empresa: z.string(),
+        url: z.string(),
+        plataforma: z.enum(PLATAFORMAS),
+        modalidad: z.enum(MODALIDADES).optional(),
+        ubicacion: z.string().optional(),
+        cierre: fecha.optional(),
+        stack: z.array(z.string()).optional(),
+        requisitos: z.string().optional(),
+        sueldoPublicado: z.string().optional(),
+      },
+    },
+    ({ senalId, ...aviso }) =>
+      correr(async () => {
+        const d = await casos.crearDesdeSenal.ejecutar({ senalId, aviso, origen: 'ia' });
+        return ok(`Creada desde la bandeja: ${linea(d)}`, d);
+      }),
+  );
+
+  s.registerTool(
+    'descartar_senal',
+    {
+      title: 'Descartar una señal de la bandeja',
+      description: 'Cuando no es de ninguna postulación (publicidad, un aviso que no interesa).',
+      inputSchema: { senalId: z.string() },
+    },
+    ({ senalId }) => correr(async () => ok('Señal descartada', await casos.descartarSenal.ejecutar(senalId))),
+  );
+
+  s.registerTool(
     'aplicar_senal',
     {
       title: 'Aplicar señal',
