@@ -66,7 +66,9 @@ Brecha se instala como una app que vive en la barra de menú: al iniciar sesión
 
 ```bash
 pnpm install
-brew install pgvector        # pgvector compilado para PostgreSQL 17, que la app lleva adentro
+brew install postgresql@17   # solo para compilar pgvector contra la versión que la app lleva adentro
+bash apps/escritorio/scripts/compilar-pgvector-macos.sh
+export PGVECTOR_DIR="$PWD/apps/escritorio/empaquetado/pgvector"
 pnpm --filter escritorio empaquetar
 open apps/escritorio/empaquetado/app/*.dmg
 ```

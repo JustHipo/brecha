@@ -1,5 +1,6 @@
 // Arma `recursos/postgres`: PostgreSQL 17.12 de @embedded-postgres más pgvector (D36).
-// - macOS arm64: pgvector de Homebrew compilado para PostgreSQL 17 (`brew install pgvector`).
+// - macOS arm64: pgvector compilado para PostgreSQL 17. Sirve el de Homebrew si aún trae la 17 (hasta 0.8.7);
+//   si no, scripts/compilar-pgvector-macos.sh lo compila y PGVECTOR_DIR apunta a esa carpeta (así en el CI).
 // - Windows x64: pgvector compilado con `nmake /F Makefile.win install` contra un PostgreSQL 17.12 con cabeceras
 //   (en el CI, el que trae el runner: scripts/compilar-pgvector-windows.ps1). PGVECTOR_DIR apunta a esa
 //   instalación (`lib/vector.dll` y `share/extension/vector*`). pgvector no publica binarios para Windows.
@@ -28,7 +29,8 @@ const plan = windows
       share: ['share', 'postgresql@17', 'extension'],
       libDestino: ['lib', 'postgresql', 'vector.dylib'],
       shareDestino: ['share', 'postgresql', 'extension'],
-      ayuda: 'Instala pgvector con: brew install pgvector',
+      ayuda:
+        'Compílalo con: bash apps/escritorio/scripts/compilar-pgvector-macos.sh (necesita brew install postgresql@17) y define PGVECTOR_DIR con la carpeta que deja.',
     };
 
 // El paquete no exporta su package.json: se busca por la carpeta de node_modules.
